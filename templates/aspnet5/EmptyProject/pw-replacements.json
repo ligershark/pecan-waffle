@@ -1,0 +1,6 @@
+{
+    "Exclude": ["pw-*","*.jpg","*.png","*.ico"],
+    "Replacements":[
+        {"EmptyProject":"%ProjectName%"}
+    ]   
+}
