@@ -1,5 +1,7 @@
 {
-  "name": "aspnet5-empty",
-  "description": "ASP.NET 5 empty project",
-  "defaultname": "empty"
+  "Name": "aspnet5-empty",
+  "Description": "ASP.NET 5 empty project",
+  "ProjetName": "empty",
+  "SolutionDir": "..\\..\\",
+  "ArtifactsDir": "%SolutionDir%artifacts\\"
 }

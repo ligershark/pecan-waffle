@@ -1,6 +1,13 @@
 {
-    "Exclude": ["pw-*","*.jpg","*.png","*.ico"],
-    "Replacements":[
-        {"EmptyProject":"%ProjectName%"}
-    ]   
+    "Exclude":["pw-*","*.jpg","*.png","*.ico"],
+    "Replacements":{
+        "MyNamespace":{
+            "Value":"%Namespace%"
+        },
+        "EmptyProject":{
+            "Exclude":["*.png","*.ico"],
+            "Include":["*.*proj","*.*user"],
+            "Value":"%ProjectName"
+        }
+    }
 }
