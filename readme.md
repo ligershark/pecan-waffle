@@ -1,6 +1,6 @@
 This is a prototype of a new command line experience for creating project and item templates. The overarching idea is to create a cross-platform self-contained
 command line tool which can be used to create projects/files which doesn't depend on installing a bunch of random tools onto the machine. We can later use this
-self-contained tool to enable temlates across VS/yeoman/VSCode.
+self-contained tool to enable templates across VS/Yeoman/VSCode.
 
 We are also going to use this as an opportunity to simplify the following areas.
 
@@ -8,7 +8,7 @@ We are also going to use this as an opportunity to simplify the following areas.
  - Make it easier to share templates 
  - Improve the experience with dynamic templates
  
- The initial thoughts are to create a prototype in PowerShell which shows the end state. After we prove that we want to do this we can implement it
+ The initial thoughts are to create a prototype in PowerShell which shows the end state. After we provide proof of concept we can implement it
  using dnx/dotnet so that it's truly cross platform.
  
  ### Initial thoughts
@@ -26,7 +26,7 @@ pw source add c:\mytemplates\
 pw source add c:\mytemplates\ -first
 
 # Adds a new source which points to a git repo (no auth). When added the repo will be cloned to the localmachine. Then that folder will be added
-# as a source. The name of te source will be 'pecan-waffle'. If there exists a source with that name and a different url the name will be
+# as a source. The name of the source will be 'pecan-waffle'. If there exists a source with that name and a different url the name will be
 # pecan-waffle(<number>)
 pw source add https://github.com/ligershark/pecan-waffle.git 
 
