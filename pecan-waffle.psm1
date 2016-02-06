@@ -131,7 +131,7 @@ function Update-FileName{
 
         [Parameter(Position=3,Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$replaceValue
+        [ScriptBlock]$replaceValue
     )
     process{
         if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'UpdateFilenames')){
@@ -141,6 +141,42 @@ function Update-FileName{
         $templateInfo.UpdateFilenames += New-Object -TypeName psobject -Property @{
             ReplaceKey = $replaceKey
             ReplaceValue = $replaceValue
+        }
+    }
+}
+
+function Before-Install{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=1,Mandatory=$true)]
+        $templateInfo,
+        [Parameter(Position=2,Mandatory=$true)]
+        [ScriptBlock]$beforeInstall
+    )
+    process{
+        if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'BeforeInstall')){
+            Internal-AddProperty -inputObject $templateInfo -propertyName 'BeforeInstall' -propertyValue $beforeInstall
+        }
+        else{
+            $templateInfo.BeforeInstall = $beforeInstall
+        }
+    }
+}
+
+function After-Install{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=1,Mandatory=$true)]
+        $templateInfo,
+        [Parameter(Position=2,Mandatory=$true)]
+        [ScriptBlock]$afterInstall
+    )
+    process{
+        if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'AfterInstall')){
+            Internal-AddProperty -inputObject $templateInfo -propertyName 'AfterInstall' -propertyValue $afterInstall
+        }
+        else{
+            $templateInfo.AfterInstall = $afterInstall
         }
     }
 }
@@ -201,6 +237,24 @@ function Set-TemplateInfo{
     }
 }
 
+function InternalGet-EvaluatedProperty{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ScriptBlock]$expression,
+
+        [Parameter(Position=1,Mandatory=$true)]
+        [hashtable]$properties
+    )
+    process{
+        $scriptToExec = [ScriptBlock]::Create({$fargs=$args; foreach($f in $fargs.Keys){ New-Variable -Name $f -Value $fargs.$f };}.ToString() + $expression.ToString())
+        $value = & ($scriptToExec) $evaluatedProps
+
+        # return the value
+        $value
+    }
+}
+
 function Add-Project{
     [cmdletbinding()]
     param(
@@ -234,18 +288,51 @@ function Add-Project{
                 Get-ChildItem -Path $tempWorkDir.FullName -Include $template.ExcludeFolder -Recurse -Directory | Remove-Item -Recurse -ErrorAction SilentlyContinue
             }
 
-            # replace file names
+            # eval properties here
+            $evaluatedProps = @{}
+            $evaluatedProps['templateWorkingDir'] = $tempWorkDir.FullName
+            # add all the properties of $template into evaluatedProps
+            foreach($name in $template.psobject.Properties.Name){
+                $evaluatedProps[$name]=($template.$name)
+            }
             
+            if($template.Replacements -ne $null){
+                foreach($rep in $template.Replacements){
+                    # $scriptToExec = [ScriptBlock]::Create({$fargs=$args; foreach($f in $fargs.Keys){ New-Variable -Name $f -Value $fargs.$f };}.ToString() + $rep.ReplaceValue.ToString())
+                    # $value = & ($scriptToExec) $evaluatedProps
 
+                    $evaluatedProps[$rep.ReplaceKey] = InternalGet-EvaluatedProperty -expression $rep.ReplaceValue -properties $evaluatedProps
+                }
+            }
+            
+            # replace file names
+            $template.UpdateFilenames | ForEach-Object { 
+                $current = $_
+                [System.IO.FileInfo[]]$files = (Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)
+                foreach($file in $files){
+                    $file = [System.IO.FileInfo]$file
+                    $repvalue = InternalGet-EvaluatedProperty -expression $current.ReplaceValue -properties $evaluatedProps
+                    $newname = $file.Name.Replace($current.ReplaceKey,$repvalue)
+                    [System.IO.FileInfo]$newpath = (Join-Path ($file.Directory.FullName) $newname)
+                    Move-Item $file.FullName $newpath.FullName
+                }
+            }
 
-
-
+            if($template.BeforeInstall -ne $null){
+                InternalGet-EvaluatedProperty -expression $template.BeforeInstall -properties $evaluatedProps
+            }
 
             # replace content in files
-
+            if(-not (Test-Path $destPath.FullName)){
+                New-Item -Path $destPath.FullName -ItemType Directory
+            }
             [string]$tpath = $tempWorkDir.FullName
             # copy the final result to the destination
             Copy-Item $tpath\* -Destination $destPath.FullName -Recurse -Include *
+
+            if($template.AfterInstall -ne $null){
+                InternalGet-EvaluatedProperty -expression $template.AfterInstall -properties $evaluatedProps
+            }
         }
         finally{
             # delete the temp dir and ignore any errors
