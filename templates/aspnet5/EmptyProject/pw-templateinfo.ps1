@@ -15,10 +15,9 @@ $templateInfo = New-Object -TypeName psobject -Property @{
 }
 
 Add-Replacement $templateInfo 'EmptyProject' {$ProjectName} {$DefaultProjectName}
-Add-Replacement $templateInfo 'SolutionDir' {$solutionDir} {'..\..\'}
-Add-Replacement $templateInfo 'ArtifactsDir' {$solutionDir+'artifacts\'} {'..\..\artifacts'}
+Add-Replacement $templateInfo 'SolutionDir' {$SolutionDir} {'..\..\'}
+Add-Replacement $templateInfo '..\..\artifacts' {$ArtifactsDir} {$SolutionDir + 'artifacts'}
 Add-Replacement $templateInfo '97b148d4-829e-4de3-840b-9c6600caa117' {$ProjectId} {[System.Guid]::NewGuid()}
-Add-Replacement $templateInfo '97b148d4-829e-4de3-840b-9c6600caa117' {$ProjectId} {[System.Guid]::NewGuid()} -rootDir 'sub\wwwroot' -Include '*','**' -Exclude '*.6','*.1'
 
 # when the template is run any filename with the given string will be updated
 Update-FileName $templateInfo 'EmptyProject' {$ProjectName}
@@ -33,4 +32,4 @@ After-Install = { 'after install' | Write-Host -ForegroundColor Cyan}
 # This will register the template with pecan-waffle
 Set-TemplateInfo -templateInfo $templateInfo
 
-
+$global:template = $templateInfo

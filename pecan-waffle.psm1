@@ -255,6 +255,41 @@ function InternalGet-EvaluatedProperty{
     }
 }
 
+function InternalGet-ReplacementValue{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNull()]
+        $template,
+
+        [Parameter(Position=1,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$replaceKey,
+
+        [Parameter(Position=2,Mandatory=$true)]
+        [ValidateNotNull()]
+        [hashtable]$evaluatedProperties
+    )
+    process{
+        $replacement = ($template.Replacements| Where-Object {$_.ReplaceKey -eq $replaceKey} | Select-Object -First 1)
+        if($replacement -eq $null){
+            throw ('Did not find replacement with key [{0}]' -f $replaceKey)
+        }
+
+        $value = InternalGet-EvaluatedProperty -expression $replacement.ReplaceValue -properties $evaluatedProperties
+
+        if( ($value -eq $null) -or
+            ($value -is [string] -and ([string]::IsNullOrWhiteSpace($value) ) ) ) {
+
+            if( ($replacement -ne $null) -and ($replacement.DefaultValue -ne $null)){
+                $value = InternalGet-EvaluatedProperty -expression $replacement.DefaultValue -properties $evaluatedProperties
+            }
+        }
+
+        $value
+    }
+}
+
 function Add-Project{
     [cmdletbinding()]
     param(
@@ -301,7 +336,8 @@ function Add-Project{
                     # $scriptToExec = [ScriptBlock]::Create({$fargs=$args; foreach($f in $fargs.Keys){ New-Variable -Name $f -Value $fargs.$f };}.ToString() + $rep.ReplaceValue.ToString())
                     # $value = & ($scriptToExec) $evaluatedProps
 
-                    $evaluatedProps[$rep.ReplaceKey] = InternalGet-EvaluatedProperty -expression $rep.ReplaceValue -properties $evaluatedProps
+                    # $evaluatedProps[$rep.ReplaceKey] = InternalGet-EvaluatedProperty -expression $rep.ReplaceValue -properties $evaluatedProps
+                    $evaluatedProps[$rep.ReplaceKey] = InternalGet-ReplacementValue -template $template -replaceKey $rep.ReplaceKey -evaluatedProperties $evaluatedProps
                 }
             }
             
@@ -311,7 +347,8 @@ function Add-Project{
                 [System.IO.FileInfo[]]$files = (Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)
                 foreach($file in $files){
                     $file = [System.IO.FileInfo]$file
-                    $repvalue = InternalGet-EvaluatedProperty -expression $current.ReplaceValue -properties $evaluatedProps
+                    # $repvalue = InternalGet-EvaluatedProperty -expression $current.ReplaceValue -properties $evaluatedProps
+                    $repvalue = InternalGet-ReplacementValue -template $template -replaceKey $current.ReplaceKey -evaluatedProperties $evaluatedProps
                     $newname = $file.Name.Replace($current.ReplaceKey,$repvalue)
                     [System.IO.FileInfo]$newpath = (Join-Path ($file.Directory.FullName) $newname)
                     Move-Item $file.FullName $newpath.FullName
@@ -323,11 +360,42 @@ function Add-Project{
             }
 
             # replace content in files
+            Import-FileReplacer | Out-Null
+
+            foreach($r in $template.Replacements){
+                # $rvalue = InternalGet-EvaluatedProperty -expression ($r.ReplaceValue) -properties $evaluatedProps
+
+                $rvalue = InternalGet-ReplacementValue -template $template -replaceKey $r.ReplaceKey -evaluatedProperties $evaluatedProps
+
+                $evaluatedProps[$r.ReplaceKey]=$rvalue
+
+                $replacements = @{
+                    $r.ReplaceKey = $rvalue
+                }
+
+                $replaceArgs = @{
+                    folder = $tempWorkDir.FullName
+                    replacements = $replacements
+                    include = '*'
+                    exclude = $null
+                }
+
+                if($r.Include -ne $null){
+                    $replaceArgs.include = ($r.include -join ';')
+                }
+                if($r.Exclude -ne $null){
+                    $replaceArgs.exclude = ($r.Exclude -join ';')
+                }
+
+                Replace-TextInFolder @replaceArgs
+            }
+
+            # copy the final result to the destination
             if(-not (Test-Path $destPath.FullName)){
                 New-Item -Path $destPath.FullName -ItemType Directory
             }
             [string]$tpath = $tempWorkDir.FullName
-            # copy the final result to the destination
+            
             Copy-Item $tpath\* -Destination $destPath.FullName -Recurse -Include *
 
             if($template.AfterInstall -ne $null){
@@ -339,6 +407,80 @@ function Add-Project{
             if(Test-Path $tempWorkDir.FullName){
                 Remove-Item $tempWorkDir.FullName -Recurse -ErrorAction SilentlyContinue
             }
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+    This will download and import nuget-powershell (https://github.com/ligershark/nuget-powershell),
+    which is a PowerShell utility that can be used to easily download nuget packages.
+
+    If nuget-powershell is already loaded then the download/import will be skipped.
+
+.PARAMETER nugetPsMinModVersion
+    The minimum version to import
+#>
+function Import-NuGetPowershell{
+    [cmdletbinding()]
+    param(
+        $nugetPsMinModVersion = $nugetPsMinModuleVersion
+    )
+    process{
+        # see if nuget-powershell is available and load if not
+        $nugetpsloaded = $false
+        if((get-command Get-NuGetPackage -ErrorAction SilentlyContinue)){
+            # check the module to ensure we have the correct version
+
+            $currentversion = (Get-Module -Name nuget-powershell).Version
+            if( ($currentversion -ne $null) -and ($currentversion.CompareTo([version]::Parse($nugetPsMinModVersion)) -ge 0 )){
+                $nugetpsloaded = $true
+            }
+        }
+
+        if(!$nugetpsloaded){
+            (new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/ligershark/nuget-powershell/master/get-nugetps.ps1") | iex
+        }
+
+        # check to see that it was loaded
+        if((get-command Get-NuGetPackage -ErrorAction SilentlyContinue)){
+            $nugetpsloaded = $true
+        }
+
+        if(-not $nugetpsloaded){
+            throw ('Unable to load nuget-powershell, unknown error')
+        }
+    }
+}
+
+<#
+.SYNOPSIS
+    This will download and import the given version of file-replacer (https://github.com/ligershark/template-builder/blob/master/file-replacer.psm1),
+    which can be used to replace text in files under a given folder.
+
+    If file-replacer is already loaded then the download/import will be skipped.
+
+.PARAMETER fileReplacerVersion
+    The version to import.
+#>
+function Import-FileReplacer{
+    [cmdletbinding()]
+    param(
+        [string]$fileReplacerVersion = '0.4.0-beta'
+    )
+    process{
+        $fileReplacerLoaded = $false
+        # Replace-TextInFolder
+        if(get-command Replace-TextInFolder -ErrorAction SilentlyContinue){
+            $fileReplacerLoaded = $true
+        }
+
+        # download/import file-replacer
+        if(-not $fileReplacerLoaded){
+            'Importing file-replacer version [{0}]' -f $fileReplacerVersion | Write-Verbose
+            Import-NuGetPowershell | Out-Null
+            $pkgpath = (Get-NuGetPackage 'file-replacer' -version $fileReplacerVersion -binpath)
+            Import-Module (Join-Path $pkgpath 'file-replacer.psm1') -DisableNameChecking -Global | Out-Null
         }
     }
 }
