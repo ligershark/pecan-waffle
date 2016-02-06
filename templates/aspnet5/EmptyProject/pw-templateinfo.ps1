@@ -1,11 +1,9 @@
 ﻿[cmdletbinding()]
 param()
 
-Remove-Module pecan-waffle -Force
-Import-Module C:\Data\mycode\pecan-waffle\pecan-waffle.psm1 -DisableNameChecking
-
 $templateInfo = New-Object -TypeName psobject -Property @{
     Name = 'aspnet5-empty'
+    Type = 'ProjectTemplate'
     Description = 'ASP.NET 5 empty project'
     DefaultProjectName = 'MyEmptyProject'
     LicenseUrl = 'https://raw.githubusercontent.com/ligershark/pecan-waffle/master/LICENSE'
@@ -23,7 +21,7 @@ Add-Replacement $templateInfo '97b148d4-829e-4de3-840b-9c6600caa117' {$ProjectId
 # when the template is run any filename with the given string will be updated
 Update-FileName $templateInfo 'EmptyProject' {$EmptyProject}
 # excludes files from the template
-Exclude-File $templateInfo '*.user','*.suo','*.userosscache','project.lock.json','*.vs*scc'
+Exclude-File $templateInfo 'pw-*.*','*.user','*.suo','*.userosscache','project.lock.json','*.vs*scc'
 # excludes folders from the template
 Exclude-Folder $templateInfo '.vs','artifacts'
 

@@ -4,6 +4,7 @@ param(
 )
 
 $global:pecanwafflesettings = New-Object -TypeName psobject -Property @{
+    TempDir = [System.IO.DirectoryInfo]('{0}\pecan-waffle\temp\projtemplates' -f $env:LOCALAPPDATA)
     Templates = @()
 }
 
@@ -62,7 +63,21 @@ function Internal-AddProperty{
     }
 }
 
-# Add-Replacement $templateInfo 'EmptyProject' {$ProjectName} {$DefaultProjectName}
+function InternalGet-NewTempDir{
+    [cmdletbinding()]
+    param()
+    process{
+        if(-not (Test-Path $global:pecanwafflesettings.TempDir)){
+            New-Item -ItemType Directory -Path ($global:pecanwafflesettings.TempDir.FullName) | Out-Null
+        }
+
+        [System.IO.DirectoryInfo]$newpath = Join-Path ($global:pecanwafflesettings.TempDir.FullName) ([System.Guid]::NewGuid())
+        New-Item -ItemType Directory -Path $newpath.FullName | out-null
+        # return the fullpath
+        $newpath.FullName
+    }
+}
+
 function Add-Replacement{
     [cmdletbinding()]
     param(
@@ -186,5 +201,73 @@ function Set-TemplateInfo{
     }
 }
 
+function Add-Project{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [string]$templateName,
+
+        [Parameter(Position=1)]
+        [System.IO.DirectoryInfo]$destPath,
+
+        [Parameter(Position=2)]
+        [string]$projectName = 'MyNewProject'
+    )
+    process{
+        # find the project template with the given name
+        $template = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate' -and $_.Name -eq $templateName}|Select-Object -First 1)
+
+        if($template -eq $null){
+            throw ('Did not find a template with the name [{0}]' -f $templateName)
+        }
+
+        [System.IO.DirectoryInfo]$tempWorkDir = InternalGet-NewTempDir
+        [string]$sourcePath = $template.TemplatePath
+        
+        try{
+            # copy all of the files besides those that start with pw- to the temp directory
+            'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$tempWorkDir.FullName | Write-Verbose
+            Copy-Item -Path $sourcePath\* -Destination $tempWorkDir.FullName -Recurse -Include * -Exclude ($template.ExcludeFiles)
+
+            # remove directories in the exclude list
+            if($template.ExcludeFolder -ne $null){
+                Get-ChildItem -Path $tempWorkDir.FullName -Include $template.ExcludeFolder -Recurse -Directory | Remove-Item -Recurse -ErrorAction SilentlyContinue
+            }
+
+            # replace file names
+            
+
+
+
+
+
+            # replace content in files
+
+            [string]$tpath = $tempWorkDir.FullName
+            # copy the final result to the destination
+            Copy-Item $tpath\* -Destination $destPath.FullName -Recurse -Include *
+        }
+        finally{
+            # delete the temp dir and ignore any errors
+            if(Test-Path $tempWorkDir.FullName){
+                Remove-Item $tempWorkDir.FullName -Recurse -ErrorAction SilentlyContinue
+            }
+        }
+    }
+}
+
 # TODO: Update this later
 Export-ModuleMember -function * -Alias *
+
+
+
+
+
+
+
+
+
+
+
+
+
