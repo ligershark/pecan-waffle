@@ -8,14 +8,14 @@ We are also going to use this as an opportunity to simplify the following areas.
  - Make it easier to share templates 
  - Improve the experience with dynamic templates
  
- The initial thoughts are to create a prototype in PowerShell which shows the end state. After we provide proof of concept we can implement it
- using dnx/dotnet so that it's truly cross platform.
+The initial thoughts are to create a prototype in PowerShell which shows the end state. After we provide proof of concept we can implement it
+using dnx/dotnet so that it's truly cross platform.
  
- ### Initial thoughts
+### Initial thoughts
  
- I'd like to see some commands like the following in the prototype. `pw` is an alias for `pecan-waffle`
+I'd like to see some commands like the following in the prototype. `pw` is an alias for `pecan-waffle`
  
- ```powershell
+```powershell
 # This will list both local and remote feeds. For remote feeds we will display the url as well as the local folder where the items were cloned.
 pw source list
 
