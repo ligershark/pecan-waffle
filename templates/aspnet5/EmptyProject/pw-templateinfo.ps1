@@ -45,9 +45,9 @@ $templateInfo.ArtifactsDir = $templateInfo.SolutionDir
 
 # TODO hook up replacements here as well. It can call a method to register the replacement. The key will be the containing folder
 
-Add-Replacement $templateInfo 'EmptyProject' $templateInfo.ProjectName
-Add-Replacement '97b148d4-829e-4de3-840b-9c6600caa117' $guid1
-Add-Replacement '97b148d4-829e-4de3-840b-9c6600caa117' $guid1 -rootDir = 'sub\wwwroot' -Include '*','**' -Exclude '*.6','*.1'
+Add-Replacement $templateInfo 'EmptyProject' {$ProjectName}
+Add-Replacement '97b148d4-829e-4de3-840b-9c6600caa117' {[System.Guid]::NewGuid()}
+Add-Replacement '97b148d4-829e-4de3-840b-9c6600caa117' [System.Guid]::NewGuid()} -rootDir = 'sub\wwwroot' -Include '*','**' -Exclude '*.6','*.1'
 
 # TODO: Implement this function
 # This will basically store the templateinfo object so that the caller can reterieve it
