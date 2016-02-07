@@ -467,15 +467,69 @@ function Add-Project{
         $template = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate' -and $_.Name -eq $templateName}|Select-Object -First 1)
 
         if($template -eq $null){
-            throw ('Did not find a template with the name [{0}]' -f $templateName)
+            throw ('Did not find a project template with the name [{0}]' -f $templateName)
         }
 
+        Add-Template -template $template -destPath $destPath -properties @{'ProjectName'=$projectName}
+    }
+}
+
+function Add-Item{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [string]$templateName,
+
+        [Parameter(Position=1)]
+        [System.IO.DirectoryInfo]$destPath,
+
+        [Parameter(Position=2)]
+        [string]$itemName = 'Item',
+
+        [Parameter(Position=3)]
+        [string]$destFilename
+    )
+    process{
+        # find the project template with the given name
+        $template = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ItemTemplate' -and $_.Name -eq $templateName}|Select-Object -First 1)
+
+        if($template -eq $null){
+            throw ('Did not find an item template with the name [{0}]' -f $templateName)
+        }
+
+        $props = @{'ItemName'=$itemName;'DestFileName'=$destFilename}
+        if(-not ([string]::IsNullOrWhiteSpace($destFilename))){
+            $props['DestFileName']=$destFilename
+        }
+        Add-Template -template $template -destPath $destPath -properties $props
+    }
+}
+
+function Add-Template{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [object]$template,
+
+        [Parameter(Position=1)]
+        [System.IO.DirectoryInfo]$destPath,
+
+        [Parameter(Position=2)]
+        [hashtable]$properties
+    )
+    process{
         [System.IO.DirectoryInfo]$tempWorkDir = InternalGet-NewTempDir
         [string]$sourcePath = $template.TemplatePath
         
         try{
             # eval properties here
             $evaluatedProps = @{}
+            if($properties -ne $null){
+                foreach($key in $properties.Keys){
+                    $evaluatedProps[$key]=$properties[$key]
+                }
+            }
+
             $evaluatedProps['templateWorkingDir'] = $tempWorkDir.FullName
             # add all the properties of $template into evaluatedProps
             foreach($name in $template.psobject.Properties.Name){

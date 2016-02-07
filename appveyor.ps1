@@ -16,3 +16,4 @@ if(-not (Test-Path $destDir.FullName)){
 Add-Project -templateName 'demo-singlefileproj' -destPath (join-path $destDir.FullName 'single') -projectName 'DemoProjSingleItem'
 Add-Project -templateName 'aspnet5-empty' -destPath (join-path $destDir.FullName 'empty') -projectName 'MyNewEmptyProj'
 Add-Project -templateName 'aspnet5-webapi' -destPath (join-path $destDir.FullName 'api') -projectName 'MyNewApiProj'
+Add-Item -templateName 'demo-controllerjs' -destPath (join-path $destDir.FullName 'item-controllerjs') -itemName 'newcontroller'
