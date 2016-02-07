@@ -16,14 +16,13 @@ function GetPsModulesPath{
         $Destination = $null
         if(Test-Path 'Env:PSModulePath'){
             $ModulePaths = @($Env:PSModulePath -split ';')
-
+    
             $ExpectedUserModulePath = Join-Path -Path ([Environment]::GetFolderPath('MyDocuments')) -ChildPath WindowsPowerShell\Modules
-            $Destination = $ModulePaths | Where-Object { $_ -eq $ExpectedUserModulePath}
+            $Destination = $ModulePaths | Where-Object { $_ -eq $ExpectedUserModulePath} | Select-Object -First 1
             if (-not $Destination) {
                 $Destination = $ModulePaths | Select-Object -Index 0
             }
         }
-        'GetPsModulesPath.dest: [{0}]' -f ($Destination -join ';') | Write-Host
         $Destination
     }
 }
