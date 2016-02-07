@@ -435,15 +435,17 @@ function Add-Project{
             }
             
             # replace file names
-            $template.UpdateFilenames | ForEach-Object { 
-                $current = $_
-                [System.IO.FileInfo[]]$files = (Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)
-                foreach($file in $files){
-                    $file = [System.IO.FileInfo]$file
-                    $repvalue = InternalGet-ReplacementValue -template $template -replaceKey $current.ReplaceKey -evaluatedProperties $evaluatedProps
-                    $newname = $file.Name.Replace($current.ReplaceKey,$repvalue)
-                    [System.IO.FileInfo]$newpath = (Join-Path ($file.Directory.FullName) $newname)
-                    Move-Item $file.FullName $newpath.FullName
+            if($template.UpdateFilenames -ne $null){
+                $template.UpdateFilenames | ForEach-Object {
+                    $current = $_
+                    [System.IO.FileInfo[]]$files = (Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)
+                    foreach($file in $files){
+                        $file = [System.IO.FileInfo]$file
+                        $repvalue = InternalGet-ReplacementValue -template $template -replaceKey $current.ReplaceKey -evaluatedProperties $evaluatedProps
+                        $newname = $file.Name.Replace($current.ReplaceKey,$repvalue)
+                        [System.IO.FileInfo]$newpath = (Join-Path ($file.Directory.FullName) $newname)
+                        Move-Item $file.FullName $newpath.FullName
+                    }
                 }
             }
 
