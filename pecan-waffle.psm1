@@ -81,12 +81,57 @@ function InternalGet-NewTempDir{
 # Items related to template sources
 
 function Add-TemplateSource{
-    [cmdletbinding()]
+    [cmdletbinding(DefaultParameterSetName='local')]
     param(
-        [Parameter(Position=0,Mandatory=$true)]
-        [System.IO.DirectoryInfo]$path
+        [Parameter(Position=0,Mandatory=$true,ParameterSetName='local')]
+        [System.IO.DirectoryInfo]$path,
+
+        [Parameter(Position=0,Mandatory=$true,ParameterSetName='git')]
+        [ValidateNotNullOrEmpty()]
+        [string]$url,
+
+        [Parameter(Position=1,ParameterSetName='git')]
+        $branch = 'master',
+
+        [Parameter(Position=2,ParameterSetName='git')]
+        [System.IO.DirectoryInfo]$localfolder = ('{0}\pecan-waffle\remote\templates' -f $env:LOCALAPPDATA),
+
+        [Parameter(Position=3,ParameterSetName='git')]
+        [string]$repoName
     )
     process{
+        [string]$localpath = $null
+        if($path -ne $null){
+            [string]$localpath = $path.FullName
+        }
+        else{
+            if(-not (Test-Path $localfolder)){
+                New-Item -Path $localfolder.FullName -ItemType Directory
+            }
+
+            $oldPath = Get-Location
+
+            if([string]::IsNullOrWhiteSpace($repoName)){
+                $startIndex = $url.LastIndexOf('/')
+                [string]$repoName = [System.Guid]::NewGuid()
+                if($startIndex -gt 0){
+                    $repoName = $url.Substring($startIndex +1).Replace('.git','')
+                }
+            }
+
+            try{
+                Set-Location $localfolder
+                $destFolder = (Join-Path $localfolder.FullName $repoName)
+
+                if(-not (Test-Path $destFolder)){
+                    Execute-CommandString "git clone $url --branch $branch --single-branch $repoName"
+                }
+            }
+            finally{
+                Set-Location $oldPath
+            }
+        }
+
         $files = (Get-ChildItem -Path $path 'pw-templateinfo.ps1' -Recurse -File)
         foreach($file in $files){
             & ([System.IO.FileInfo]$file.FullName)
