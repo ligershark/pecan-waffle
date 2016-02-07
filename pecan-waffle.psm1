@@ -131,6 +131,7 @@ function Add-TemplateSource{
                 Set-Location $localfolder
 
                 if(-not (Test-Path $repoFolder.FullName)){
+                    Import-NuGetPowershell
                     Execute-CommandString "git clone $url --branch $branch --single-branch $repoName"
                 }
             }
@@ -162,6 +163,7 @@ function Update-RemoteTemplates{
                 $oldpath = Get-Location
                 try{
                     Set-Location $ts.LocalFolder
+                    Import-NuGetPowershell
                     Execute-CommandString "git pull"
                 }
                 finally{
