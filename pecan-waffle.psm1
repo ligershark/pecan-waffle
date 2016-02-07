@@ -78,6 +78,24 @@ function InternalGet-NewTempDir{
     }
 }
 
+# Items related to template sources
+
+function Add-TemplateSource{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [System.IO.DirectoryInfo]$path
+    )
+    process{
+        $files = (Get-ChildItem -Path $path 'pw-templateinfo.ps1' -Recurse -File)
+        foreach($file in $files){
+            & ([System.IO.FileInfo]$file.FullName)
+        }
+    }
+}
+
+# Template Related Functions Below
+
 function Add-Replacement{
     [cmdletbinding()]
     param(
@@ -402,6 +420,8 @@ function Add-Project{
         }
     }
 }
+
+# Helpers for externals
 
 <#
 .SYNOPSIS
