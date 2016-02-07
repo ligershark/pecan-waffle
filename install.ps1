@@ -61,9 +61,7 @@ if(-not (Test-Path $expectedmodpath.FullName)){
 Remove-Module pecan-waffle -ErrorAction SilentlyContinue
 Import-Module $expectedmodpath.FullName -Global
 
-# 6. add template source
-Add-TemplateSource -path $expectedmodpath.Directory.FullName
-
+# clean up
 if(Test-Path $tempextractdir.FullName){
     Remove-Item $tempextractdir.FullName -Recurse -ErrorAction SilentlyContinue
 }

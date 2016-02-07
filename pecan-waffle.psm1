@@ -7,6 +7,12 @@ $global:pecanwafflesettings = New-Object -TypeName psobject -Property @{
     TempDir = [System.IO.DirectoryInfo]('{0}\pecan-waffle\temp\projtemplates' -f $env:LOCALAPPDATA)
     Templates = @()
     TemplateSources = @()
+    EnableAddLocalSourceOnLoad = $true
+}
+# todo: enable overriding settings via env var
+
+function InternalGet-ScriptDirectory{
+    split-path (((Get-Variable MyInvocation -Scope 1).Value).MyCommand.Path)
 }
 
 function Get-ValueOrDefault{
@@ -572,6 +578,9 @@ function Import-FileReplacer{
     }
 }
 
+if($global:pecanwafflesettings.EnableAddLocalSourceOnLoad -eq $true){
+    Add-TemplateSource (InternalGet-ScriptDirectory)
+}
 # TODO: Update this later
 Export-ModuleMember -function * -Alias *
 
