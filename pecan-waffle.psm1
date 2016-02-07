@@ -228,7 +228,6 @@ function Set-TemplateInfo{
     )
     process{
         if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'TemplatePath')){
-            # $MyInvocation.PSCommandPath
             Internal-AddProperty -inputObject $templateInfo -propertyName 'TemplatePath' -propertyValue @()
             $templateInfo.TemplatePath = ((Get-Item ($MyInvocation.PSCommandPath)).Directory.FullName)
         }
@@ -333,10 +332,6 @@ function Add-Project{
             
             if($template.Replacements -ne $null){
                 foreach($rep in $template.Replacements){
-                    # $scriptToExec = [ScriptBlock]::Create({$fargs=$args; foreach($f in $fargs.Keys){ New-Variable -Name $f -Value $fargs.$f };}.ToString() + $rep.ReplaceValue.ToString())
-                    # $value = & ($scriptToExec) $evaluatedProps
-
-                    # $evaluatedProps[$rep.ReplaceKey] = InternalGet-EvaluatedProperty -expression $rep.ReplaceValue -properties $evaluatedProps
                     $evaluatedProps[$rep.ReplaceKey] = InternalGet-ReplacementValue -template $template -replaceKey $rep.ReplaceKey -evaluatedProperties $evaluatedProps
                 }
             }
@@ -347,7 +342,6 @@ function Add-Project{
                 [System.IO.FileInfo[]]$files = (Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)
                 foreach($file in $files){
                     $file = [System.IO.FileInfo]$file
-                    # $repvalue = InternalGet-EvaluatedProperty -expression $current.ReplaceValue -properties $evaluatedProps
                     $repvalue = InternalGet-ReplacementValue -template $template -replaceKey $current.ReplaceKey -evaluatedProperties $evaluatedProps
                     $newname = $file.Name.Replace($current.ReplaceKey,$repvalue)
                     [System.IO.FileInfo]$newpath = (Join-Path ($file.Directory.FullName) $newname)
@@ -363,8 +357,6 @@ function Add-Project{
             Import-FileReplacer | Out-Null
 
             foreach($r in $template.Replacements){
-                # $rvalue = InternalGet-EvaluatedProperty -expression ($r.ReplaceValue) -properties $evaluatedProps
-
                 $rvalue = InternalGet-ReplacementValue -template $template -replaceKey $r.ReplaceKey -evaluatedProperties $evaluatedProps
 
                 $evaluatedProps[$r.ReplaceKey]=$rvalue
