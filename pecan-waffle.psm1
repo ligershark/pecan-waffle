@@ -100,6 +100,9 @@ function Add-TemplateSource{
         [Parameter(Position=3,ParameterSetName='git')]
         [string]$repoName
     )
+    begin{
+        Import-NuGetPowershell | Out-Null
+    }
     process{
         [string]$localpath = $null
         if($path -ne $null){
