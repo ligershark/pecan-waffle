@@ -517,7 +517,7 @@ function Add-Project{
 function Import-NuGetPowershell{
     [cmdletbinding()]
     param(
-        $nugetPsMinModVersion = $nugetPsMinModuleVersion
+        $nugetPsMinModVersion = '0.2.1.1'
     )
     process{
         # see if nuget-powershell is available and load if not
