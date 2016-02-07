@@ -140,7 +140,7 @@ function Add-TemplateSource{
             }
         }
 
-        $files = (Get-ChildItem -Path $path 'pw-templateinfo.ps1' -Recurse -File)
+        $files = (Get-ChildItem -Path $path 'pw-templateinfo*.ps1' -Recurse -File)
         foreach($file in $files){
             & ([System.IO.FileInfo]$file.FullName)
         }
@@ -489,7 +489,7 @@ function Add-Project{
             }
 
             if( ($template.SourceFiles -eq $null) -or ($template.SourceFiles.Count -le 0)){
-                # copy all of the files besides those that start with pw- to the temp directory
+                # copy all of the files to the temp directory
                 'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$tempWorkDir.FullName | Write-Verbose
                 Copy-Item -Path $sourcePath\* -Destination $tempWorkDir.FullName -Recurse -Include * -Exclude ($template.ExcludeFiles)
             }
