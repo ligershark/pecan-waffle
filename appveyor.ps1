@@ -17,3 +17,4 @@ Add-Project -templateName 'demo-singlefileproj' -destPath (join-path $destDir.Fu
 Add-Project -templateName 'aspnet5-empty' -destPath (join-path $destDir.FullName 'empty') -projectName 'MyNewEmptyProj'
 Add-Project -templateName 'aspnet5-webapi' -destPath (join-path $destDir.FullName 'api') -projectName 'MyNewApiProj'
 Add-Item -templateName 'demo-controllerjs' -destPath (join-path $destDir.FullName 'item-controllerjs') -itemName 'newcontroller'
+Add-Item -templateName 'demo-angularfiles' -destPath (join-path $destDir.FullName 'item-demo-angularfiles') -itemName 'newcontroller'

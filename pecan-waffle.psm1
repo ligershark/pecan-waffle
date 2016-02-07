@@ -205,7 +205,7 @@ function Add-SourceFile{
         [ValidateNotNull()]
         [string[]]$sourceFiles,
 
-        [Parameter(Position=1,Mandatory=$true)]
+        [Parameter(Position=1)]
         [ScriptBlock[]]$destFiles
     )
     process{
@@ -226,8 +226,8 @@ function Add-SourceFile{
             }
 
             if($dest -eq $null){
-                $dest = {$sourceFiles[$i]}
-                [ScriptBlock]::Create( ( '"{0}"' -f $sourceFiles[$i]) )
+                [string]$str =  '"{0}"' -f $sourceFiles[$i]
+                $dest = [ScriptBlock]::Create($str)
             }
 
             $templateInfo.SourceFiles += New-Object -TypeName psobject -Property @{
@@ -404,11 +404,18 @@ function InternalGet-EvaluatedProperty{
         [ScriptBlock]$expression,
 
         [Parameter(Position=1,Mandatory=$true)]
-        [hashtable]$properties
+        [hashtable]$properties,
+
+        [Parameter(Position=2)]
+        [hashtable]$extraProperties
     )
     process{
+        [hashtable]$allProps += $properties
+        if($extraProperties -ne $null){
+            $allProps += $extraProperties
+        }
         $scriptToExec = [ScriptBlock]::Create({$fargs=$args; foreach($f in $fargs.Keys){ New-Variable -Name $f -Value $fargs.$f };}.ToString() + $expression.ToString())
-        $value = & ($scriptToExec) $evaluatedProps
+        $value = & ($scriptToExec) $allProps
 
         # return the value
         $value
@@ -550,12 +557,20 @@ function Add-Template{
             else{
                 foreach($sf in  $template.SourceFiles){
                     $source = $sf.SourceFile;
-                    $dest = (InternalGet-EvaluatedProperty -expression ($sf.DestFile) -properties $evaluatedProps)
+                    
+                    [System.IO.FileInfo]$sourceFile = (Join-Path $sourcePath $source)
+                    [hashtable]$extraProps = @{
+                        'ThisItemName' = $sourceFile.BaseName
+                        'ThisItemFileName' = $sourceFile.Name
+                    }
+
+                    $dest = (InternalGet-EvaluatedProperty -expression ($sf.DestFile) -properties $evaluatedProps -extraProperties $extraProps)
+                    
                     if([string]::IsNullOrWhiteSpace($dest)){
                         throw ('Dest is null or empty for source [{0}]' -f $source)
                     }
 
-                    Copy-Item -Path (Join-Path $sourcePath $source) -Destination ((Join-Path $tempWorkDir.FullName $dest))
+                    Copy-Item -Path $sourceFile.FullName -Destination ((Join-Path $tempWorkDir.FullName $dest))
                 }
             }
 
