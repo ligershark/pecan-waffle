@@ -93,17 +93,17 @@ function Add-TemplateSource{
         [Parameter(Position=0,Mandatory=$true,ParameterSetName='local')]
         [System.IO.DirectoryInfo]$path,
 
-        [Parameter(Position=0,Mandatory=$true,ParameterSetName='git')]
+        [Parameter(Position=1,Mandatory=$true,ParameterSetName='git')]
         [ValidateNotNullOrEmpty()]
         [string]$url,
 
-        [Parameter(Position=1,ParameterSetName='git')]
+        [Parameter(Position=2,ParameterSetName='git')]
         $branch = 'master',
 
-        [Parameter(Position=2,ParameterSetName='git')]
+        [Parameter(Position=3,ParameterSetName='git')]
         [System.IO.DirectoryInfo]$localfolder = ('{0}\pecan-waffle\remote\templates' -f $env:LOCALAPPDATA),
 
-        [Parameter(Position=3,ParameterSetName='git')]
+        [Parameter(Position=4,ParameterSetName='git')]
         [string]$repoName
     )
     process{
@@ -174,7 +174,70 @@ function Update-RemoteTemplates{
     }
 }
 
-# Template Related Functions Below
+# Item Related to Templates Below
+function New-ItemTemplate{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0)]
+        $sharedInfo
+    )
+    process{
+        # copy the shared info
+        $newtemplate = new-object psobject
+        $sharedInfo.psobject.properties | % {
+            $newtemplate | Add-Member -MemberType $_.MemberType -Name $_.Name -Value $_.Value
+        }
+
+        if(-not (Internal-HasProperty -inputObject $newtemplate -propertyName 'Type')){
+            Internal-AddProperty -inputObject $newtemplate -propertyName 'Type' -propertyValue 'ItemTemplate'
+        }
+    }
+}
+
+function Add-SourceFile{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNull()]
+        $templateInfo,
+
+        [Parameter(Position=1,Mandatory=$true)]
+        [ValidateNotNull()]
+        [string[]]$sourceFiles,
+
+        [Parameter(Position=1,Mandatory=$true)]
+        [ScriptBlock[]]$destFiles
+    )
+    process{
+        if( ($destFiles -ne $null) -and ($destFiles.Count -gt 0) ){
+            if($sourceFiles.Count -ne $destFiles.Count){
+                throw ('Number of source files [{0}] is not equal number of dest files [{1}]',$sourceFiles.Count,$destFiles.Count)
+            }
+        }
+
+        if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'SourceFiles')){
+            Internal-AddProperty -inputObject $templateInfo -propertyName 'SourceFiles' -propertyValue @()
+        }
+
+        for($i = 0;$i -lt $sourceFiles.Count;$i++){
+            [ScriptBlock]$dest = $null
+            if( ($destFiles -ne $null) -and ($destFiles.Count -gt 0) ){
+                $dest = $destFiles[$i]
+            }
+
+            if($dest -eq $null){
+                $dest = {$sourceFiles[$i]}
+                [ScriptBlock]::Create( ( '"{0}"' -f $sourceFiles[$i]) )
+            }
+
+            $templateInfo.SourceFiles += New-Object -TypeName psobject -Property @{
+                SourceFile = [System.IO.FileInfo]($sourceFiles[$i])
+                DestFile = [ScriptBlock]$dest
+            }
+        }
+
+    }
+}
 
 function Add-Replacement{
     [cmdletbinding()]
@@ -411,15 +474,6 @@ function Add-Project{
         [string]$sourcePath = $template.TemplatePath
         
         try{
-            # copy all of the files besides those that start with pw- to the temp directory
-            'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$tempWorkDir.FullName | Write-Verbose
-            Copy-Item -Path $sourcePath\* -Destination $tempWorkDir.FullName -Recurse -Include * -Exclude ($template.ExcludeFiles)
-
-            # remove directories in the exclude list
-            if($template.ExcludeFolder -ne $null){
-                Get-ChildItem -Path $tempWorkDir.FullName -Include $template.ExcludeFolder -Recurse -Directory | Remove-Item -Recurse -ErrorAction SilentlyContinue
-            }
-
             # eval properties here
             $evaluatedProps = @{}
             $evaluatedProps['templateWorkingDir'] = $tempWorkDir.FullName
@@ -433,7 +487,29 @@ function Add-Project{
                     $evaluatedProps[$rep.ReplaceKey] = InternalGet-ReplacementValue -template $template -replaceKey $rep.ReplaceKey -evaluatedProperties $evaluatedProps
                 }
             }
-            
+
+            if( ($template.SourceFiles -eq $null) -or ($template.SourceFiles.Count -le 0)){
+                # copy all of the files besides those that start with pw- to the temp directory
+                'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$tempWorkDir.FullName | Write-Verbose
+                Copy-Item -Path $sourcePath\* -Destination $tempWorkDir.FullName -Recurse -Include * -Exclude ($template.ExcludeFiles)
+            }
+            else{
+                foreach($sf in  $template.SourceFiles){
+                    $source = $sf.SourceFile;
+                    $dest = (InternalGet-EvaluatedProperty -expression ($sf.DestFile) -properties $evaluatedProps)
+                    if([string]::IsNullOrWhiteSpace($dest)){
+                        throw ('Dest is null or empty for source [{0}]' -f $source)
+                    }
+
+                    Copy-Item -Path (Join-Path $sourcePath $source) -Destination ((Join-Path $tempWorkDir.FullName $dest))
+                }
+            }
+
+            # remove directories in the exclude list
+            if($template.ExcludeFolder -ne $null){
+                Get-ChildItem -Path $tempWorkDir.FullName -Include $template.ExcludeFolder -Recurse -Directory | Remove-Item -Recurse -ErrorAction SilentlyContinue
+            }
+
             # replace file names
             if($template.UpdateFilenames -ne $null){
                 $template.UpdateFilenames | ForEach-Object {
