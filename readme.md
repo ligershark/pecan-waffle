@@ -21,7 +21,7 @@ using dnx/dotnet so that it's truly cross platform.
 Add-Project -templateName aspnet5-empty -destPath C:\temp\pecan-waffle\dest\02
 ```
 
-To create a new template of your own add a file named `pw-templateinfo.ps1` with content like `https://github.com/ligershark/pecan-waffle/blob/master/templates/aspnet5/EmptyProject/pw-templateinfo.ps1`. Then add the folder as a template source with.
+To create a new template of your own add a file named `pw-templateinfo.ps1` with content like https://github.com/ligershark/pecan-waffle/blob/master/templates/aspnet5/EmptyProject/pw-templateinfo.ps1. Then add the folder as a template source with.
 
 ```powershell
 Add-TemplateSource -path c:\projects\MyProject\
