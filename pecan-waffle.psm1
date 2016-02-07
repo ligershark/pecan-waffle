@@ -579,7 +579,7 @@ function Import-FileReplacer{
 }
 
 if($global:pecanwafflesettings.EnableAddLocalSourceOnLoad -eq $true){
-    Add-TemplateSource (InternalGet-ScriptDirectory)
+    Add-TemplateSource -path (InternalGet-ScriptDirectory)
 }
 # TODO: Update this later
 Export-ModuleMember -function * -Alias *
