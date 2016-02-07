@@ -6,6 +6,7 @@ param(
 $global:pecanwafflesettings = New-Object -TypeName psobject -Property @{
     TempDir = [System.IO.DirectoryInfo]('{0}\pecan-waffle\temp\projtemplates' -f $env:LOCALAPPDATA)
     Templates = @()
+    TemplateSources = @()
 }
 
 function Get-ValueOrDefault{
@@ -119,11 +120,11 @@ function Add-TemplateSource{
                 }
             }
 
+            [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
             try{
                 Set-Location $localfolder
-                $destFolder = (Join-Path $localfolder.FullName $repoName)
 
-                if(-not (Test-Path $destFolder)){
+                if(-not (Test-Path $repoFolder.FullName)){
                     Execute-CommandString "git clone $url --branch $branch --single-branch $repoName"
                 }
             }
@@ -135,6 +136,32 @@ function Add-TemplateSource{
         $files = (Get-ChildItem -Path $path 'pw-templateinfo.ps1' -Recurse -File)
         foreach($file in $files){
             & ([System.IO.FileInfo]$file.FullName)
+        }
+
+        $templateSource = New-Object -TypeName psobject -Property @{
+            LocalFolder = $repoFolder.FullName
+            Url = $url
+        }
+
+        $global:pecanwafflesettings.TemplateSources += $templateSource
+    }
+}
+
+function Update-RemoteTemplates{
+    [cmdletbinding()]
+    param()
+    process{
+        foreach($ts in $global:pecanwafflesettings.TemplateSources){
+            if( -not ([string]::IsNullOrWhiteSpace($ts.Url)) -and (Test-Path $ts.LocalFolder)){
+                $oldpath = Get-Location
+                try{
+                    Set-Location $ts.LocalFolder
+                    Execute-CommandString "git pull"
+                }
+                finally{
+                    Set-Location $oldpath
+                }
+            }
         }
     }
 }
