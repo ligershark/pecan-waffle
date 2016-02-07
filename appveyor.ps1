@@ -8,7 +8,7 @@ Remove-Module pecan-waffle -Force -ErrorAction SilentlyContinue
 [System.IO.FileInfo]$modPath = get-item '.\pecan-waffle.psm1'
 Import-Module $modPath.FullName -DisableNameChecking -Global
 
-[System.IO.DirectoryInfo]$destDir = 'C:\temp\pecan-waffle\appveyor\dest'
+[System.IO.DirectoryInfo]$destDir = '.\.appveyor\dest'
 if(-not (Test-Path $destDir.FullName)){
     New-Item -Path $destDir.FullName -ItemType Directory
 }
