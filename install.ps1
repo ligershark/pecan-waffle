@@ -23,6 +23,7 @@ function GetPsModulesPath{
                 $Destination = $ModulePaths | Select-Object -Index 0
             }
         }
+        'GetPsModulesPath.dest: [{0}]' -f ($Destination -join ';') | Write-Host
         $Destination
     }
 }
