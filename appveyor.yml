@@ -4,4 +4,4 @@ build_script:
   - ps: .\appveyor.ps1
 
 artifacts:
-  - path: C:\temp\pecan-waffle\appveyor\dest\
+  - path: \temp\pecan-waffle\appveyor\dest\
