@@ -10,7 +10,23 @@ We are also going to use this as an opportunity to simplify the following areas.
  
 The initial thoughts are to create a prototype in PowerShell which shows the end state. After we provide proof of concept we can implement it
 using dnx/dotnet so that it's truly cross platform.
- 
+
+### How to try it
+
+```powershell
+# install
+(new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/ligershark/pecan-waffle/master/install.ps1") | iex
+
+# add a new template
+Add-Project -templateName aspnet5-empty -destPath C:\temp\pecan-waffle\dest\02
+```
+
+To create a new template of your own add a file named `pw-templateinfo.ps1` with content like `https://github.com/ligershark/pecan-waffle/blob/master/templates/aspnet5/EmptyProject/pw-templateinfo.ps1`. Then add the folder as a template source with.
+
+```powershell
+Add-TemplateSource -path c:\projects\MyProject\
+```
+
 ### Initial thoughts
  
 I'd like to see some commands like the following in the prototype. `pw` is an alias for `pecan-waffle`
