@@ -592,10 +592,9 @@ function Add-Template{
 
             # replace file names
             if($template.UpdateFilenames -ne $null){
-                $template.UpdateFilenames | ForEach-Object {
-                    $current = $_
-                    [System.IO.FileInfo[]]$files = (Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)
-                    foreach($file in $files){
+                foreach($current in $template.UpdateFilenames){
+                    #[System.IO.FileInfo[]]$files = (Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)
+                    foreach($file in ([System.IO.FileInfo[]](Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)) ){
                         $file = [System.IO.FileInfo]$file
                         # $repvalue = InternalGet-ReplacementValue -template $template -replaceKey $current.ReplaceKey -evaluatedProperties $evaluatedProps
                         $repvalue = InternalGet-EvaluatedProperty -expression $current.ReplaceValue -properties $evaluatedProps
