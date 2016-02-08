@@ -30,7 +30,7 @@ $templateInfo = New-Object -TypeName psobject -Property @{
 }
 
 Add-Replacement $templateInfo '$safeitemname$' {"$ItemName"}
-Exclude-File $templateInfo 'pw-*.*
+Exclude-File $templateInfo 'pw-*.*'
 
 # Adds all the filesmin the folder to the template
 Add-SourceFile -templateInfo $templateInfo -sourceFiles (Get-ChildItem -Path $scriptDir.FullName *)
