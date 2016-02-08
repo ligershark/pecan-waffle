@@ -49,6 +49,9 @@ $foldertocopy = ([System.IO.DirectoryInfo](Join-Path $tempextractdir.FullName 'p
 
 # 4. copy contents to ps modules folder
 [System.IO.DirectoryInfo]$moduledestfolder = (Join-Path (GetPsModulesPath) 'pecan-waffle')
+if( ($moduledestfolder -ne $null ) -and (Test-Path $moduledestfolder.FullName)){
+    Remove-Item $moduledestfolder.FullName -Recurse -ErrorAction SilentlyContinue
+}
 EnsureDirectoryExists $moduledestfolder.FullName
 Copy-Item $foldertocopy\* -Destination $moduledestfolder.FullName -Include * -Recurse
 
