@@ -1,12 +1,16 @@
 
 # execute the install script to make sure it succeeds
 
-. .\install.ps1
+#. .\install.ps1
 
 Remove-Module pecan-waffle -Force -ErrorAction SilentlyContinue
 
 [System.IO.FileInfo]$modPath = get-item '.\pecan-waffle.psm1'
 Import-Module $modPath.FullName -DisableNameChecking -Global
+
+if(Test-Path '.\.appveyor'){
+    Remove-Item '.\.appveyor' -Recurse
+}
 
 [System.IO.DirectoryInfo]$destDir = '.\.appveyor\dest'
 if(-not (Test-Path $destDir.FullName)){

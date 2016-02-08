@@ -30,6 +30,7 @@ $templateInfo = New-Object -TypeName psobject -Property @{
 
 Add-Replacement $templateInfo '$safeitemname$' {"$ItemName"}
 Add-SourceFile -templateInfo $templateInfo -sourceFiles (Get-ChildItem -Path $scriptDir.FullName *)
+
 Exclude-File $templateInfo 'pw-*.*'
 # This will register the template with pecan-waffle
 Set-TemplateInfo -templateInfo $templateInfo

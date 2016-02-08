@@ -574,6 +574,17 @@ function Add-Template{
                 }
             }
 
+            # remove excluded files (in some cases excluded files can still be copied to temp
+            #   for example if you specify sourcefile/destfile and include a file that should be excluded
+            if($template.ExcludeFiles -ne $null){
+                $files = (Get-ChildItem $tempWorkDir.FullName ($template.ExcludeFiles -join ';') -Recurse -File)
+                if( ($files -ne $null) -and ($files.Length -gt 0) ){
+                    # '*************************************' | Write-Host -ForegroundColor Cyan
+                    # 'files: [{0}]' -f ($files -join ';') | Write-Host -ForegroundColor Cyan
+                    Remove-Item $files.FullName -ErrorAction SilentlyContinue
+                }
+            }
+
             # remove directories in the exclude list
             if($template.ExcludeFolder -ne $null){
                 Get-ChildItem -Path $tempWorkDir.FullName -Include $template.ExcludeFolder -Recurse -Directory | Remove-Item -Recurse -ErrorAction SilentlyContinue
@@ -586,8 +597,10 @@ function Add-Template{
                     [System.IO.FileInfo[]]$files = (Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)
                     foreach($file in $files){
                         $file = [System.IO.FileInfo]$file
-                        $repvalue = InternalGet-ReplacementValue -template $template -replaceKey $current.ReplaceKey -evaluatedProperties $evaluatedProps
-                        $newname = $file.Name.Replace($current.ReplaceKey,$repvalue)
+                        # $repvalue = InternalGet-ReplacementValue -template $template -replaceKey $current.ReplaceKey -evaluatedProperties $evaluatedProps
+                        $repvalue = InternalGet-EvaluatedProperty -expression $current.ReplaceValue -properties $evaluatedProps
+
+                        $newname = $file.Name.Replace($current.ReplaceKey, $repvalue)
                         [System.IO.FileInfo]$newpath = (Join-Path ($file.Directory.FullName) $newname)
                         Move-Item $file.FullName $newpath.FullName
                     }
