@@ -15,7 +15,7 @@ Add-Replacement $templateInfo 'a9914dea-7cf2-4216-ba7e-fecb82baa627' {$ProjectId
 
 # when the template is run any filename with the given string will be updated
 Update-FileName $templateInfo 'WebApiProject' {$ProjectName}
-Add-SourceFile -templateInfo $templateInfo -sourceFiles 'WebApiProject.xproj' -destFiles {"$ProjectName.xproj"}
+Add-SourceFile -templateInfo $templateInfo -sourceFiles 'WebApiProject.xproj' -destFiles {"$ProjectName"+".xproj"}
 
 # This will register the template with pecan-waffle
 Set-TemplateInfo -templateInfo $templateInfo
