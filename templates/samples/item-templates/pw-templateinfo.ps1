@@ -11,9 +11,10 @@ $templateInfo = New-Object -TypeName psobject -Property @{
 # Add-Replacement $templateInfo 'ItemName' {$ItemName} {'controller.js'}
 Add-Replacement $templateInfo '$safeitemname$' {"$ItemName"}
 Update-FileName $templateInfo 'controller.js' {"$ItemName.js"}
-Add-SourceFile -templateInfo $templateInfo -sourceFiles 'controller.js' -destFiles {"$ItemName.js"}
 Exclude-File $templateInfo 'pw-*.*'
-# This will register the template with pecan-waffle
+
+# Adds a single file to the template
+Add-SourceFile -templateInfo $templateInfo -sourceFiles 'controller.js' -destFiles {"$ItemName.js"}
 Set-TemplateInfo -templateInfo $templateInfo
 
 
@@ -29,8 +30,8 @@ $templateInfo = New-Object -TypeName psobject -Property @{
 }
 
 Add-Replacement $templateInfo '$safeitemname$' {"$ItemName"}
-Add-SourceFile -templateInfo $templateInfo -sourceFiles (Get-ChildItem -Path $scriptDir.FullName *)
+Exclude-File $templateInfo 'pw-*.*
 
-Exclude-File $templateInfo 'pw-*.*'
-# This will register the template with pecan-waffle
+# Adds all the filesmin the folder to the template
+Add-SourceFile -templateInfo $templateInfo -sourceFiles (Get-ChildItem -Path $scriptDir.FullName *)
 Set-TemplateInfo -templateInfo $templateInfo
