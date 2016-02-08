@@ -127,6 +127,7 @@ function Add-TemplateSource{
             }
 
             [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
+            $path =([System.IO.DirectoryInfo]$repoFolder).FullName
             try{
                 Set-Location $localfolder
 
@@ -140,7 +141,7 @@ function Add-TemplateSource{
             }
         }
 
-        $files = (Get-ChildItem -Path $path 'pw-templateinfo*.ps1' -Recurse -File)
+        $files = (Get-ChildItem -Path $path 'pw-templateinfo*.ps1' -Recurse -File -Exclude '.git','node_modules','bower_components' -ErrorAction SilentlyContinue)
         foreach($file in $files){
             & ([System.IO.FileInfo]$file.FullName)
         }
