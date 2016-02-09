@@ -35,7 +35,7 @@ Describe 'can add projects'{
             New-Item -Path $dest.FullName -ItemType Directory
         }
 
-        { Add-Project -templateName 'aspnet5-empty' -destPath $dest.FullName -projectName 'MyNewEmptyProj' } |should not throw
+        { Add-Project -templateName 'aspnet5-empty' -destPath $dest.FullName -projectName 'MyNewEmptyProj' -noNewFolder } |should not throw
 
         (Join-Path $dest.FullName 'MyNewEmptyProj.xproj') | should exist
         (Join-Path $dest.FullName 'project.json') | should exist
@@ -51,7 +51,7 @@ Describe 'can add projects'{
             New-Item -Path $dest.FullName -ItemType Directory
         }
 
-        { Add-Project -templateName 'demo-singlefileproj' -destPath $dest.FullName -projectName 'DemoProjSingleItem' } |should not throw
+        { Add-Project -templateName 'demo-singlefileproj' -destPath $dest.FullName -projectName 'DemoProjSingleItem' -noNewFolder } |should not throw
         (Get-ChildItem -Path $dest.FullName -File).Count | should be 1
         (Join-Path $dest.FullName 'DemoProjSingleItem.xproj') | should exist
 
@@ -65,7 +65,7 @@ Describe 'can add projects'{
             New-Item -Path $dest.FullName -ItemType Directory
         }
 
-        { Add-Project -templateName 'aspnet5-webapi' -destPath $dest.FullName -projectName 'MyNewApiProj' } |should not throw
+        { Add-Project -templateName 'aspnet5-webapi' -destPath $dest.FullName -projectName 'MyNewApiProj' -noNewFolder} |should not throw
 
         (Join-Path $dest.FullName 'MyNewApiProj.xproj') | should exist
         (Join-Path $dest.FullName 'project.json') | should exist

@@ -468,7 +468,10 @@ function Add-Project{
         [System.IO.DirectoryInfo]$destPath,
 
         [Parameter(Position=2)]
-        [string]$projectName = 'MyNewProject'
+        [string]$projectName = 'MyNewProject',
+
+        [Parameter(Position=3)]
+        [switch]$noNewFolder
     )
     process{
         # find the project template with the given name
@@ -476,6 +479,10 @@ function Add-Project{
 
         if($template -eq $null){
             throw ('Did not find a project template with the name [{0}]' -f $templateName)
+        }
+
+        if(-not $noNewFolder){
+            $destPath = (Join-Path $destPath $projectName)
         }
 
         Add-Template -template $template -destPath $destPath -properties @{'ProjectName'=$projectName}
