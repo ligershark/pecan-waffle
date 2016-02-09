@@ -15,26 +15,6 @@ function InternalGet-ScriptDirectory{
     split-path (((Get-Variable MyInvocation -Scope 1).Value).MyCommand.Path)
 }
 
-function Get-ValueOrDefault{
-    [cmdletbinding()]
-    param(
-        [Parameter(Position=0,Mandatory=$true)]
-        [object]$value,
-
-        [Parameter(Position=1, Mandatory=$true)]
-        [ValidateNotNull()]
-        [object]$defaultValue
-    )
-    process{
-        if($value -ne $null){
-            $value
-        }
-        else{
-            $defaultValue
-        }
-    }
-}
-
 function Internal-HasProperty{
     [cmdletbinding()]
     param(
@@ -604,8 +584,6 @@ function Add-Template{
             if($template.ExcludeFiles -ne $null){
                 $files = (Get-ChildItem $tempWorkDir.FullName ($template.ExcludeFiles -join ';') -Recurse -File)
                 if( ($files -ne $null) -and ($files.Length -gt 0) ){
-                    # '*************************************' | Write-Host -ForegroundColor Cyan
-                    # 'files: [{0}]' -f ($files -join ';') | Write-Host -ForegroundColor Cyan
                     Remove-Item $files.FullName -ErrorAction SilentlyContinue
                 }
             }
@@ -618,10 +596,8 @@ function Add-Template{
             # replace file names
             if($template.UpdateFilenames -ne $null){
                 foreach($current in $template.UpdateFilenames){
-                    #[System.IO.FileInfo[]]$files = (Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)
                     foreach($file in ([System.IO.FileInfo[]](Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)) ){
                         $file = [System.IO.FileInfo]$file
-                        # $repvalue = InternalGet-ReplacementValue -template $template -replaceKey $current.ReplaceKey -evaluatedProperties $evaluatedProps
                         $repvalue = InternalGet-EvaluatedProperty -expression $current.ReplaceValue -properties $evaluatedProps
 
                         $newname = $file.Name.Replace($current.ReplaceKey, $repvalue)

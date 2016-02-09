@@ -203,9 +203,7 @@ Describe 'add item tests'{
 
     It 'can run demo-angularfiles item'{
         [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'angularfiles')
-        if(-not (Test-Path $dest.FullName)){
-            New-Item -Path $dest.FullName -ItemType Directory
-        }
+        Ensure-PathExists -path $dest.FullName
 
         { Add-Item -templateName 'demo-angularfiles' -destPath $dest.FullName -itemName 'angular' } | should not throw
         
@@ -219,3 +217,37 @@ Describe 'add item tests'{
         $countDestFiles | should be $countTemplateFiles
     }
 }
+
+Describe 'template source tests'{
+    . $importPecanWaffle
+    BeforeEach{
+        Clear-AllTemplates
+    }
+    
+    It 'can find templates locally' {
+        $numTemplatesBefore = ($Global:pecanwafflesettings.Templates.Count)
+
+        Add-TemplateSource -path (Join-Path $sourceRoot 'templates\samples')
+
+        $numTemplatesAfter = ($Global:pecanwafflesettings.Templates.Count)
+
+        $numTemplatesAfter -gt $numTemplatesBefore | should be $true
+    }
+
+    It 'can add from git'{
+        $url = 'https://github.com/ligershark/pecan-waffle.git'
+
+        $numTemplatesBefore = ($Global:pecanwafflesettings.Templates.Count)
+
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'angularfiles')
+        Ensure-PathExists -path $dest.FullName
+        Add-TemplateSource -url $url -localfolder $dest.FullName
+
+        $numTemplatesAfter = ($Global:pecanwafflesettings.Templates.Count)
+
+        $numTemplatesAfter -gt $numTemplatesBefore | should be $true
+    }
+}
+
+
+

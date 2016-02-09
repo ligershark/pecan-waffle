@@ -71,8 +71,8 @@ function Run-Tests{
         if($env:ExitOnPesterFail -eq $true){
             $pesterArgs.Add('-EnableExit',$true)
         }
-        if($env:PesterEnableCodeCoverage -eq $true){
-            $pesterArgs.Add('-CodeCoverage','..\src\psbuild.psm1')
+        if( $env:PesterEnableCodeCoverage -eq $true){
+            $pesterArgs.Add('-CodeCoverage','..\pecan-waffle.psm1')
         }
 
         $pesterResult = Invoke-Pester @pesterArgs
@@ -91,5 +91,5 @@ try{
     Run-Tests -testDirectory (Join-Path $scriptDir 'tests')
 }
 catch{
-    throw ( 'Build error {0} {1}' -f $_.Exception,(Get-PSCallStack|Out-String) )
+    throw ( 'Build error {0} {1}' -f $_.Exception, (Get-PSCallStack|Out-String) )
 }
