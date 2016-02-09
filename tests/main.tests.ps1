@@ -36,6 +36,13 @@ Describe 'can add projects'{
         }
 
         { Add-Project -templateName 'aspnet5-empty' -destPath $dest.FullName -projectName 'MyNewEmptyProj' } |should not throw
+
+        (Join-Path $dest.FullName 'MyNewEmptyProj.xproj') | should exist
+        (Join-Path $dest.FullName 'project.json') | should exist
+        (Join-Path $dest.FullName 'project.lock.json') | should not exist
+
+        (Join-Path $dest.FullName 'MyNewEmptyProj.xproj') | should contain 'MyNewEmptyProj'
+        (Join-Path $dest.FullName 'MyNewEmptyProj.xproj') | should not contain 'EmptyProject'
     }
 
     It 'can run demo-singlefileproj project'{
@@ -45,6 +52,11 @@ Describe 'can add projects'{
         }
 
         { Add-Project -templateName 'demo-singlefileproj' -destPath $dest.FullName -projectName 'DemoProjSingleItem' } |should not throw
+        (Get-ChildItem -Path $dest.FullName -File).Count | should be 1
+        (Join-Path $dest.FullName 'DemoProjSingleItem.xproj') | should exist
+
+        (Join-Path $dest.FullName 'DemoProjSingleItem.xproj') | should contain 'DemoProjSingleItem'
+        (Join-Path $dest.FullName 'DemoProjSingleItem.xproj') | should not contain '$safeitemname$'
     }
 
     It 'can run aspnet5-webapi project'{
@@ -54,15 +66,13 @@ Describe 'can add projects'{
         }
 
         { Add-Project -templateName 'aspnet5-webapi' -destPath $dest.FullName -projectName 'MyNewApiProj' } |should not throw
-    }
 
-    It 'can run singlefileproj project'{
-        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'empty01')
-        if(-not (Test-Path $dest.FullName)){
-            New-Item -Path $dest.FullName -ItemType Directory
-        }
+        (Join-Path $dest.FullName 'MyNewApiProj.xproj') | should exist
+        (Join-Path $dest.FullName 'project.json') | should exist
+        (Join-Path $dest.FullName 'project.lock.json') | should not exist
 
-        Add-Item -templateName 'demo-angularfiles' -destPath $dest.FullName -itemName 'newcontroller'
+        (Join-Path $dest.FullName 'MyNewApiProj.xproj') | should contain 'MyNewApiProj'
+        (Join-Path $dest.FullName 'MyNewApiProj.xproj') | should not contain 'WebApiProject'
     }
 
     It 'can run demo-angularfiles project'{
@@ -71,18 +81,15 @@ Describe 'can add projects'{
             New-Item -Path $dest.FullName -ItemType Directory
         }
 
-        Add-Item -templateName 'demo-angularfiles' -destPath $dest.FullName -itemName 'angular'
+        { Add-Item -templateName 'demo-angularfiles' -destPath $dest.FullName -itemName 'angular' } | should not throw
+        
+        (Join-Path $dest.FullName 'controller.js') | should exist
+        (Join-Path $dest.FullName 'directive.js') | should exist
+        
+        (Join-Path $dest.FullName 'controller.js') | should contain 'angular'
+        (Join-Path $dest.FullName 'controller.js') | should not contain '$safeitemname$'
+        $countTemplateFiles = (Get-ChildItem (Join-Path $scriptDir '..\templates\samples\item-templates\') -Exclude 'pw-templ*').Count
+        $countDestFiles = (Get-ChildItem $dest.FullName).Count
+        $countDestFiles | should be $countTemplateFiles
     }
 }
-<#
-'project: demo-singlefileproj' | Write-Host
-Add-Project -templateName 'demo-singlefileproj' -destPath (join-path $destDir.FullName 'single') -projectName 'DemoProjSingleItem'
-'project: empty' | Write-Host
-Add-Project -templateName 'aspnet5-empty' -destPath (join-path $destDir.FullName 'empty') -projectName 'MyNewEmptyProj'
-'project: api' | Write-Host
-Add-Project -templateName 'aspnet5-webapi' -destPath (join-path $destDir.FullName 'api') -projectName 'MyNewApiProj'
-'Item: controllerjs ' | Write-Host
-Add-Item -templateName 'demo-controllerjs' -destPath (join-path $destDir.FullName 'item-controllerjs') -itemName 'newcontroller'
-'Item: angular' | Write-Host
-Add-Item -templateName 'demo-angularfiles' -destPath (join-path $destDir.FullName 'item-demo-angularfiles') -itemName 'newcontroller'
-#>
