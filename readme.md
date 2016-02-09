@@ -2,6 +2,8 @@ This is a prototype of a new command line experience for creating project and it
 command line tool which can be used to create projects/files which doesn't depend on installing a bunch of random tools onto the machine. We can later use this
 self-contained tool to enable templates across VS/Yeoman/VSCode.
 
+[![Build status](https://ci.appveyor.com/api/projects/status/yrif6mr7ep1yt6ct?svg=true)](https://ci.appveyor.com/project/sayedihashimi/pecan-waffle)
+
 We are also going to use this as an opportunity to simplify the following areas.
 
  - Make creating templates easier
