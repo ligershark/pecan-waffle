@@ -33,14 +33,32 @@ function EnsurePsbuildInstlled{
         }
     }
 }
+function Import-Pester2{
+    [cmdletbinding()]
+    param(
+        $pesterVersion = '3.3.14'
+    )
+    process{
+        Import-NuGetPowershell
 
+        Remove-Module pester -ErrorAction SilentlyContinue
+
+        [System.IO.DirectoryInfo]$pesterDir = (Get-NuGetPackage -name 'pester' -version $pesterVersion -binpath)
+        [System.IO.FileInfo]$pesterModPath = (Join-Path $pesterDir.FullName 'pester.psd1')
+        if(-not (Test-Path $pesterModPath.FullName)){
+            throw ('Pester not found at [{0}]' -f $pesterModPath.FullName)
+        }
+
+        Import-Module $pesterModPath.FullName -Global
+    }
+}
 function Run-Tests{
     [cmdletbinding()]
     param(
         $testDirectory = (join-path $scriptDir tests)
     )
     begin{ 
-        Import-Pester -pesterVersion 3.3.14
+        Import-Pester2 -pesterVersion 3.3.14
     }
     process{
         # go to the tests directory and run pester
@@ -70,9 +88,8 @@ function Run-Tests{
 
 try{
     EnsurePsbuildInstlled
-    Import-Pester -pesterVersion 3.3.14
     Run-Tests -testDirectory (Join-Path $scriptDir 'tests')
 }
 catch{
-    throw ( 'Build error' -f $_.Exception,(Get-PSCallStack|Out-String) )
+    throw ( 'Build error {0} {1}' -f $_.Exception,(Get-PSCallStack|Out-String) )
 }

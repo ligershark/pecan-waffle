@@ -381,17 +381,34 @@ function Exclude-Folder{
     }
 }
 
+function Clear-AllTemplates{
+    [cmdletbinding()]
+    param()
+    process{
+        $global:pecanwafflesettings.Templates.Clear()
+    }
+}
+
 function Set-TemplateInfo{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
         [ValidateNotNull()]
-        $templateInfo
+        $templateInfo,
+
+        [Parameter(Position=1)]
+        [System.IO.DirectoryInfo]$templateRoot
     )
     process{
         if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'TemplatePath')){
             Internal-AddProperty -inputObject $templateInfo -propertyName 'TemplatePath' -propertyValue @()
-            $templateInfo.TemplatePath = ((Get-Item ($MyInvocation.PSCommandPath)).Directory.FullName)
+
+            if($templateRoot -eq $null){
+                # root is the folder from the calling script
+                $templateRoot = ((Get-Item ($MyInvocation.PSCommandPath)).Directory.FullName)
+            }
+
+            $templateInfo.TemplatePath = $templateRoot
         }
 
         $global:pecanwafflesettings.Templates += $templateInfo        
