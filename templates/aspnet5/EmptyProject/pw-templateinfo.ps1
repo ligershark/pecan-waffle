@@ -30,9 +30,9 @@ $templateInfo | update-filename (
     ,('EmptyProject', {"$ProjectName"})
 )
 # excludes files from the template
-Exclude-File $templateInfo 'pw-*.*','*.user','*.suo','*.userosscache','project.lock.json','*.vs*scc'
+$templateInfo | exclude-file 'pw-*.*','*.user','*.suo','*.userosscache','project.lock.json','*.vs*scc'
 # excludes folders from the template
-Exclude-Folder $templateInfo '.vs','artifacts'
+$templateInfo | exclude-folder '.vs','artifacts'
 
 beforeinstall = { 'before install' | Write-Host -ForegroundColor Cyan}
 afterinstall = { 'after install' | Write-Host -ForegroundColor Cyan}

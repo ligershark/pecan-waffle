@@ -411,11 +411,11 @@ function TemplateExclude-File{
     [cmdletbinding()]
     param(
         [Parameter(Position=1,Mandatory=$true)]
-        $templateInfo,
-
-        [Parameter(Position=2,Mandatory=$true)]
         [ValidateNotNull()]
-        [string[]]$excludeFiles
+        [string[]]$excludeFiles,
+
+        [Parameter(Position=2,Mandatory=$true,ValueFromPipeline=$true)]
+        $templateInfo
     )
     process{
         if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'ExcludeFiles')){
@@ -431,11 +431,11 @@ function TemplateExclude-Folder{
     [cmdletbinding()]
     param(
         [Parameter(Position=1,Mandatory=$true)]
-        $templateInfo,
-
-        [Parameter(Position=2,Mandatory=$true)]
         [ValidateNotNull()]
-        [string[]]$excludeFolder
+        [string[]]$excludeFolder,
+
+        [Parameter(Position=2,Mandatory=$true,ValueFromPipeline=$true)]
+        $templateInfo
     )
     process{
         if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'ExcludeFolder')){

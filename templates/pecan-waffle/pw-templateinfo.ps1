@@ -18,6 +18,6 @@ $templateInfo | update-filename (
     ,('projecttemplate.ps1', {"$ItemName.ps1"})
 )
 
-Exclude-File $templateInfo 'pw-*.*'
+$templateInfo | exclude-file 'pw-*.*'
 
 Set-TemplateInfo -templateInfo $templateInfo

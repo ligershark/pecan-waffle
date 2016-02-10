@@ -28,9 +28,9 @@ $templateInfo | update-filename (
 
 
 # excludes files from the template
-Exclude-File $templateInfo 'pw-*.*','*.user','*.suo','*.userosscache','project.lock.json','*.vs*scc'
+$templateInfo | exclude-file 'pw-*.*','*.user','*.suo','*.userosscache','project.lock.json','*.vs*scc'
 # excludes folders from the template
-Exclude-Folder $templateInfo '.vs','artifacts'
+$templateInfo | exclude-folder '.vs','artifacts'
 
 # This will register the template with pecan-waffle
 Set-TemplateInfo -templateInfo $templateInfo

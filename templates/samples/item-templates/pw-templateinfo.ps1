@@ -16,7 +16,7 @@ $templateInfo | replace (
 $templateInfo | update-filename (
     ,('controller.js', {"$ItemName.js"})
 )
-Exclude-File $templateInfo 'pw-*.*'
+$templateInfo | exclude-file 'pw-*.*'
 
 # Adds a single file to the template
 Add-SourceFile -templateInfo $templateInfo -sourceFiles 'controller.js' -destFiles {"$ItemName.js"}
@@ -38,7 +38,7 @@ $templateInfo | replace (
     ,('$safeitemname$', {"$ItemName"})
 )
 
-Exclude-File $templateInfo 'pw-*.*'
+$templateInfo | exclude-file 'pw-*.*'
 
 # Adds all the filesmin the folder to the template
 Add-SourceFile -templateInfo $templateInfo -sourceFiles (Get-ChildItem -Path $scriptDir.FullName *)
