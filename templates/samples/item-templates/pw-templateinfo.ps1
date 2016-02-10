@@ -8,13 +8,18 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     DefaultFileName = 'MyApiProject'
 }
 
-# Add-Replacement $templateInfo 'ItemName' {$ItemName} {'controller.js'}
-Add-Replacement $templateInfo '$safeitemname$' {"$ItemName"}
-Update-FileName $templateInfo 'controller.js' {"$ItemName.js"}
-Exclude-File $templateInfo 'pw-*.*'
+
+$templateInfo | replace (
+    ,('$safeitemname$', {"$ItemName"})
+)
+
+$templateInfo | update-filename (
+    ,('controller.js', {"$ItemName.js"})
+)
+$templateInfo | exclude-file 'pw-*.*'
 
 # Adds a single file to the template
-Add-SourceFile -templateInfo $templateInfo -sourceFiles 'controller.js' -destFiles {"$ItemName.js"}
+$templateInfo | add-sourcefile -sourceFiles 'controller.js' -destFiles {"$ItemName.js"}
 Set-TemplateInfo -templateInfo $templateInfo
 
 
@@ -29,9 +34,12 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     DefaultFileName = 'MyApiProject'
 }
 
-Add-Replacement $templateInfo '$safeitemname$' {"$ItemName"}
-Exclude-File $templateInfo 'pw-*.*'
+$templateInfo | replace (
+    ,('$safeitemname$', {"$ItemName"})
+)
+
+$templateInfo | exclude-file 'pw-*.*'
 
 # Adds all the filesmin the folder to the template
-Add-SourceFile -templateInfo $templateInfo -sourceFiles (Get-ChildItem -Path $scriptDir.FullName *)
+$templateInfo | add-sourcefile -sourceFiles (Get-ChildItem -Path $scriptDir.FullName *)
 Set-TemplateInfo -templateInfo $templateInfo

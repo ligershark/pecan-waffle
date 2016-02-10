@@ -91,7 +91,7 @@ Describe 'add project tests'{
         }
 
         $Global:pwtestcount = 0
-        Before-Install -templateInfo $templateInfo -beforeInstall {$Global:pwtestcount++}
+        beforeinstall -templateInfo $templateInfo -beforeInstall {$Global:pwtestcount++}
 
         [System.IO.DirectoryInfo]$emptyTemplatePath =(Join-Path $sourceRoot 'templates\aspnet5\EmptyProject')
         Set-TemplateInfo -templateInfo $templateInfo -templateRoot $emptyTemplatePath.FullName
@@ -114,7 +114,7 @@ Describe 'add project tests'{
         }
 
         $Global:pwtestcount = 0
-        After-Install -templateInfo $templateInfo -afterInstall {$Global:pwtestcount++}
+        afterinstall -templateInfo $templateInfo -afterInstall {$Global:pwtestcount++}
 
         [System.IO.DirectoryInfo]$emptyTemplatePath =(Join-Path $sourceRoot 'templates\aspnet5\EmptyProject')
         Set-TemplateInfo -templateInfo $templateInfo -templateRoot $emptyTemplatePath.FullName
@@ -137,8 +137,8 @@ Describe 'add project tests'{
         }
 
         $Global:pwtestcount = 0
-        Before-Install -templateInfo $templateInfo -beforeInstall {$Global:pwtestcount++}
-        After-Install -templateInfo $templateInfo -afterInstall {$Global:pwtestcount++}
+        beforeinstall -templateInfo $templateInfo -beforeInstall {$Global:pwtestcount++}
+        afterinstall -templateInfo $templateInfo -afterInstall {$Global:pwtestcount++}
 
         [System.IO.DirectoryInfo]$emptyTemplatePath =(Join-Path $sourceRoot 'templates\aspnet5\EmptyProject')
         Set-TemplateInfo -templateInfo $templateInfo -templateRoot $emptyTemplatePath.FullName
@@ -161,11 +161,11 @@ Describe 'add project tests'{
         }
 
         
-        Before-Install -templateInfo $templateInfo -beforeInstall {
+        beforeinstall -templateInfo $templateInfo -beforeInstall {
             $Global:pwtestbeforestart = [System.DateTime]::UtcNow
             sleep -Seconds 1
         }
-        After-Install -templateInfo $templateInfo -afterInstall {
+        afterinstall -templateInfo $templateInfo -afterInstall {
             $Global:pwtestafterstart = [System.DateTime]::UtcNow
         }
 
@@ -233,7 +233,7 @@ Describe 'template source tests'{
 
         $numTemplatesAfter -gt $numTemplatesBefore | should be $true
     }
-
+    <#
     It 'can add from git'{
         $url = 'https://github.com/ligershark/pecan-waffle.git'
 
@@ -247,7 +247,15 @@ Describe 'template source tests'{
 
         $numTemplatesAfter -gt $numTemplatesBefore | should be $true
     }
+    #>
 }
 
+Describe 'misc tests'{
+    . $importPecanWaffle
 
+    It 'can call show-templates'{
+        $result = Show-Templates
+        $result | should not be $null
+    }
+}
 

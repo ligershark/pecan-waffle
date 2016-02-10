@@ -135,6 +135,14 @@ function Add-TemplateSource{
     }
 }
 
+function Show-Templates{
+    [cmdletbinding()]
+    param()
+    process{
+        $Global:pecanwafflesettings.Templates | Select-Object -Property Name,Type | Sort-Object -Property Type,Name,Description
+    }
+}
+
 function Update-RemoteTemplates{
     [cmdletbinding()]
     param()
@@ -175,19 +183,19 @@ function New-ItemTemplate{
     }
 }
 
-function Add-SourceFile{
+function TemplateAdd-SourceFile{
     [cmdletbinding()]
     param(
-        [Parameter(Position=0,Mandatory=$true)]
-        [ValidateNotNull()]
-        $templateInfo,
-
         [Parameter(Position=1,Mandatory=$true)]
         [ValidateNotNull()]
         [string[]]$sourceFiles,
 
-        [Parameter(Position=1)]
-        [ScriptBlock[]]$destFiles
+        [Parameter(Position=2)]
+        [ScriptBlock[]]$destFiles,
+
+        [Parameter(Position=3,Mandatory=$true,ValueFromPipeline=$true)]
+        [ValidateNotNull()]
+        $templateInfo
     )
     process{
         if( ($destFiles -ne $null) -and ($destFiles.Count -gt 0) ){
@@ -220,7 +228,9 @@ function Add-SourceFile{
     }
 }
 
-function Add-Replacement{
+set-alias Add-SourceFile TemplateAdd-SourceFile
+
+function TemplateAdd-Replacement{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
@@ -260,11 +270,61 @@ function Add-Replacement{
         }
     }
 }
+Set-Alias replaceitem TemplateAdd-Replacement
 
-function Update-FileName{
-    [cmdletbinding()]
+function TemplateAddd-ReplacementObject{
     param(
         [Parameter(Position=1,Mandatory=$true)]
+        [object[][]]$replacementObject,
+
+        [Parameter(Position=2,Mandatory=$true,ValueFromPipeline=$true)]
+        $templateInfo,
+
+        [Parameter(Position=3)]
+        [string]$rootDir,
+
+        [Parameter(Position=4)]
+        [string[]]$include = @('*'),
+
+        [Parameter(Position=5)]
+        [string[]]$exclude
+
+    )
+    process{
+        $global:foo = $replacementObject
+        foreach($repobj in $replacementObject){
+            # add a replacement for each
+            if($repobj.length -lt 2){
+                throw ('replacement object requires at least two items, ReplaceKey and ReplaceValue. Num elements in replacement [{0}]{1}' -f $repobj.length,(Get-PSCallStack|Out-String))
+            }
+            $repKey = $repobj[0]
+            $repValue = $repobj[1]
+            $defaultValue = [ScriptBlock]$null
+            if($repobj.length -gt 2){
+                $defaultValue = $repobj[2]
+            }
+
+            $addargs = @{
+                TemplateInfo = $templateInfo
+                ReplaceKey = $repKey
+                ReplaceValue = $repValue
+                DefaultValue = $defaultValue
+                RootDir = $rootDir
+                Include = $include
+                Exclude = $exclude
+            }
+
+            TemplateAdd-Replacement @addargs
+        }
+    }    
+}
+
+set-alias replace TemplateAddd-ReplacementObject
+
+function TemplateUpdate-FileName{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=1,Mandatory=$true,ValueFromPipeline = $true)]
         $templateInfo,
 
         [Parameter(Position=2,Mandatory=$true)]
@@ -273,7 +333,10 @@ function Update-FileName{
 
         [Parameter(Position=3,Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ScriptBlock]$replaceValue
+        [ScriptBlock]$replaceValue,
+
+        [Parameter(Position=4)]
+        [ScriptBlock]$defaultValue
     )
     process{
         if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'UpdateFilenames')){
@@ -283,11 +346,38 @@ function Update-FileName{
         $templateInfo.UpdateFilenames += New-Object -TypeName psobject -Property @{
             ReplaceKey = $replaceKey
             ReplaceValue = $replaceValue
+            DefaultValue = $defaultValue
         }
     }
 }
 
-function Before-Install{
+function TemplateUpdate-FilenameObject{
+    param(
+        [Parameter(Position=1,Mandatory=$true)]
+        [object[][]]$updateObject,
+
+        [Parameter(Position=2,Mandatory=$true,ValueFromPipeline = $true)]
+        $templateInfo
+    )
+    process{
+        foreach($upObj in $updateObject){
+            if($upObj -ne $null){
+                if($upObj.length -lt 2){
+                    throw ('Update object requires at least two values but found [{0}] number of values' -f $upObj.length)
+                }
+
+                $defaultValue = [ScriptBlock]$null
+                if($upObj.length -ge 3){
+                    $defaultValue = $upObj[2]
+                }
+                TemplateUpdate-FileName -templateInfo $templateInfo -replaceKey ($upObj[0]) -replaceValue ($upObj[1]) -defaultValue $defaultValue
+            }
+        }
+    }
+}
+Set-Alias Update-FileName TemplateUpdate-FilenameObject
+
+function TemplateBefore-Install{
     [cmdletbinding()]
     param(
         [Parameter(Position=1,Mandatory=$true)]
@@ -304,8 +394,9 @@ function Before-Install{
         }
     }
 }
+Set-Alias beforeinstall TemplateBefore-Install
 
-function After-Install{
+function TemplateAfter-Install{
     [cmdletbinding()]
     param(
         [Parameter(Position=1,Mandatory=$true)]
@@ -322,16 +413,17 @@ function After-Install{
         }
     }
 }
+Set-Alias afterinstall TemplateAfter-Install
 
-function Exclude-File{
+function TemplateExclude-File{
     [cmdletbinding()]
     param(
         [Parameter(Position=1,Mandatory=$true)]
-        $templateInfo,
-
-        [Parameter(Position=2,Mandatory=$true)]
         [ValidateNotNull()]
-        [string[]]$excludeFiles
+        [string[]]$excludeFiles,
+
+        [Parameter(Position=2,Mandatory=$true,ValueFromPipeline=$true)]
+        $templateInfo
     )
     process{
         if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'ExcludeFiles')){
@@ -341,16 +433,17 @@ function Exclude-File{
         $templateInfo.ExcludeFiles += $excludeFiles
     }
 }
+Set-Alias Exclude-File TemplateExclude-File
 
-function Exclude-Folder{
+function TemplateExclude-Folder{
     [cmdletbinding()]
     param(
         [Parameter(Position=1,Mandatory=$true)]
-        $templateInfo,
-
-        [Parameter(Position=2,Mandatory=$true)]
         [ValidateNotNull()]
-        [string[]]$excludeFolder
+        [string[]]$excludeFolder,
+
+        [Parameter(Position=2,Mandatory=$true,ValueFromPipeline=$true)]
+        $templateInfo
     )
     process{
         if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'ExcludeFolder')){
@@ -360,6 +453,7 @@ function Exclude-Folder{
         $templateInfo.ExcludeFolder += $excludeFolder
     }
 }
+Set-Alias Exclude-Folder TemplateExclude-Folder
 
 function Clear-AllTemplates{
     [cmdletbinding()]
@@ -369,7 +463,7 @@ function Clear-AllTemplates{
     }
 }
 
-function Set-TemplateInfo{
+function TemplateSet-TemplateInfo{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
@@ -394,6 +488,7 @@ function Set-TemplateInfo{
         $global:pecanwafflesettings.Templates += $templateInfo        
     }
 }
+Set-Alias Set-TemplateInfo TemplateSet-TemplateInfo
 
 function InternalGet-EvaluatedProperty{
     [cmdletbinding()]
@@ -496,7 +591,7 @@ function Add-Item{
         [System.IO.DirectoryInfo]$destPath,
 
         [Parameter(Position=2)]
-        [string]$itemName = 'Item',
+        [string]$itemName,
 
         [Parameter(Position=3)]
         [string]$destFilename
@@ -599,6 +694,10 @@ function Add-Template{
                     foreach($file in ([System.IO.FileInfo[]](Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)) ){
                         $file = [System.IO.FileInfo]$file
                         $repvalue = InternalGet-EvaluatedProperty -expression $current.ReplaceValue -properties $evaluatedProps
+
+                        if([string]::IsNullOrWhiteSpace($repvalue) -and ($current.DefaultValue -ne $null)){
+                            $repvalue = InternalGet-EvaluatedProperty -expression $current.DefaultValue -properties $evaluatedProps
+                        }
 
                         $newname = $file.Name.Replace($current.ReplaceKey, $repvalue)
                         [System.IO.FileInfo]$newpath = (Join-Path ($file.Directory.FullName) $newname)
@@ -742,16 +841,4 @@ if($global:pecanwafflesettings.EnableAddLocalSourceOnLoad -eq $true){
 }
 # TODO: Update this later
 Export-ModuleMember -function * -Alias *
-
-
-
-
-
-
-
-
-
-
-
-
 

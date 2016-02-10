@@ -10,21 +10,27 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     ProjectUrl = 'https://github.com/ligershark/pecan-waffle'
     GitUrl = 'https://github.com/ligershark/pecan-waffle.git'
     GitBranch = 'master'
-    BeforeInstall = { 'before install' | Write-Host -ForegroundColor Cyan}
-    AfterInstall = { 'after install' | Write-Host -ForegroundColor Cyan}
+    BeforeInstall = { 'before install' | Write-Output}
+    AfterInstall = { 'after install' | Write-Output}
 }
 
-Add-Replacement $templateInfo 'WebApiProject' {$ProjectName} {$DefaultProjectName}
-Add-Replacement $templateInfo 'SolutionDir' {$SolutionDir} {'..\..\'}
-Add-Replacement $templateInfo '..\..\artifacts' {$ArtifactsDir} {$SolutionDir + 'artifacts'}
-Add-Replacement $templateInfo 'a9914dea-7cf2-4216-ba7e-fecb82baa627' {$ProjectId} {[System.Guid]::NewGuid()}
+$templateInfo | replace (
+    ('WebApiProject', {"$ProjectName"}, {"$DefaultProjectName"}),
+    ('SolutionDir', {"$SolutionDir"}, {'..\..\'}),
+    ('..\..\artifacts', {"$ArtifactsDir"}, {"$SolutionDir" + 'artifacts'}),
+    ('a9914dea-7cf2-4216-ba7e-fecb82baa627', {"$ProjectId"}, {[System.Guid]::NewGuid()})
+)
 
 # when the template is run any filename with the given string will be updated
-Update-FileName $templateInfo 'WebApiProject' {$ProjectName}
+$templateInfo | update-filename (
+    ,('WebApiProject', {$ProjectName})
+)
+
+
 # excludes files from the template
-Exclude-File $templateInfo 'pw-*.*','*.user','*.suo','*.userosscache','project.lock.json','*.vs*scc'
+$templateInfo | exclude-file 'pw-*.*','*.user','*.suo','*.userosscache','project.lock.json','*.vs*scc'
 # excludes folders from the template
-Exclude-Folder $templateInfo '.vs','artifacts'
+$templateInfo | exclude-folder '.vs','artifacts'
 
 # This will register the template with pecan-waffle
 Set-TemplateInfo -templateInfo $templateInfo

@@ -8,14 +8,19 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     DefaultProjectName = 'MyApiProject'
 }
 
-Add-Replacement $templateInfo 'WebApiProject' {$ProjectName} {$DefaultProjectName}
-Add-Replacement $templateInfo 'SolutionDir' {$SolutionDir} {'..\..\'}
-Add-Replacement $templateInfo '..\..\artifacts' {$ArtifactsDir} {$SolutionDir + 'artifacts'}
-Add-Replacement $templateInfo 'a9914dea-7cf2-4216-ba7e-fecb82baa627' {$ProjectId} {[System.Guid]::NewGuid()}
+$templateInfo | replace (
+    ('WebApiProject', {"$ProjectName"}, {"$DefaultProjectName"}),
+    ('SolutionDir', {"$SolutionDir"}, {'..\..\'}),
+    ('..\..\artifacts', {"$ArtifactsDir"}, {"$SolutionDir" + 'artifacts'}),
+    ('a9914dea-7cf2-4216-ba7e-fecb82baa627', {"$ProjectId"}, {[System.Guid]::NewGuid()})
+)
 
 # when the template is run any filename with the given string will be updated
-Update-FileName $templateInfo 'WebApiProject' {$ProjectName}
-Add-SourceFile -templateInfo $templateInfo -sourceFiles 'WebApiProject.xproj' -destFiles {"$ProjectName"+".xproj"}
+$templateInfo | update-filename (
+    ,('WebApiProject', {"$ProjectName"})
+)
+
+$templateInfo | add-sourcefile -sourceFiles 'WebApiProject.xproj' -destFiles {"$ProjectName"+".xproj"}
 
 # This will register the template with pecan-waffle
 Set-TemplateInfo -templateInfo $templateInfo
