@@ -20,7 +20,7 @@ $templateInfo | update-filename (
     ,('WebApiProject', {"$ProjectName"})
 )
 
-Add-SourceFile -templateInfo $templateInfo -sourceFiles 'WebApiProject.xproj' -destFiles {"$ProjectName"+".xproj"}
+$templateInfo | add-sourcefile -sourceFiles 'WebApiProject.xproj' -destFiles {"$ProjectName"+".xproj"}
 
 # This will register the template with pecan-waffle
 Set-TemplateInfo -templateInfo $templateInfo

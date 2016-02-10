@@ -186,16 +186,16 @@ function New-ItemTemplate{
 function TemplateAdd-SourceFile{
     [cmdletbinding()]
     param(
-        [Parameter(Position=0,Mandatory=$true)]
-        [ValidateNotNull()]
-        $templateInfo,
-
         [Parameter(Position=1,Mandatory=$true)]
         [ValidateNotNull()]
         [string[]]$sourceFiles,
 
-        [Parameter(Position=1)]
-        [ScriptBlock[]]$destFiles
+        [Parameter(Position=2)]
+        [ScriptBlock[]]$destFiles,
+
+        [Parameter(Position=3,Mandatory=$true,ValueFromPipeline=$true)]
+        [ValidateNotNull()]
+        $templateInfo
     )
     process{
         if( ($destFiles -ne $null) -and ($destFiles.Count -gt 0) ){
