@@ -10,7 +10,10 @@ $templateInfo = New-Object -TypeName psobject -Property @{
 # Adds a single file to the template
 Add-SourceFile -templateInfo $templateInfo -sourceFiles 'projecttemplate.ps1' -destFiles {"$ItemName.ps1"}
 
-replace $templateInfo '$safeitemname$' {"$ItemName"}
+$templateInfo | replace -replacementObject (
+    ,('$safeitemname$', {"$ItemName"})
+)
+
 Update-FileName $templateInfo 'projecttemplate.ps1' {"$ItemName.ps1"}
 Exclude-File $templateInfo 'pw-*.*'
 

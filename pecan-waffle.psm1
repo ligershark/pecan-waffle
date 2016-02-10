@@ -270,7 +270,56 @@ function TemplateAdd-Replacement{
         }
     }
 }
-Set-Alias replace TemplateAdd-Replacement
+Set-Alias replaceitem TemplateAdd-Replacement
+
+function TemplateAddd-ReplacementObject{
+    param(
+        [Parameter(Position=0,Mandatory=$true,ValueFromPipeline=$true)]
+        $templateInfo,
+
+        [Parameter(Position=1,Mandatory=$true)]
+        [object[][]]$replacementObject,
+
+        [Parameter(Position=4)]
+        [string]$rootDir,
+
+        [Parameter(Position=5)]
+        [string[]]$include = @('*'),
+
+        [Parameter(Position=6)]
+        [string[]]$exclude
+
+    )
+    process{
+        $global:foo = $replacementObject
+        foreach($repobj in $replacementObject){
+            # add a replacement for each
+            if($repobj.length -lt 2){
+                throw ('replacement object requires at least two items, ReplaceKey and ReplaceValue. Num elements in replacement [{0}]{1}' -f $repobj.length,(Get-PSCallStack|Out-String))
+            }
+            $repKey = $repobj[0]
+            $repValue = $repobj[1]
+            $defaultValue = [ScriptBlock]$null
+            if($repobj.length -gt 2){
+                $defaultValue = $repobj[2]
+            }
+
+            $addargs = @{
+                TemplateInfo = $templateInfo
+                ReplaceKey = $repKey
+                ReplaceValue = $repValue
+                DefaultValue = $defaultValue
+                RootDir = $rootDir
+                Include = $include
+                Exclude = $exclude
+            }
+
+            TemplateAdd-Replacement @addargs
+        }
+    }    
+}
+
+set-alias replace TemplateAddd-ReplacementObject
 
 function TemplateUpdate-FileName{
     [cmdletbinding()]

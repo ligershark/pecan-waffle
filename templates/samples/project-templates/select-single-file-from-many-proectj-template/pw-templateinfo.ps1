@@ -8,10 +8,12 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     DefaultProjectName = 'MyApiProject'
 }
 
-replace $templateInfo 'WebApiProject' {$ProjectName} {$DefaultProjectName}
-replace $templateInfo 'SolutionDir' {$SolutionDir} {'..\..\'}
-replace $templateInfo '..\..\artifacts' {$ArtifactsDir} {$SolutionDir + 'artifacts'}
-replace $templateInfo 'a9914dea-7cf2-4216-ba7e-fecb82baa627' {$ProjectId} {[System.Guid]::NewGuid()}
+$templateInfo | replace -replacementObject (
+    ('WebApiProject', {"$ProjectName"}, {"$DefaultProjectName"}),
+    ('SolutionDir', {"$SolutionDir"}, {'..\..\'}),
+    ('..\..\artifacts', {"$ArtifactsDir"}, {"$SolutionDir" + 'artifacts'}),
+    ('a9914dea-7cf2-4216-ba7e-fecb82baa627', {"$ProjectId"}, {[System.Guid]::NewGuid()})
+)
 
 # when the template is run any filename with the given string will be updated
 Update-FileName $templateInfo 'WebApiProject' {$ProjectName}
