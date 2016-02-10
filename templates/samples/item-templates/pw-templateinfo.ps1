@@ -9,11 +9,13 @@ $templateInfo = New-Object -TypeName psobject -Property @{
 }
 
 
-$templateInfo | replace -replacementObject (
+$templateInfo | replace (
     ,('$safeitemname$', {"$ItemName"})
 )
 
-Update-FileName $templateInfo 'controller.js' {"$ItemName.js"}
+$templateInfo | update-filename (
+    ,('controller.js', {"$ItemName.js"})
+)
 Exclude-File $templateInfo 'pw-*.*'
 
 # Adds a single file to the template
@@ -32,7 +34,7 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     DefaultFileName = 'MyApiProject'
 }
 
-$templateInfo | replace -replacementObject (
+$templateInfo | replace (
     ,('$safeitemname$', {"$ItemName"})
 )
 

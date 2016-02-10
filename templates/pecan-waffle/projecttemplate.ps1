@@ -10,7 +10,7 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     ProjectUrl = ''
 }
 
-$templateInfo | replace -replacementObject (
+$templateInfo | replace (
     ('EmptyProject', {"$ProjectName"}, {"$DefaultProjectName"}),
     ('SolutionDir', {"$SolutionDir"}, {'..\..\'}),
     ('..\..\artifacts', {"$ArtifactsDir"}, {"$SolutionDir" + 'artifacts'}),

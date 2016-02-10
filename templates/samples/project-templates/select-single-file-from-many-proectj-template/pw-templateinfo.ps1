@@ -8,7 +8,7 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     DefaultProjectName = 'MyApiProject'
 }
 
-$templateInfo | replace -replacementObject (
+$templateInfo | replace (
     ('WebApiProject', {"$ProjectName"}, {"$DefaultProjectName"}),
     ('SolutionDir', {"$SolutionDir"}, {'..\..\'}),
     ('..\..\artifacts', {"$ArtifactsDir"}, {"$SolutionDir" + 'artifacts'}),
@@ -16,7 +16,10 @@ $templateInfo | replace -replacementObject (
 )
 
 # when the template is run any filename with the given string will be updated
-Update-FileName $templateInfo 'WebApiProject' {$ProjectName}
+$templateInfo | update-filename (
+    ,('WebApiProject', {"$ProjectName"})
+)
+
 Add-SourceFile -templateInfo $templateInfo -sourceFiles 'WebApiProject.xproj' -destFiles {"$ProjectName"+".xproj"}
 
 # This will register the template with pecan-waffle

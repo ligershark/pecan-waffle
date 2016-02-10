@@ -274,19 +274,19 @@ Set-Alias replaceitem TemplateAdd-Replacement
 
 function TemplateAddd-ReplacementObject{
     param(
-        [Parameter(Position=0,Mandatory=$true,ValueFromPipeline=$true)]
-        $templateInfo,
-
         [Parameter(Position=1,Mandatory=$true)]
         [object[][]]$replacementObject,
 
-        [Parameter(Position=4)]
+        [Parameter(Position=2,Mandatory=$true,ValueFromPipeline=$true)]
+        $templateInfo,
+
+        [Parameter(Position=3)]
         [string]$rootDir,
 
-        [Parameter(Position=5)]
+        [Parameter(Position=4)]
         [string[]]$include = @('*'),
 
-        [Parameter(Position=6)]
+        [Parameter(Position=5)]
         [string[]]$exclude
 
     )
@@ -324,7 +324,7 @@ set-alias replace TemplateAddd-ReplacementObject
 function TemplateUpdate-FileName{
     [cmdletbinding()]
     param(
-        [Parameter(Position=1,Mandatory=$true)]
+        [Parameter(Position=1,Mandatory=$true,ValueFromPipeline = $true)]
         $templateInfo,
 
         [Parameter(Position=2,Mandatory=$true)]
@@ -346,7 +346,28 @@ function TemplateUpdate-FileName{
         }
     }
 }
-Set-Alias Update-FileName TemplateUpdate-FileName
+
+function TemplateUpdate-FilenameObject{
+    param(
+        [Parameter(Position=1,Mandatory=$true)]
+        [object[][]]$updateObject,
+
+        [Parameter(Position=2,Mandatory=$true,ValueFromPipeline = $true)]
+        $templateInfo
+    )
+    process{
+        foreach($upObj in $updateObject){
+            if($upObj -ne $null){
+                if($upObj.length -ne 2){
+                    throw ('Update object requires two values but found [{0}] number of values' -f $upObj.length)
+                }
+
+                TemplateUpdate-FileName -templateInfo $templateInfo -replaceKey ($upObj[0]) -replaceValue ($upObj[1])
+            }
+        }
+    }
+}
+Set-Alias Update-FileName TemplateUpdate-FilenameObject
 
 function TemplateBefore-Install{
     [cmdletbinding()]

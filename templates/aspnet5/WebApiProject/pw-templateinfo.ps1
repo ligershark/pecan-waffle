@@ -14,7 +14,7 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     AfterInstall = { 'after install' | Write-Host -ForegroundColor Cyan}
 }
 
-$templateInfo | replace -replacementObject (
+$templateInfo | replace (
     ('WebApiProject', {"$ProjectName"}, {"$DefaultProjectName"}),
     ('SolutionDir', {"$SolutionDir"}, {'..\..\'}),
     ('..\..\artifacts', {"$ArtifactsDir"}, {"$SolutionDir" + 'artifacts'}),
@@ -22,7 +22,11 @@ $templateInfo | replace -replacementObject (
 )
 
 # when the template is run any filename with the given string will be updated
-Update-FileName $templateInfo 'WebApiProject' {$ProjectName}
+$templateInfo | update-filename (
+    ,('WebApiProject', {$ProjectName})
+)
+
+
 # excludes files from the template
 Exclude-File $templateInfo 'pw-*.*','*.user','*.suo','*.userosscache','project.lock.json','*.vs*scc'
 # excludes folders from the template

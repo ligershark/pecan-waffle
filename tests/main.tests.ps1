@@ -233,7 +233,7 @@ Describe 'template source tests'{
 
         $numTemplatesAfter -gt $numTemplatesBefore | should be $true
     }
-
+    <#
     It 'can add from git'{
         $url = 'https://github.com/ligershark/pecan-waffle.git'
 
@@ -247,6 +247,7 @@ Describe 'template source tests'{
 
         $numTemplatesAfter -gt $numTemplatesBefore | should be $true
     }
+    #>
 }
 
 Describe 'misc tests'{

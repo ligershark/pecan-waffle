@@ -14,15 +14,21 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     AfterInstall = { 'after install' | Write-Host -ForegroundColor Cyan}
 }
 
-$templateInfo | replace -replacementObject (
+$templateInfo | replace (
     ('EmptyProject', {"$ProjectName"}, {"$DefaultProjectName"}),
     ('SolutionDir', {"$SolutionDir"}, {'..\..\'}),
     ('..\..\artifacts', {"$ArtifactsDir"}, {"$SolutionDir" + 'artifacts'}),
     ('97b148d4-829e-4de3-840b-9c6600caa117', {"$ProjectId"}, {[System.Guid]::NewGuid()})
 )
 
+$templateInfo | update-filename (
+    ,('EmptyProject', {"$ProjectName"})
+)
+
 # when the template is run any filename with the given string will be updated
-Update-FileName $templateInfo 'EmptyProject' {"$ProjectName"}
+$templateInfo | update-filename (
+    ,('EmptyProject', {"$ProjectName"})
+)
 # excludes files from the template
 Exclude-File $templateInfo 'pw-*.*','*.user','*.suo','*.userosscache','project.lock.json','*.vs*scc'
 # excludes folders from the template
