@@ -604,6 +604,10 @@ function Add-Item{
         # find the project template with the given name
         $template = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ItemTemplate' -and $_.Name -eq $templateName}|Select-Object -First 1)
 
+        if(-not [System.IO.Path]::IsPathRooted($destPath)){
+            $destPath = (Join-Path $pwd $destPath)
+        }
+
         if($template -eq $null){
             throw ('Did not find an item template with the name [{0}]' -f $templateName)
         }
