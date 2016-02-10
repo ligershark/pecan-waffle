@@ -183,7 +183,7 @@ function New-ItemTemplate{
     }
 }
 
-function Add-SourceFile{
+function TemplateAdd-SourceFile{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
@@ -228,7 +228,9 @@ function Add-SourceFile{
     }
 }
 
-function Add-Replacement{
+set-alias Add-SourceFile TemplateAdd-SourceFile
+
+function TemplateAdd-Replacement{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
@@ -268,8 +270,9 @@ function Add-Replacement{
         }
     }
 }
+Set-Alias replace TemplateAdd-Replacement
 
-function Update-FileName{
+function TemplateUpdate-FileName{
     [cmdletbinding()]
     param(
         [Parameter(Position=1,Mandatory=$true)]
@@ -294,8 +297,9 @@ function Update-FileName{
         }
     }
 }
+Set-Alias Update-FileName TemplateUpdate-FileName
 
-function Before-Install{
+function TemplateBefore-Install{
     [cmdletbinding()]
     param(
         [Parameter(Position=1,Mandatory=$true)]
@@ -312,8 +316,9 @@ function Before-Install{
         }
     }
 }
+Set-Alias beforeinstall TemplateBefore-Install
 
-function After-Install{
+function TemplateAfter-Install{
     [cmdletbinding()]
     param(
         [Parameter(Position=1,Mandatory=$true)]
@@ -330,8 +335,9 @@ function After-Install{
         }
     }
 }
+Set-Alias afterinstall TemplateAfter-Install
 
-function Exclude-File{
+function TemplateExclude-File{
     [cmdletbinding()]
     param(
         [Parameter(Position=1,Mandatory=$true)]
@@ -349,8 +355,9 @@ function Exclude-File{
         $templateInfo.ExcludeFiles += $excludeFiles
     }
 }
+Set-Alias Exclude-File TemplateExclude-File
 
-function Exclude-Folder{
+function TemplateExclude-Folder{
     [cmdletbinding()]
     param(
         [Parameter(Position=1,Mandatory=$true)]
@@ -368,6 +375,7 @@ function Exclude-Folder{
         $templateInfo.ExcludeFolder += $excludeFolder
     }
 }
+Set-Alias Exclude-Folder TemplateExclude-Folder
 
 function Clear-AllTemplates{
     [cmdletbinding()]
@@ -377,7 +385,7 @@ function Clear-AllTemplates{
     }
 }
 
-function Set-TemplateInfo{
+function TemplateSet-TemplateInfo{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
@@ -402,6 +410,7 @@ function Set-TemplateInfo{
         $global:pecanwafflesettings.Templates += $templateInfo        
     }
 }
+Set-Alias Set-TemplateInfo TemplateSet-TemplateInfo
 
 function InternalGet-EvaluatedProperty{
     [cmdletbinding()]
@@ -750,16 +759,4 @@ if($global:pecanwafflesettings.EnableAddLocalSourceOnLoad -eq $true){
 }
 # TODO: Update this later
 Export-ModuleMember -function * -Alias *
-
-
-
-
-
-
-
-
-
-
-
-
 

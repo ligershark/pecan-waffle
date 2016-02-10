@@ -14,10 +14,10 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     AfterInstall = { 'after install' | Write-Host -ForegroundColor Cyan}
 }
 
-Add-Replacement $templateInfo 'EmptyProject' {"$ProjectName"} {"$DefaultProjectName"}
-Add-Replacement $templateInfo 'SolutionDir' {"$SolutionDir"} {'..\..\'}
-Add-Replacement $templateInfo '..\..\artifacts' {"$ArtifactsDir"} {"$SolutionDir" + 'artifacts'}
-Add-Replacement $templateInfo '97b148d4-829e-4de3-840b-9c6600caa117' {"$ProjectId"} {[System.Guid]::NewGuid()}
+replace $templateInfo 'EmptyProject' {"$ProjectName"} {"$DefaultProjectName"}
+replace $templateInfo 'SolutionDir' {"$SolutionDir"} {'..\..\'}
+replace $templateInfo '..\..\artifacts' {"$ArtifactsDir"} {"$SolutionDir" + 'artifacts'}
+replace $templateInfo '97b148d4-829e-4de3-840b-9c6600caa117' {"$ProjectId"} {[System.Guid]::NewGuid()}
 
 # when the template is run any filename with the given string will be updated
 Update-FileName $templateInfo 'EmptyProject' {"$ProjectName"}
@@ -26,8 +26,8 @@ Exclude-File $templateInfo 'pw-*.*','*.user','*.suo','*.userosscache','project.l
 # excludes folders from the template
 Exclude-Folder $templateInfo '.vs','artifacts'
 
-Before-Install = { 'before install' | Write-Host -ForegroundColor Cyan}
-After-Install = { 'after install' | Write-Host -ForegroundColor Cyan}
+beforeinstall = { 'before install' | Write-Host -ForegroundColor Cyan}
+afterinstall = { 'after install' | Write-Host -ForegroundColor Cyan}
 
 # This will register the template with pecan-waffle
 Set-TemplateInfo -templateInfo $templateInfo
