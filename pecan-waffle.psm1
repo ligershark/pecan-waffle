@@ -88,7 +88,11 @@ function Add-TemplateSource{
     )
     process{
         [string]$localpath = $null
+
         if($path -ne $null){
+            if(-not [System.IO.Path]::IsPathRooted($path)){
+                $path = (Join-Path $pwd $path)
+            }
             [string]$localpath = $path.FullName
         }
         else{
