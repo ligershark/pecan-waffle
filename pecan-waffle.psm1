@@ -557,7 +557,7 @@ function Add-Project{
         [string]$templateName,
 
         [Parameter(Position=1)]
-        [System.IO.DirectoryInfo]$destPath,
+        [System.IO.DirectoryInfo]$destPath = (get-item $pwd),
 
         [Parameter(Position=2)]
         [string]$projectName = 'MyNewProject',
@@ -569,12 +569,16 @@ function Add-Project{
         # find the project template with the given name
         $template = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate' -and $_.Name -eq $templateName}|Select-Object -First 1)
 
+        if(-not [System.IO.Path]::IsPathRooted($destPath)){
+            $destPath = (Join-Path $pwd $destPath)
+        }
+
         if($template -eq $null){
             throw ('Did not find a project template with the name [{0}]' -f $templateName)
         }
 
         if(-not $noNewFolder){
-            $destPath = (Join-Path $destPath $projectName)
+            $destPath = (Join-Path $destPath.FullName $projectName)
         }
 
         Add-Template -template $template -destPath $destPath -properties @{'ProjectName'=$projectName}
