@@ -135,6 +135,14 @@ function Add-TemplateSource{
     }
 }
 
+function Show-Templates{
+    [cmdletbinding()]
+    param()
+    process{
+        $Global:pecanwafflesettings.Templates | Select-Object -Property Name,Type | Sort-Object -Property Type,Name
+    }
+}
+
 function Update-RemoteTemplates{
     [cmdletbinding()]
     param()

@@ -249,5 +249,12 @@ Describe 'template source tests'{
     }
 }
 
+Describe 'misc tests'{
+    . $importPecanWaffle
 
+    It 'can call show-templates'{
+        $result = Show-Templates
+        $result | should not be $null
+    }
+}
 
