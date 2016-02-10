@@ -10,8 +10,8 @@ We are also going to use this as an opportunity to simplify the following areas.
  - Make it easier to share templates 
  - Improve the experience with dynamic templates
  
-The initial thoughts are to create a prototype in PowerShell which shows the end state. After we provide proof of concept we can implement it
-using dnx/dotnet so that it's truly cross platform.
+**The initial thoughts are to create a prototype in PowerShell which shows the end state. After we provide proof of concept we can implement it
+using dnx/dotnet so that it's truly cross platform.**
 
 ### How to try it
 
