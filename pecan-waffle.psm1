@@ -139,7 +139,7 @@ function Show-Templates{
     [cmdletbinding()]
     param()
     process{
-        $Global:pecanwafflesettings.Templates | Select-Object -Property Name,Type | Sort-Object -Property Type,Name
+        $Global:pecanwafflesettings.Templates | Select-Object -Property Name,Type | Sort-Object -Property Type,Name,Description
     }
 }
 
