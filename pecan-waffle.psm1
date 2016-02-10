@@ -333,7 +333,10 @@ function TemplateUpdate-FileName{
 
         [Parameter(Position=3,Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [ScriptBlock]$replaceValue
+        [ScriptBlock]$replaceValue,
+
+        [Parameter(Position=4)]
+        [ScriptBlock]$defaultValue
     )
     process{
         if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'UpdateFilenames')){
@@ -343,6 +346,7 @@ function TemplateUpdate-FileName{
         $templateInfo.UpdateFilenames += New-Object -TypeName psobject -Property @{
             ReplaceKey = $replaceKey
             ReplaceValue = $replaceValue
+            DefaultValue = $defaultValue
         }
     }
 }
@@ -358,11 +362,15 @@ function TemplateUpdate-FilenameObject{
     process{
         foreach($upObj in $updateObject){
             if($upObj -ne $null){
-                if($upObj.length -ne 2){
-                    throw ('Update object requires two values but found [{0}] number of values' -f $upObj.length)
+                if($upObj.length -lt 2){
+                    throw ('Update object requires at least two values but found [{0}] number of values' -f $upObj.length)
                 }
 
-                TemplateUpdate-FileName -templateInfo $templateInfo -replaceKey ($upObj[0]) -replaceValue ($upObj[1])
+                $defaultValue = [ScriptBlock]$null
+                if($upObj.length -ge 3){
+                    $defaultValue = $upObj[2]
+                }
+                TemplateUpdate-FileName -templateInfo $templateInfo -replaceKey ($upObj[0]) -replaceValue ($upObj[1]) -defaultValue $defaultValue
             }
         }
     }
@@ -583,7 +591,7 @@ function Add-Item{
         [System.IO.DirectoryInfo]$destPath,
 
         [Parameter(Position=2)]
-        [string]$itemName = 'Item',
+        [string]$itemName,
 
         [Parameter(Position=3)]
         [string]$destFilename
@@ -686,6 +694,10 @@ function Add-Template{
                     foreach($file in ([System.IO.FileInfo[]](Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)) ){
                         $file = [System.IO.FileInfo]$file
                         $repvalue = InternalGet-EvaluatedProperty -expression $current.ReplaceValue -properties $evaluatedProps
+
+                        if([string]::IsNullOrWhiteSpace($repvalue) -and ($current.DefaultValue -ne $null)){
+                            $repvalue = InternalGet-EvaluatedProperty -expression $current.DefaultValue -properties $evaluatedProps
+                        }
 
                         $newname = $file.Name.Replace($current.ReplaceKey, $repvalue)
                         [System.IO.FileInfo]$newpath = (Join-Path ($file.Directory.FullName) $newname)

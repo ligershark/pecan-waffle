@@ -2,20 +2,20 @@
 param()
 
 $templateInfo = New-Object -TypeName psobject -Property @{
-    Name = 'pw project template'
+    Name = 'pw-project-template'
     Type = 'ItemTemplate'
     Description = 'pecan-waffle project template file'
     DefaultFileName = 'pw-templateinfo'
 }
 # Adds a single file to the template
-$templateInfo | add-sourcefile -sourceFiles 'projecttemplate.ps1' -destFiles {"$ItemName.ps1"}
+$templateInfo | add-sourcefile -sourceFiles 'projecttemplate.ps1'
 
 $templateInfo | replace (
     ,('$safeitemname$', {"$ItemName"})
 )
 
 $templateInfo | update-filename (
-    ,('projecttemplate.ps1', {"$ItemName.ps1"})
+    ,('projecttemplate.ps1', {if(-not [string]::IsNullOrWhiteSpace($ItemName)){"$ItemName" + '.ps1'} }, {'pw-templateinfo.ps1'})
 )
 
 $templateInfo | exclude-file 'pw-*.*'

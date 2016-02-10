@@ -10,8 +10,8 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     ProjectUrl = 'https://github.com/ligershark/pecan-waffle'
     GitUrl = 'https://github.com/ligershark/pecan-waffle.git'
     GitBranch = 'master'
-    BeforeInstall = { 'before install' | Write-Host -ForegroundColor Cyan}
-    AfterInstall = { 'after install' | Write-Host -ForegroundColor Cyan}
+    BeforeInstall = { 'before install' | Write-Output}
+    AfterInstall = { 'after install' | Write-Output}
 }
 
 $templateInfo | replace (
@@ -33,9 +33,6 @@ $templateInfo | update-filename (
 $templateInfo | exclude-file 'pw-*.*','*.user','*.suo','*.userosscache','project.lock.json','*.vs*scc'
 # excludes folders from the template
 $templateInfo | exclude-folder '.vs','artifacts'
-
-beforeinstall = { 'before install' | Write-Host -ForegroundColor Cyan}
-afterinstall = { 'after install' | Write-Host -ForegroundColor Cyan}
 
 # This will register the template with pecan-waffle
 Set-TemplateInfo -templateInfo $templateInfo

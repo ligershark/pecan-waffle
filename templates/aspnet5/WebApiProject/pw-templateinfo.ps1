@@ -10,8 +10,8 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     ProjectUrl = 'https://github.com/ligershark/pecan-waffle'
     GitUrl = 'https://github.com/ligershark/pecan-waffle.git'
     GitBranch = 'master'
-    BeforeInstall = { 'before install' | Write-Host -ForegroundColor Cyan}
-    AfterInstall = { 'after install' | Write-Host -ForegroundColor Cyan}
+    BeforeInstall = { 'before install' | Write-Output}
+    AfterInstall = { 'after install' | Write-Output}
 }
 
 $templateInfo | replace (
