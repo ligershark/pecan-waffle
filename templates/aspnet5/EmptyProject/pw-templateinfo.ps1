@@ -21,10 +21,6 @@ $templateInfo | replace (
     ('97b148d4-829e-4de3-840b-9c6600caa117', {"$ProjectId"}, {[System.Guid]::NewGuid()})
 )
 
-$templateInfo | update-filename (
-    ,('EmptyProject', {"$ProjectName"})
-)
-
 # when the template is run any filename with the given string will be updated
 $templateInfo | update-filename (
     ,('EmptyProject', {"$ProjectName"})
