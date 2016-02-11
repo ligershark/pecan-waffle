@@ -15,7 +15,7 @@ $templateInfo | replace (
 )
 
 $templateInfo | update-filename (
-    ,('projecttemplate.ps1', {if(-not [string]::IsNullOrWhiteSpace($ItemName)){"$ItemName" + '.ps1'} }, {'pw-templateinfo.ps1'})
+    ,('projecttemplate.ps1', {'pw-templateinfo.ps1'})
 )
 
 $templateInfo | exclude-file 'pw-*.*'
