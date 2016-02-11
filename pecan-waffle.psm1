@@ -100,28 +100,14 @@ function Add-TemplateSource{
                 New-Item -Path $localfolder.FullName -ItemType Directory
             }
 
-            $oldPath = Get-Location
-
             if([string]::IsNullOrWhiteSpace($repoName)){
-                $startIndex = $url.LastIndexOf('/')
-                [string]$repoName = [System.Guid]::NewGuid()
-                if($startIndex -gt 0){
-                    $repoName = $url.Substring($startIndex +1).Replace('.git','')
-                }
+                $repoName = InternalGet-RepoName -url $url
             }
 
             [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
             $path =([System.IO.DirectoryInfo]$repoFolder).FullName
-            try{
-                Set-Location $localfolder
-
-                if(-not (Test-Path $repoFolder.FullName)){
-                    Import-NuGetPowershell
-                    Execute-CommandString "git clone $url --branch $branch --single-branch $repoName"
-                }
-            }
-            finally{
-                Set-Location $oldPath
+            if(-not (Test-Path $repoFolder.FullName)){
+                InternalAdd-GitFolder -url $url -repoName $repoName -branch $branch -localfolder $localfolder
             }
         }
 
@@ -136,6 +122,64 @@ function Add-TemplateSource{
         }
 
         $global:pecanwafflesettings.TemplateSources += $templateSource
+    }
+}
+
+function InternalGet-RepoName{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=1,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$url
+    )
+    process{
+        $startIndex = $url.LastIndexOf('/')
+        [string]$repoName = [System.Guid]::NewGuid()
+        if($startIndex -gt 0){
+            $repoName = $url.Substring($startIndex +1).Replace('.git','')
+        }
+
+        $repoName
+    }
+}
+
+function InternalAdd-GitFolder{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=1,Mandatory=$true)]
+        [string]$url,
+
+        [Parameter(Position=2)]
+        [string]$repoName,
+
+        [Parameter(Position=3,ParameterSetName='git')]
+        [string]$branch = 'master',
+
+        [Parameter(Position=4)]
+        [System.IO.DirectoryInfo]$localfolder = ('{0}\pecan-waffle\remote\templates' -f $env:LOCALAPPDATA)
+    )
+    begin{
+        # TODO: Improve to only call if not loaded
+        Import-NuGetPowershell
+    }
+    process{
+        if([string]::IsNullOrWhiteSpace($repoName)){
+            $repoName = InternalGet-RepoName -url $url
+        }
+
+        $oldPath = Get-Location
+        [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
+        $path =([System.IO.DirectoryInfo]$repoFolder).FullName
+        try{
+            Set-Location $localfolder
+
+            if(-not (Test-Path $repoFolder.FullName)){
+                Execute-CommandString "git clone $url --branch $branch --single-branch $repoName"
+            }
+        }
+        finally{
+            Set-Location $oldPath
+        }
     }
 }
 

@@ -233,8 +233,8 @@ Describe 'template source tests'{
 
         $numTemplatesAfter -gt $numTemplatesBefore | should be $true
     }
-    <#
-    It 'can add from git'{
+
+    It 'can add from git (may fail if there are breaking changes in local but not remote)'{
         $url = 'https://github.com/ligershark/pecan-waffle.git'
 
         $numTemplatesBefore = ($Global:pecanwafflesettings.Templates.Count)
@@ -247,7 +247,49 @@ Describe 'template source tests'{
 
         $numTemplatesAfter -gt $numTemplatesBefore | should be $true
     }
-    #>
+}
+
+Describe 'git tests'{
+    It 'can clone from github w/o repo name'{
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'github01')
+        Ensure-PathExists -path $dest.FullName
+
+        $repoName = 'pecan-waffle'
+        {InternalAdd-GitFolder -url 'https://github.com/ligershark/pecan-waffle.git' -localfolder $dest.FullName} | should not throw
+        $dest.FullName | should exist
+        (Join-Path $dest.FullName "$repoName\readme.md") | should exist
+    }
+
+    It 'can clone from github with repo name'{
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'github02')
+        Ensure-PathExists -path $dest.FullName
+
+        $repoName = 'pecan-waffle'
+        {InternalAdd-GitFolder -url 'https://github.com/ligershark/pecan-waffle.git' -repoName $repoName -localfolder $dest.FullName} | should not throw
+        $dest.FullName | should exist
+        (Join-Path $dest.FullName "$repoName\readme.md") | should exist
+    }
+
+    It 'can clone from github with repo name and branch'{
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'github03')
+        Ensure-PathExists -path $dest.FullName
+
+        $repoName = 'pecan-waffle'
+        $branch = 'dev'
+        {InternalAdd-GitFolder -url 'https://github.com/ligershark/pecan-waffle.git' -repoName $repoName -branch $branch -localfolder $dest.FullName } | should not throw
+        $dest.FullName | should exist
+        (Join-Path $dest.FullName "$repoName\readme.md") | should exist
+    }
+}
+
+Describe 'get repo name tests'{
+    It 'can get repo name from url'{
+        # InternalGet-RepoName
+        $url = 'https://github.com/ligershark/pecan-waffle.git'
+        $repoName = InternalGet-RepoName -url $url
+
+        $repoName | should be 'pecan-waffle'
+    }
 }
 
 Describe 'misc tests'{
