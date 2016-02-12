@@ -66,7 +66,7 @@ function InternalGet-NewTempDir{
     [cmdletbinding()]
     param()
     process{
-        InternalEnsure-DirectoryExists -path $global:pecanwafflesettings.TempDir
+        InternalEnsure-DirectoryExists -path $global:pecanwafflesettings.TempDir | Out-Null
 
         [System.IO.DirectoryInfo]$newpath = Join-Path ($global:pecanwafflesettings.TempDir.FullName) ([System.Guid]::NewGuid())
         New-Item -ItemType Directory -Path $newpath.FullName | out-null
