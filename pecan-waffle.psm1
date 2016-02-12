@@ -672,7 +672,7 @@ function Add-Project{
             $destPath = (Join-Path $destPath.FullName $projectName)
         }
 
-        Add-Template -template $template -destPath $destPath -properties @{'ProjectName'=$projectName}
+        Add-Template -template $template -destPath $destPath.FullName -properties @{'ProjectName'=$projectName}
     }
 }
 
