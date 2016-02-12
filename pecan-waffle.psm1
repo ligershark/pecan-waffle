@@ -560,12 +560,12 @@ function TemplateSet-TemplateInfo{
                     InternalAdd-GitFolder -url $url -repoName $repoName -branch $branch -localfolder $localfolder
                 }
 
-                $pathToFolder = $repoFolder.FullName
+                [System.IO.DirectoryInfo]$pathToFolder = $repoFolder.FullName
                 if(-not [string]::IsNullOrWhiteSpace($templateInfo.ContentPath)){
                     $pathToFolder = (get-item (Join-Path $repoFolder.FullName $templateInfo.ContentPath)).FullName
                 }
 
-                $templateRoot = $pathToFolder
+                $templateRoot = $pathToFolder.FullName
             }
 
             if($templateRoot -eq $null){
