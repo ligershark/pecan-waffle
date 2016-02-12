@@ -7,6 +7,7 @@ $global:pecanwafflesettings = New-Object -TypeName psobject -Property @{
     TempDir = [System.IO.DirectoryInfo]('{0}\pecan-waffle\temp\projtemplates' -f $env:LOCALAPPDATA)
     Templates = @()
     TemplateSources = @()
+    GitSources = @()
     EnableAddLocalSourceOnLoad = $true
 }
 # todo: enable overriding settings via env var
@@ -184,6 +185,12 @@ function InternalAdd-GitFolder{
         finally{
             Set-Location $oldPath
         }
+
+        $templateSource = New-Object -TypeName psobject -Property @{
+            LocalFolder = $repoFolder.FullName
+            Url = $url
+        }
+        $global:pecanwafflesettings.GitSources += $templateSource
     }
 }
 
@@ -199,7 +206,7 @@ function Update-RemoteTemplates{
     [cmdletbinding()]
     param()
     process{
-        foreach($ts in $global:pecanwafflesettings.TemplateSources){
+        foreach($ts in $global:pecanwafflesettings.GitSources){
             if( -not ([string]::IsNullOrWhiteSpace($ts.Url)) -and (Test-Path $ts.LocalFolder)){
                 $oldpath = Get-Location
                 try{
