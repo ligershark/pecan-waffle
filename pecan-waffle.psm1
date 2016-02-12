@@ -113,7 +113,9 @@ function Add-TemplateSource{
 
             [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
             $path =([System.IO.DirectoryInfo]$repoFolder).FullName
-            InternalEnsure-DirectoryExists -path $repoFolder.FullName
+            if(-not (Test-Path $repoFolder.FullName)){
+                InternalAdd-GitFolder -url $url -repoName $repoName -branch $branch -localfolder $localfolder
+            }
         }
 
         $files = (Get-ChildItem -Path $path 'pw-templateinfo*.ps1' -Recurse -File -Exclude '.git','node_modules','bower_components' -ErrorAction SilentlyContinue)
