@@ -171,6 +171,10 @@ function InternalAdd-GitFolder{
         [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
         $path =([System.IO.DirectoryInfo]$repoFolder).FullName
         try{
+            if(-not (Test-Path $localfolder.FullName)){
+                New-Item -Path $localfolder.FullName -ItemType Directory
+            }
+
             Set-Location $localfolder
 
             if(-not (Test-Path $repoFolder.FullName)){
