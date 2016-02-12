@@ -519,11 +519,42 @@ function TemplateSet-TemplateInfo{
         $templateInfo,
 
         [Parameter(Position=1)]
-        [System.IO.DirectoryInfo]$templateRoot
+        [System.IO.DirectoryInfo]$templateRoot,
+
+        # todo: rename this parameter
+        [Parameter(Position=3,ParameterSetName='git')]
+        [System.IO.DirectoryInfo]$localfolder = ('{0}\pecan-waffle\remote\templates' -f $env:LOCALAPPDATA)
     )
     process{
         if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'TemplatePath')){
             Internal-AddProperty -inputObject $templateInfo -propertyName 'TemplatePath' -propertyValue @()
+
+            $url = $templateInfo.SourceUri
+            if(-not [string]::IsNullOrWhiteSpace($url)){
+                # ensure folder is cloned locally
+                # TODO: allow override in template
+                $repoName = InternalGet-RepoName -url $url
+                $branch = 'master'
+                if(-not [string]::IsNullOrWhiteSpace($templateInfo.SourceRepoName)){
+                    $repoName = $templateInfo.SourceRepoName
+                }
+                if(-not [string]::IsNullOrWhiteSpace($templateInfo.SourceBranch)){
+                    $branch = $templateInfo.SourceBranch
+                }
+
+                [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
+                if(-not (Test-Path $repoFolder.FullName)){
+                    # todo: register so that it can be updated later on via Update-RemoteTemplates
+                    InternalAdd-GitFolder -url $url -repoName $repoName -branch $branch -localfolder $localfolder
+                }
+
+                $pathToFolder = $repoFolder.FullName
+                if(-not [string]::IsNullOrWhiteSpace($templateInfo.ContentPath)){
+                    $pathToFolder = (get-item (Join-Path $repoFolder.FullName $templateInfo.ContentPath)).FullName
+                }
+
+                $templateRoot = $pathToFolder
+            }
 
             if($templateRoot -eq $null){
                 # root is the folder from the calling script
