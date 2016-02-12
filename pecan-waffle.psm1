@@ -16,6 +16,17 @@ function InternalGet-ScriptDirectory{
     split-path (((Get-Variable MyInvocation -Scope 1).Value).MyCommand.Path)
 }
 
+function InternalEnsure-DirectoryExists{
+    param([Parameter(Position=0)][System.IO.DirectoryInfo]$path)
+    process{
+        if($path -ne $null){
+            if(-not (Test-Path $path.FullName)){
+                New-Item -Path $path.FullName -ItemType Directory
+            }
+        }
+    }
+}
+
 function Internal-HasProperty{
     [cmdletbinding()]
     param(
@@ -55,9 +66,7 @@ function InternalGet-NewTempDir{
     [cmdletbinding()]
     param()
     process{
-        if(-not (Test-Path $global:pecanwafflesettings.TempDir)){
-            New-Item -ItemType Directory -Path ($global:pecanwafflesettings.TempDir.FullName) | Out-Null
-        }
+        InternalEnsure-DirectoryExists -path $global:pecanwafflesettings.TempDir
 
         [System.IO.DirectoryInfo]$newpath = Join-Path ($global:pecanwafflesettings.TempDir.FullName) ([System.Guid]::NewGuid())
         New-Item -ItemType Directory -Path $newpath.FullName | out-null
@@ -97,19 +106,14 @@ function Add-TemplateSource{
             [string]$localpath = $path.FullName
         }
         else{
-            if(-not (Test-Path $localfolder)){
-                New-Item -Path $localfolder.FullName -ItemType Directory
-            }
-
+            InternalEnsure-DirectoryExists -path $localfolder.FullName
             if([string]::IsNullOrWhiteSpace($repoName)){
                 $repoName = InternalGet-RepoName -url $url
             }
 
             [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
             $path =([System.IO.DirectoryInfo]$repoFolder).FullName
-            if(-not (Test-Path $repoFolder.FullName)){
-                InternalAdd-GitFolder -url $url -repoName $repoName -branch $branch -localfolder $localfolder
-            }
+            InternalEnsure-DirectoryExists -path $repoFolder.FullName
         }
 
         $files = (Get-ChildItem -Path $path 'pw-templateinfo*.ps1' -Recurse -File -Exclude '.git','node_modules','bower_components' -ErrorAction SilentlyContinue)
@@ -172,10 +176,7 @@ function InternalAdd-GitFolder{
         [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
         $path =([System.IO.DirectoryInfo]$repoFolder).FullName
         try{
-            if(-not (Test-Path $localfolder.FullName)){
-                New-Item -Path $localfolder.FullName -ItemType Directory
-            }
-
+            InternalEnsure-DirectoryExists -path $localfolder.FullName
             Set-Location $localfolder
 
             if(-not (Test-Path $repoFolder.FullName)){
@@ -838,9 +839,7 @@ function Add-Template{
             }
 
             # copy the final result to the destination
-            if(-not (Test-Path $destPath.FullName)){
-                New-Item -Path $destPath.FullName -ItemType Directory
-            }
+            InternalEnsure-DirectoryExists -path $destPath.FullName
             [string]$tpath = $tempWorkDir.FullName
             
             Copy-Item $tpath\* -Destination $destPath.FullName -Recurse -Include *
