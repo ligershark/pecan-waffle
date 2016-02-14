@@ -27,6 +27,22 @@ function InternalEnsure-DirectoryExists{
     }
 }
 
+#http://jongurgul.com/blog/get-stringhash-get-filehash/
+Function InternalGet-StringHash{
+    [cmdletbinding()]
+    param(
+        [String] $text,
+        $HashName = "MD5"
+    )
+    process{
+        $sb = New-Object System.Text.StringBuilder
+        [System.Security.Cryptography.HashAlgorithm]::Create($HashName).ComputeHash([System.Text.Encoding]::UTF8.GetBytes($text))|%{
+                [Void]$sb.Append($_.ToString("x2"))
+            }
+        $sb.ToString()
+    }
+}
+
 function Internal-HasProperty{
     [cmdletbinding()]
     param(
@@ -108,7 +124,7 @@ function Add-TemplateSource{
         else{
             InternalEnsure-DirectoryExists -path $localfolder.FullName
             if([string]::IsNullOrWhiteSpace($repoName)){
-                $repoName = InternalGet-RepoName -url $url
+                $repoName = ( '{0}-{1}' -f (InternalGet-RepoName -url $url),(InternalGet-StringHash -text $url))
             }
 
             [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
