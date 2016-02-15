@@ -694,7 +694,7 @@ function Add-Project{
     }
 }
 
-function Add-Item{
+function New-PWItem{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
@@ -728,6 +728,7 @@ function Add-Item{
         Add-Template -template $template -destPath $destPath -properties $props
     }
 }
+Set-Alias Add-Item New-PWItem -Description 'obsolete: This was added for back compat and will be removed soon'
 
 function Add-Template{
     [cmdletbinding()]

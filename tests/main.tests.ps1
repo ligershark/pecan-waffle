@@ -190,7 +190,7 @@ Describe 'add item tests'{
             New-Item -Path $dest.FullName -ItemType Directory
         }
 
-        { Add-Item -templateName 'demo-controllerjs' -destPath $dest.FullName -itemName 'MyController' } | should not throw
+        { New-PWItem -templateName 'demo-controllerjs' -destPath $dest.FullName -itemName 'MyController' } | should not throw
         
         (Join-Path $dest.FullName 'MyController.js') | should exist
         (Join-Path $dest.FullName 'directive.js') | should not exist
@@ -205,7 +205,7 @@ Describe 'add item tests'{
         [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'angularfiles')
         Ensure-PathExists -path $dest.FullName
 
-        { Add-Item -templateName 'demo-angularfiles' -destPath $dest.FullName -itemName 'angular' } | should not throw
+        { New-PWItem -templateName 'demo-angularfiles' -destPath $dest.FullName -itemName 'angular' } | should not throw
         
         (Join-Path $dest.FullName 'controller.js') | should exist
         (Join-Path $dest.FullName 'directive.js') | should exist
