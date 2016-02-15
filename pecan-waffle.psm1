@@ -831,7 +831,7 @@ function InternalNew-PWTemplate{
             }
 
             # replace content in files
-            Import-FileReplacer | Out-Null
+            InternalImport-PWFileReplacer | Out-Null
 
             foreach($r in $template.Replacements){
                 $rvalue = InternalGet-ReplacementValue -template $template -replaceKey $r.ReplaceKey -evaluatedProperties $evaluatedProps
@@ -932,7 +932,7 @@ function Import-NuGetPowershell{
 .PARAMETER fileReplacerVersion
     The version to import.
 #>
-function Import-FileReplacer{
+function InternalImport-PWFileReplacer{
     [cmdletbinding()]
     param(
         [string]$fileReplacerVersion = '0.4.0-beta'
