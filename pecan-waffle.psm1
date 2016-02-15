@@ -659,7 +659,7 @@ function InternalGet-ReplacementValue{
     }
 }
 
-function Add-Project{
+function New-PWProject{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
@@ -693,6 +693,7 @@ function Add-Project{
         Add-Template -template $template -destPath $destPath.FullName -properties @{'ProjectName'=$projectName}
     }
 }
+Set-Alias Add-Project New-PWProject -Description 'obsolete: This was added for back compat and will be removed soon'
 
 function New-PWItem{
     [cmdletbinding()]
