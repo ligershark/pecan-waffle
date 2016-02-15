@@ -227,7 +227,7 @@ Describe 'template source tests'{
     It 'can find templates locally' {
         $numTemplatesBefore = ($Global:pecanwafflesettings.Templates.Count)
 
-        Add-TemplateSource -path (Join-Path $sourceRoot 'templates\samples')
+        Add-PWTemplateSource -path (Join-Path $sourceRoot 'templates\samples')
 
         $numTemplatesAfter = ($Global:pecanwafflesettings.Templates.Count)
 
@@ -241,7 +241,7 @@ Describe 'template source tests'{
 
         [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'angularfiles')
         Ensure-PathExists -path $dest.FullName
-        Add-TemplateSource -url $url -localfolder $dest.FullName
+        Add-PWTemplateSource -url $url -localfolder $dest.FullName
 
         $numTemplatesAfter = ($Global:pecanwafflesettings.Templates.Count)
 

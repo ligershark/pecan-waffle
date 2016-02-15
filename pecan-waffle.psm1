@@ -93,7 +93,7 @@ function InternalGet-NewTempDir{
 
 # Items related to template sources
 
-function Add-TemplateSource{
+function Add-PWTemplateSource{
     [cmdletbinding(DefaultParameterSetName='local')]
     param(
         [Parameter(Position=0,Mandatory=$true,ParameterSetName='local')]
@@ -147,6 +147,7 @@ function Add-TemplateSource{
         $global:pecanwafflesettings.TemplateSources += $templateSource
     }
 }
+Set-Alias Add-TemplateSource Add-PWTemplateSource
 
 function InternalGet-RepoName{
     [cmdletbinding()]
@@ -954,7 +955,7 @@ function Import-FileReplacer{
 }
 
 if($global:pecanwafflesettings.EnableAddLocalSourceOnLoad -eq $true){
-    Add-TemplateSource -path (InternalGet-ScriptDirectory)
+    Add-PWTemplateSource -path (InternalGet-ScriptDirectory)
 }
 # TODO: Update this later
 Export-ModuleMember -function * -Alias *
