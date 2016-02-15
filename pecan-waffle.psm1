@@ -690,7 +690,7 @@ function New-PWProject{
             $destPath = (Join-Path $destPath.FullName $projectName)
         }
 
-        Add-Template -template $template -destPath $destPath.FullName -properties @{'ProjectName'=$projectName}
+        InternalNew-PWTemplate -template $template -destPath $destPath.FullName -properties @{'ProjectName'=$projectName}
     }
 }
 Set-Alias Add-Project New-PWProject -Description 'obsolete: This was added for back compat and will be removed soon'
@@ -726,12 +726,12 @@ function New-PWItem{
         if(-not ([string]::IsNullOrWhiteSpace($destFilename))){
             $props['DestFileName']=$destFilename
         }
-        Add-Template -template $template -destPath $destPath -properties $props
+        InternalNew-PWTemplate -template $template -destPath $destPath -properties $props
     }
 }
 Set-Alias Add-Item New-PWItem -Description 'obsolete: This was added for back compat and will be removed soon'
 
-function Add-Template{
+function InternalNew-PWTemplate{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
