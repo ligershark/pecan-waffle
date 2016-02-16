@@ -534,13 +534,14 @@ function TemplateExclude-Folder{
 }
 Set-Alias Exclude-Folder TemplateExclude-Folder
 
-function Clear-AllTemplates{
+function Clear-PWTemplates{
     [cmdletbinding()]
     param()
     process{
         $global:pecanwafflesettings.Templates.Clear()
     }
 }
+Set-Alias Clear-AllTemplates Clear-PWTemplates -Description 'obsolete: This was added for back compat and will be removed soon'
 
 function TemplateSet-TemplateInfo{
     [cmdletbinding()]
@@ -959,5 +960,11 @@ if($global:pecanwafflesettings.EnableAddLocalSourceOnLoad -eq $true){
 }
 
 # TODO: Update this later
-Export-ModuleMember -function * -Alias *
-
+if( ($env:IsDeveloperMachine -eq $true) ){
+    # you can set the env var to expose all functions to importer. easy for development.
+    # this is required for pester testing
+    Export-ModuleMember -function * -Alias *
+}
+else{
+    Export-ModuleMember -function Get-*,Set-*,Invoke-*,Save-*,Test-*,Find-*,Add-*,Remove-*,Test-*,Open-*,New-*,Import-* -Alias psbuild
+}

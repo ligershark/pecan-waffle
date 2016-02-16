@@ -83,7 +83,7 @@ Describe 'add project tests'{
 
     It 'will run beforeinstall' {
         # remove all templates
-        Clear-AllTemplates
+        Clear-PWTemplates
 
         $templateInfo = New-Object -TypeName psobject -Property @{
             Name = 'demo01'
@@ -106,7 +106,7 @@ Describe 'add project tests'{
 
     It 'will run afterinstall' {
         # remove all templates
-        Clear-AllTemplates
+        Clear-PWTemplates
 
         $templateInfo = New-Object -TypeName psobject -Property @{
             Name = 'demo01'
@@ -129,7 +129,7 @@ Describe 'add project tests'{
 
     It 'will run both before and after install'{
         # remove all templates
-        Clear-AllTemplates
+        Clear-PWTemplates
 
         $templateInfo = New-Object -TypeName psobject -Property @{
             Name = 'demo01'
@@ -153,7 +153,7 @@ Describe 'add project tests'{
 
     It 'will run both before and after install in order'{
         # remove all templates
-        Clear-AllTemplates
+        Clear-PWTemplates
 
         $templateInfo = New-Object -TypeName psobject -Property @{
             Name = 'demo01'
@@ -221,7 +221,7 @@ Describe 'add item tests'{
 Describe 'template source tests'{
     . $importPecanWaffle
     BeforeEach{
-        Clear-AllTemplates
+        Clear-PWTemplates
     }
     
     It 'can find templates locally' {
