@@ -831,7 +831,7 @@ function InternalNew-PWTemplate{
             }
 
             # replace content in files
-            InternalImport-PWFileReplacer | Out-Null
+            InternalImport-FileReplacer | Out-Null
 
             foreach($r in $template.Replacements){
                 $rvalue = InternalGet-ReplacementValue -template $template -replaceKey $r.ReplaceKey -evaluatedProperties $evaluatedProps
@@ -932,7 +932,7 @@ function Import-NuGetPowershell{
 .PARAMETER fileReplacerVersion
     The version to import.
 #>
-function InternalImport-PWFileReplacer{
+function InternalImport-FileReplacer{
     [cmdletbinding()]
     param(
         [string]$fileReplacerVersion = '0.4.0-beta'
@@ -957,6 +957,7 @@ function InternalImport-PWFileReplacer{
 if($global:pecanwafflesettings.EnableAddLocalSourceOnLoad -eq $true){
     Add-PWTemplateSource -path (InternalGet-ScriptDirectory)
 }
+
 # TODO: Update this later
 Export-ModuleMember -function * -Alias *
 
