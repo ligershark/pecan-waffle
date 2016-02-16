@@ -52,6 +52,7 @@ function Import-Pester2{
         Import-Module $pesterModPath.FullName -Global
     }
 }
+
 function Run-Tests{
     [cmdletbinding()]
     param(
@@ -88,6 +89,7 @@ function Run-Tests{
 
 try{
     EnsurePsbuildInstlled
+
     Run-Tests -testDirectory (Join-Path $scriptDir 'tests')
 }
 catch{

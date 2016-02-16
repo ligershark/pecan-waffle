@@ -5,15 +5,94 @@ param(
 
 $global:pecanwafflesettings = New-Object -TypeName psobject -Property @{
     TempDir = [System.IO.DirectoryInfo]('{0}\pecan-waffle\temp\projtemplates' -f $env:LOCALAPPDATA)
+    TempRemoteDir = [System.IO.DirectoryInfo]('{0}\pecan-waffle\remote\templates' -f $env:LOCALAPPDATA)
     Templates = @()
     TemplateSources = @()
     GitSources = @()
     EnableAddLocalSourceOnLoad = $true
 }
+
+function InternalOverrideSettingsFromEnv{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0)]
+        [object[]]$settings = ($global:PSBuildSettings),
+
+        [Parameter(Position=1)]
+        [string]$prefix
+    )
+    process{
+        foreach($settingsObj in $settings){
+            if($settingsObj -eq $null){
+                continue
+            }
+
+            $settingNames = $null
+            if($settingsObj -is [hashtable]){
+                $settingNames = $settingsObj.Keys
+            }
+            else{
+                $settingNames = ($settingsObj | Get-Member -MemberType NoteProperty | Select-Object -ExpandProperty Name)
+
+            }
+
+            foreach($name in ($settingNames.Clone())){
+                $fullname = ('{0}{1}' -f $prefix,$name)
+                if(Test-Path "env:$fullname"){
+                    'Updating setting [{0}] to [{1}]' -f ($settingsObj.$name),((get-childitem "env:$fullname").Value) | Write-Verbose
+                    $settingsObj.$name = ((get-childitem "env:$fullname").Value)
+                }
+            }
+        }
+    }
+}
+InternalOverrideSettingsFromEnv -settings $global:pecanwafflesettings -prefix 'PW'
 # todo: enable overriding settings via env var
 
 function InternalGet-ScriptDirectory{
     split-path (((Get-Variable MyInvocation -Scope 1).Value).MyCommand.Path)
+}
+
+<#
+.SYNOPSIS
+    This will download and import nuget-powershell (https://github.com/ligershark/nuget-powershell),
+    which is a PowerShell utility that can be used to easily download nuget packages.
+
+    If nuget-powershell is already loaded then the download/import will be skipped.
+
+.PARAMETER nugetPsMinModVersion
+    The minimum version to import
+#>
+function InternalImport-NuGetPowershell{
+    [cmdletbinding()]
+    param(
+        $nugetPsMinModVersion = '0.2.1.1'
+    )
+    process{
+        # see if nuget-powershell is available and load if not
+        $nugetpsloaded = $false
+        if((get-command Get-NuGetPackage -ErrorAction SilentlyContinue)){
+            # check the module to ensure we have the correct version
+
+            $currentversion = (Get-Module -Name nuget-powershell).Version
+            if( ($currentversion -ne $null) -and ($currentversion.CompareTo([version]::Parse($nugetPsMinModVersion)) -ge 0 )){
+                $nugetpsloaded = $true
+            }
+        }
+
+        if(!$nugetpsloaded){
+            (new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/ligershark/nuget-powershell/master/get-nugetps.ps1") | iex
+        }
+
+        # check to see that it was loaded
+        if((get-command Get-NuGetPackage -ErrorAction SilentlyContinue)){
+            $nugetpsloaded = $true
+        }
+
+        if(-not $nugetpsloaded){
+            throw ('Unable to load nuget-powershell, unknown error')
+        }
+    }
 }
 
 function InternalEnsure-DirectoryExists{
@@ -107,7 +186,7 @@ function Add-PWTemplateSource{
         $branch = 'master',
 
         [Parameter(Position=3,ParameterSetName='git')]
-        [System.IO.DirectoryInfo]$localfolder = ('{0}\pecan-waffle\remote\templates' -f $env:LOCALAPPDATA),
+        [System.IO.DirectoryInfo]$localfolder = ($global:pecanwafflesettings.TempRemoteDir),
 
         [Parameter(Position=4,ParameterSetName='git')]
         [string]$repoName
@@ -180,11 +259,11 @@ function InternalAdd-GitFolder{
         [string]$branch = 'master',
 
         [Parameter(Position=4)]
-        [System.IO.DirectoryInfo]$localfolder = ('{0}\pecan-waffle\remote\templates' -f $env:LOCALAPPDATA)
+        [System.IO.DirectoryInfo]$localfolder = ($global:pecanwafflesettings.TempRemoteDir)
     )
     begin{
         # TODO: Improve to only call if not loaded
-        Import-NuGetPowershell
+        InternalImport-NuGetPowershell
     }
     process{
         if([string]::IsNullOrWhiteSpace($repoName)){
@@ -231,7 +310,7 @@ function Update-RemoteTemplates{
                 $oldpath = Get-Location
                 try{
                     Set-Location $ts.LocalFolder
-                    Import-NuGetPowershell
+                    InternalImport-NuGetPowershell
                     Execute-CommandString "git pull"
                 }
                 finally{
@@ -555,7 +634,7 @@ function TemplateSet-TemplateInfo{
 
         # todo: rename this parameter
         [Parameter(Position=3,ParameterSetName='git')]
-        [System.IO.DirectoryInfo]$localfolder = ('{0}\pecan-waffle\remote\templates' -f $env:LOCALAPPDATA)
+        [System.IO.DirectoryInfo]$localfolder = ($global:pecanwafflesettings.TempRemoteDir)
     )
     process{
         if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'TemplatePath')){
@@ -881,47 +960,7 @@ function InternalNew-PWTemplate{
 
 # Helpers for externals
 
-<#
-.SYNOPSIS
-    This will download and import nuget-powershell (https://github.com/ligershark/nuget-powershell),
-    which is a PowerShell utility that can be used to easily download nuget packages.
 
-    If nuget-powershell is already loaded then the download/import will be skipped.
-
-.PARAMETER nugetPsMinModVersion
-    The minimum version to import
-#>
-function Import-NuGetPowershell{
-    [cmdletbinding()]
-    param(
-        $nugetPsMinModVersion = '0.2.1.1'
-    )
-    process{
-        # see if nuget-powershell is available and load if not
-        $nugetpsloaded = $false
-        if((get-command Get-NuGetPackage -ErrorAction SilentlyContinue)){
-            # check the module to ensure we have the correct version
-
-            $currentversion = (Get-Module -Name nuget-powershell).Version
-            if( ($currentversion -ne $null) -and ($currentversion.CompareTo([version]::Parse($nugetPsMinModVersion)) -ge 0 )){
-                $nugetpsloaded = $true
-            }
-        }
-
-        if(!$nugetpsloaded){
-            (new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/ligershark/nuget-powershell/master/get-nugetps.ps1") | iex
-        }
-
-        # check to see that it was loaded
-        if((get-command Get-NuGetPackage -ErrorAction SilentlyContinue)){
-            $nugetpsloaded = $true
-        }
-
-        if(-not $nugetpsloaded){
-            throw ('Unable to load nuget-powershell, unknown error')
-        }
-    }
-}
 
 <#
 .SYNOPSIS
@@ -948,7 +987,7 @@ function InternalImport-FileReplacer{
         # download/import file-replacer
         if(-not $fileReplacerLoaded){
             'Importing file-replacer version [{0}]' -f $fileReplacerVersion | Write-Verbose
-            Import-NuGetPowershell | Out-Null
+            InternalImport-NuGetPowershell | Out-Null
             $pkgpath = (Get-NuGetPackage 'file-replacer' -version $fileReplacerVersion -binpath)
             Import-Module (Join-Path $pkgpath 'file-replacer.psm1') -DisableNameChecking -Global | Out-Null
         }
