@@ -878,7 +878,7 @@ function InternalNew-PWTemplate{
             # replace file names
             if($template.UpdateFilenames -ne $null){
                 foreach($current in $template.UpdateFilenames){
-                    foreach($file in ([System.IO.FileInfo[]](Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse)) ){
+                    foreach($file in ([System.IO.FileInfo[]](Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse -File)) ){
                         $file = [System.IO.FileInfo]$file
                         $repvalue = InternalGet-EvaluatedProperty -expression $current.ReplaceValue -properties $evaluatedProps
 
@@ -982,7 +982,9 @@ function InternalImport-FileReplacer{
 }
 
 if($global:pecanwafflesettings.EnableAddLocalSourceOnLoad -eq $true){
-    Add-PWTemplateSource -path (InternalGet-ScriptDirectory)
+    Add-PWTemplateSource -path (join-path (InternalGet-ScriptDirectory) 'templates\pecan-waffle')
+    Add-PWTemplateSource -path (join-path (InternalGet-ScriptDirectory) '.\templates\aspnet5')
+    
 }
 
 # TODO: Update this later

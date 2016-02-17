@@ -1,4 +1,10 @@
-﻿function EnsureDirectoryExists{
+﻿[cmdletbinding()]
+param(
+    [Parameter(Position=0)]
+    $branch = 'master'
+)
+
+function EnsureDirectoryExists{
     param([Parameter(Position=0)][System.IO.DirectoryInfo]$path)
     process{
         if($path -ne $null){
@@ -29,7 +35,8 @@ function GetPsModulesPath{
 
 # 1. download .zip file from github
 [System.IO.DirectoryInfo]$tempinstalldir = ('{0}\pecan-waffle\install\' -f $env:LOCALAPPDATA)
-$zipurl = 'https://github.com/ligershark/pecan-waffle/archive/master.zip'
+$zipurl = 'https://github.com/ligershark/pecan-waffle/archive/' + $branch + '.zip'
+'Download url [{0}]' -f $zipurl | Write-Output
 [System.IO.FileInfo]$tempzipdest = (join-path $tempinstalldir.FullName 'pecan-waffle.zip')
 EnsureDirectoryExists $tempzipdest.Directory.FullName
 
