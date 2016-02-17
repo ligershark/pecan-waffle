@@ -3,9 +3,10 @@ param(
     $nugetPsMinModuleVersion = '0.2.1.1'
 )
 
+# all types here must be strings
 $global:pecanwafflesettings = New-Object -TypeName psobject -Property @{
-    TempDir = [System.IO.DirectoryInfo]('{0}\pecan-waffle\temp\projtemplates' -f $env:LOCALAPPDATA)
-    TempRemoteDir = [System.IO.DirectoryInfo]('{0}\pecan-waffle\remote\templates' -f $env:LOCALAPPDATA)
+    TempDir = ([System.IO.DirectoryInfo]('{0}\pecan-waffle\temp\projtemplates' -f $env:LOCALAPPDATA)).FullName
+    TempRemoteDir = ([System.IO.DirectoryInfo]('{0}\pecan-waffle\remote\templates' -f $env:LOCALAPPDATA)).FullName
     Templates = @()
     TemplateSources = @()
     GitSources = @()
@@ -40,7 +41,10 @@ function InternalOverrideSettingsFromEnv{
                 $fullname = ('{0}{1}' -f $prefix,$name)
                 if(Test-Path "env:$fullname"){
                     'Updating setting [{0}] to [{1}]' -f ($settingsObj.$name),((get-childitem "env:$fullname").Value) | Write-Verbose
-                    $settingsObj.$name = ((get-childitem "env:$fullname").Value)
+                    $value = ((get-childitem "env:$fullname").Value)
+                    if(-not [string]::IsNullOrWhiteSpace($value)){
+                        $settingsObj.$name = ((get-childitem "env:$fullname").Value)
+                    }
                 }
             }
         }
@@ -163,8 +167,8 @@ function InternalGet-NewTempDir{
     process{
         InternalEnsure-DirectoryExists -path $global:pecanwafflesettings.TempDir | Out-Null
 
-        [System.IO.DirectoryInfo]$newpath = Join-Path ($global:pecanwafflesettings.TempDir.FullName) ([System.Guid]::NewGuid())
-        New-Item -ItemType Directory -Path $newpath.FullName | out-null
+        [System.IO.DirectoryInfo]$newpath = (Join-Path ($global:pecanwafflesettings.TempDir) ([System.Guid]::NewGuid()))
+        New-Item -ItemType Directory -Path ($newpath.FullName) | out-null
         # return the fullpath
         $newpath.FullName
     }
@@ -293,15 +297,16 @@ function InternalAdd-GitFolder{
     }
 }
 
-function Show-Templates{
+function Get-PWTemplates{
     [cmdletbinding()]
     param()
     process{
         $Global:pecanwafflesettings.Templates | Select-Object -Property Name,Type | Sort-Object -Property Type,Name,Description
     }
 }
+Set-Alias Show-Templates Get-PWTemplates -Description 'obsolete: This was added for back compat and will be removed soon'
 
-function Update-RemoteTemplates{
+function Update-PWRemoteTemplates{
     [cmdletbinding()]
     param()
     process{
@@ -320,26 +325,8 @@ function Update-RemoteTemplates{
         }
     }
 }
-
+Set-Alias Update-RemoteTemplates Update-PWRemoteTemplates -Description 'obsolete: This was added for back compat and will be removed soon'
 # Item Related to Templates Below
-function New-ItemTemplate{
-    [cmdletbinding()]
-    param(
-        [Parameter(Position=0)]
-        $sharedInfo
-    )
-    process{
-        # copy the shared info
-        $newtemplate = new-object psobject
-        $sharedInfo.psobject.properties | % {
-            $newtemplate | Add-Member -MemberType $_.MemberType -Name $_.Name -Value $_.Value
-        }
-
-        if(-not (Internal-HasProperty -inputObject $newtemplate -propertyName 'Type')){
-            Internal-AddProperty -inputObject $newtemplate -propertyName 'Type' -propertyValue 'ItemTemplate'
-        }
-    }
-}
 
 function TemplateAdd-SourceFile{
     [cmdletbinding()]

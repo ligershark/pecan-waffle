@@ -87,7 +87,9 @@ function Run-Tests{
 
 # begin script
 
+
 try{
+    $env:IsDeveloperMachine=$true
     EnsurePsbuildInstlled
 
     Run-Tests -testDirectory (Join-Path $scriptDir 'tests')
@@ -95,3 +97,7 @@ try{
 catch{
     throw ( 'Build error {0} {1}' -f $_.Exception, (Get-PSCallStack|Out-String) )
 }
+finally{
+    $oldIsDevMachineValue = $env:IsDeveloperMachine
+}
+
