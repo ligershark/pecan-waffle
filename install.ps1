@@ -50,7 +50,7 @@ EnsureDirectoryExists $tempextractdir.FullName
 Add-Type -assembly “system.io.compression.filesystem”
 [io.compression.zipfile]::ExtractToDirectory($tempzipdest.FullName, $tempextractdir.FullName)
 
-$foldertocopy = ([System.IO.DirectoryInfo](Join-Path $tempextractdir.FullName ('pecan-waffle-') + $pwbranch )).FullName
+$foldertocopy = ([System.IO.DirectoryInfo](Join-Path $tempextractdir.FullName ('pecan-waffle-' + $pwbranch) )).FullName
 
 # 4. copy contents to ps modules folder
 [System.IO.DirectoryInfo]$moduledestfolder = (Join-Path (GetPsModulesPath) 'pecan-waffle')
