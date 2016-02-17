@@ -17,7 +17,7 @@ using dnx/dotnet so that it's truly cross platform.**
 
 ```powershell
 # install
-&{set-variable -name pwbranch -value 'dev';$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString('https://raw.githubusercontent.com/ligershark/pecan-waffle/master/install.ps1'))}
+&{set-variable -name pwbranch -value 'master';$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString('https://raw.githubusercontent.com/ligershark/pecan-waffle/master/install.ps1'))}
 
 # add a new template
 Add-Project -templateName aspnet5-empty -destPath C:\temp\myprojects
