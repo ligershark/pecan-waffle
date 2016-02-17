@@ -1,8 +1,6 @@
-﻿[cmdletbinding()]
-param(
-    [Parameter(Position=0)]
+﻿if([string]::IsNullOrWhiteSpace($pwbranch)){
     $pwbranch = 'master'
-)
+}
 
 function EnsureDirectoryExists{
     param([Parameter(Position=0)][System.IO.DirectoryInfo]$path)
