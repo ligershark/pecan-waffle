@@ -85,11 +85,22 @@ function Run-Tests{
     }
 }
 
+function Remove-LocalInstall {
+    [cmdletbinding()]
+    param()
+    process{
+        [System.IO.DirectoryInfo]$localInstallFolder = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\pecan-waffle"
+        if(test-path $localInstallFolder.FullName){
+            Remove-Item $localInstallFolder.FullName -Recurse
+        }
+    }
+}
 # begin script
 
 
 try{
     $env:IsDeveloperMachine=$true
+    Remove-LocalInstall
     EnsurePsbuildInstlled
 
     Run-Tests -testDirectory (Join-Path $scriptDir 'tests')

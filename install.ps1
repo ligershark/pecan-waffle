@@ -52,6 +52,10 @@ Add-Type -assembly “system.io.compression.filesystem”
 
 $foldertocopy = ([System.IO.DirectoryInfo](Join-Path $tempextractdir.FullName ('pecan-waffle-' + $pwbranch) )).FullName
 
+if( ($foldertocopy -eq $null) -or (-not (Test-Path $foldertocopy))){
+    throw ('Unable to copy files to modules folder, bad value for foldertocopy [{0}]' -f $foldertocopy)
+}
+
 # 4. copy contents to ps modules folder
 [System.IO.DirectoryInfo]$moduledestfolder = (Join-Path (GetPsModulesPath) 'pecan-waffle')
 if( ($moduledestfolder -ne $null ) -and (Test-Path $moduledestfolder.FullName)){

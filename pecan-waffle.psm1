@@ -417,7 +417,7 @@ function TemplateAdd-Replacement{
 }
 Set-Alias replaceitem TemplateAdd-Replacement
 
-function TemplateAddd-ReplacementObject{
+function TemplateAdd-ReplacementObject{
     param(
         [Parameter(Position=1,Mandatory=$true)]
         [object[][]]$replacementObject,
@@ -464,7 +464,7 @@ function TemplateAddd-ReplacementObject{
     }    
 }
 
-set-alias replace TemplateAddd-ReplacementObject
+set-alias replace TemplateAdd-ReplacementObject
 
 function TemplateUpdate-FileName{
     [cmdletbinding()]
@@ -994,5 +994,5 @@ if( ($env:IsDeveloperMachine -eq $true) ){
     Export-ModuleMember -function * -Alias *
 }
 else{
-    Export-ModuleMember -function Get-*,Set-*,Invoke-*,Save-*,Test-*,Find-*,Add-*,Remove-*,Test-*,Open-*,New-*,Import-* -Alias psbuild
+    Export-ModuleMember -function Get-*,Set-*,Invoke-*,Save-*,Test-*,Find-*,Add-*,Remove-*,Test-*,Open-*,New-*,Import-* -Alias *
 }
