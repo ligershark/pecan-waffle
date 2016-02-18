@@ -17,6 +17,7 @@ if(Test-Path $modulePath){
     }
     
     Import-Module $modulePath -PassThru -DisableNameChecking | Out-Null
+    Add-PWTemplateSource -path (join-path (Get-ScriptDirectory) 'templates\samples')
 }
 else{
     'Unable to find module at [{0}]' -f $modulePath | Write-Error
