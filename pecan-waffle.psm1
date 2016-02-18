@@ -983,7 +983,7 @@ function InternalImport-FileReplacer{
 
 if($global:pecanwafflesettings.EnableAddLocalSourceOnLoad -eq $true){
     Add-PWTemplateSource -path (join-path (InternalGet-ScriptDirectory) 'templates\pecan-waffle')
-    Add-PWTemplateSource -path (join-path (InternalGet-ScriptDirectory) '.\templates\aspnet5')
+    Add-PWTemplateSource -path (join-path (InternalGet-ScriptDirectory) 'templates\aspnet5')
     
 }
 
