@@ -11,7 +11,7 @@ $templateInfo = New-Object -TypeName psobject -Property @{
 }
 $templateInfo | replace (
     ('MyClass', {"$ItemName"}),
-    ('MyProject', {"$Namespace"}, {"$DefaultNamespace"})
+    ('MyProject', {$p['Namespace']}, {$DefaultNamespace})
 )
 
 $templateInfo | add-sourcefile -sourceFiles 'MyClass.cs' -destFiles {"$ItemName.cs"}

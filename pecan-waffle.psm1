@@ -684,11 +684,36 @@ function InternalGet-EvaluatedProperty{
         if($extraProperties -ne $null){
             $allProps += $extraProperties
         }
-        $scriptToExec = [ScriptBlock]::Create({$fargs=$args; foreach($f in $fargs.Keys){ New-Variable -Name $f -Value $fargs.$f };}.ToString() + $expression.ToString())
+        $scriptToExec = [ScriptBlock]::Create({$fargs=$args; foreach($f in $fargs.Keys){ New-Variable -Name $f -Value $fargs.$f };}.ToString() + (InternalGet-CreateStringFor -properties $allProps) + ';' + $expression.ToString())
         $value = & ($scriptToExec) $allProps
 
         # return the value
         $value
+    }
+}
+
+function InternalGet-CreateStringFor{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=1,Mandatory=$true)]
+        [ValidateNotNull()]
+        [hashtable]$properties
+    )
+    process{
+        [System.Text.StringBuilder]$sb = New-Object -TypeName 'System.Text.StringBuilder'
+        $Sb.AppendLine('$p=@{}') | out-null
+        foreach($key in $properties.Keys){
+            $escapedkey = $key.ToString().Replace("'","''")
+            $escapedvalue = $properties[$key]
+            if(-not [string]::IsNullOrWhiteSpace($escapedvalue)){
+                $escapedvalue = $escapedvalue.ToString().Replace("'","''")
+            }
+            $str = ('$p[''{0}''] = ''{1}''' -f $escapedkey, $escapedvalue)
+            $sb.AppendLine($str) | Out-Null
+        }
+
+        # return the result
+        $sb.ToString()
     }
 }
 
