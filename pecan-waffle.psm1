@@ -309,13 +309,15 @@ Set-Alias Show-Templates Get-PWTemplates -Description 'obsolete: This was added 
 function Update-PWRemoteTemplates{
     [cmdletbinding()]
     param()
+    begin{
+        InternalImport-NuGetPowershell
+    }
     process{
         foreach($ts in $global:pecanwafflesettings.GitSources){
             if( -not ([string]::IsNullOrWhiteSpace($ts.Url)) -and (Test-Path $ts.LocalFolder)){
                 $oldpath = Get-Location
                 try{
                     Set-Location $ts.LocalFolder
-                    InternalImport-NuGetPowershell
                     Execute-CommandString "git pull"
                 }
                 finally{
