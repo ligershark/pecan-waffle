@@ -522,6 +522,7 @@ function TemplateUpdate-FilenameObject{
         }
     }
 }
+# TODO: Change to Update-Path
 Set-Alias Update-FileName TemplateUpdate-FilenameObject
 
 function TemplateBefore-Install{
@@ -905,9 +906,23 @@ function InternalNew-PWTemplate{
             # replace file names
             if($template.UpdateFilenames -ne $null){
                 foreach($current in $template.UpdateFilenames){
+                    # see if there is any matching directory names
+
+                    $repvalue = InternalGet-EvaluatedProperty -expression $current.ReplaceValue -properties $evaluatedProps
+                    if([string]::IsNullOrWhiteSpace($repvalue) -and ($current.DefaultValue -ne $null)){
+                        $repvalue = InternalGet-EvaluatedProperty -expression $current.DefaultValue -properties $evaluatedProps
+                    }
+
+                    foreach($folder in ([System.IO.DirectoryInfo[]](Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory)) ){
+                        if(Test-Path ($folder.FullName)){
+                            $newname = $folder.Name.Replace($current.ReplaceKey, $repvalue)
+                            [System.IO.DirectoryInfo]$newpath = (Join-Path ($folder.Parent.FullName) $newname)
+                            Move-Item $folder.FullName $newpath.FullName
+                        }
+                    }
+
                     foreach($file in ([System.IO.FileInfo[]](Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse -File)) ){
                         $file = [System.IO.FileInfo]$file
-                        $repvalue = InternalGet-EvaluatedProperty -expression $current.ReplaceValue -properties $evaluatedProps
 
                         if([string]::IsNullOrWhiteSpace($repvalue) -and ($current.DefaultValue -ne $null)){
                             $repvalue = InternalGet-EvaluatedProperty -expression $current.DefaultValue -properties $evaluatedProps
