@@ -20,27 +20,12 @@ function Ensure-PathExists{
 }
 
 $importPecanWaffle = (Join-Path -Path $scriptDir -ChildPath 'import-pw.ps1')
-# . $importPecanWaffle
+# import the module
+. $importPecanWaffle
 
 [System.IO.DirectoryInfo]$sourceRoot = (Join-Path $scriptDir '..\')
 
-Describe 'install test'{
-    It 'can run the install script w/o errors' {
-        [System.IO.FileInfo]$pathToInstall = (Join-Path $scriptDir '..\install.ps1')
-
-        {& $pathToInstall.FullName} | Should not throw
-    }
-    BeforeEach{
-        Remove-Module pecan-waffle -Force -ErrorAction SilentlyContinue
-    }
-    AfterEach{
-        Remove-Module pecan-waffle -Force -ErrorAction SilentlyContinue
-    }
-}
-
 Describe 'add project tests'{
-    # import the module
-    . $importPecanWaffle
     It 'can run aspnet5-empty project'{
         [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'empty01')
         Ensure-PathExists -path $dest.FullName
@@ -179,6 +164,63 @@ Describe 'add project tests'{
 
         $Global:pwtestbeforestart.CompareTo($Global:pwtestafterstart) | Should be -1
     }
+
+    It 'can accept properties via New-PWProject 01'{
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'demo01'
+            Type = 'ProjectTemplate'
+            DefaultProjectName = 'DefaultProject'
+        }
+
+        $templateInfo | replace (
+            ,('EmptyProject', {"$ProjectName"}, {"$DefaultProjectName"})
+        )
+
+        $templateInfo | update-filename (
+            ,('EmptyProject', {"$ProjectName"})
+        )
+
+        [System.IO.DirectoryInfo]$emptyTemplatePath =(Join-Path $sourceRoot 'templates\aspnet5\EmptyProject')
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $emptyTemplatePath.FullName
+
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'newproj-props01')
+        Ensure-PathExists -path $dest.FullName
+
+        { New-PWProject -templateName 'demo01' -destPath $dest.FullName -properties @{'projectName'='MyNewApiProj'} -projectName 'MyNewApiProj' -noNewFolder} |should not throw
+
+        ([System.IO.FileInfo](Join-Path $dest.FullName 'MyNewApiProj.xproj')).FullName | should exist
+    }
+
+    It 'project name will override properties'{
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'demo01'
+            Type = 'ProjectTemplate'
+            DefaultProjectName = 'DefaultProject'
+        }
+
+        $templateInfo | replace (
+            ,('EmptyProject', {"$ProjectName"}, {"$DefaultProjectName"})
+        )
+
+        $templateInfo | update-filename (
+            ,('EmptyProject', {"$ProjectName"})
+        )
+
+        [System.IO.DirectoryInfo]$emptyTemplatePath =(Join-Path $sourceRoot 'templates\aspnet5\EmptyProject')
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $emptyTemplatePath.FullName
+
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'projname-overrides-props')
+        Ensure-PathExists -path $dest.FullName
+
+        { New-PWProject -templateName 'demo01' -destPath $dest.FullName -properties @{'projectName'='MyNewApiProj'} -projectName 'MyRealProjectName' -noNewFolder} |should not throw
+
+        ([System.IO.FileInfo](Join-Path $dest.FullName 'MyRealProjectName.xproj')).FullName | should exist
+        ([System.IO.FileInfo](Join-Path $dest.FullName 'MyNewApiProj.xproj')).FullName | should not exist
+    }
 }
 
 Describe 'add item tests'{
@@ -216,11 +258,27 @@ Describe 'add item tests'{
         $countDestFiles = (Get-ChildItem $dest.FullName).Count
         $countDestFiles | should be $countTemplateFiles
     }
+
+    It 'can get item name from properties'{
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'item-name-from-props')
+        if(-not (Test-Path $dest.FullName)){
+            New-Item -Path $dest.FullName -ItemType Directory
+        }
+
+        { New-PWItem -templateName 'demo-controllerjs' -destPath $dest.FullName -properties @{'ItemName'='MyController'} } | should not throw
+
+        (Join-Path $dest.FullName 'MyController.js') | should exist
+        (Join-Path $dest.FullName 'directive.js') | should not exist
+
+        (Join-Path $dest.FullName 'MyController.js') | should contain 'MyController'
+        (Join-Path $dest.FullName 'MyController.js') | should not contain '$safeitemname$'
+
+        (Get-ChildItem $dest.FullName).Count | should be 1
+    }
 }
 
 Describe 'template source tests'{
-    . $importPecanWaffle
-    BeforeEach{
+    . $importPecanWaffle    BeforeEach{
         Clear-PWTemplates
     }
     
@@ -455,4 +513,3 @@ Describe 'misc tests'{
         $result | should not be $null
     }
 }
-

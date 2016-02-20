@@ -773,6 +773,9 @@ function New-PWProject{
         [string]$projectName = 'MyNewProject',
 
         [Parameter(Position=3)]
+        $properties,
+
+        [Parameter(Position=4)]
         [switch]$noNewFolder
     )
     process{
@@ -791,7 +794,15 @@ function New-PWProject{
             $destPath = (Join-Path $destPath.FullName $projectName)
         }
 
-        InternalNew-PWTemplate -template $template -destPath $destPath.FullName -properties @{'ProjectName'=$projectName}
+        if($properties -eq $null){
+            $properties = @{}
+        }
+
+        if(-not ([string]::IsNullOrWhiteSpace($projectName) ) ){
+            $properties['ProjectName'] = $projectName
+        }
+
+        InternalNew-PWTemplate -template $template -destPath $destPath.FullName -properties $properties
     }
 }
 Set-Alias Add-Project New-PWProject -Description 'obsolete: This was added for back compat and will be removed soon'
@@ -809,7 +820,10 @@ function New-PWItem{
         [string]$itemName,
 
         [Parameter(Position=3)]
-        [string]$destFilename
+        [string]$destFilename,
+
+        [Parameter(Position=4)]
+        [hashtable]$properties
     )
     process{
         # find the project template with the given name
@@ -823,11 +837,18 @@ function New-PWItem{
             throw ('Did not find an item template with the name [{0}]' -f $templateName)
         }
 
-        $props = @{'ItemName'=$itemName;'DestFileName'=$destFilename}
-        if(-not ([string]::IsNullOrWhiteSpace($destFilename))){
-            $props['DestFileName']=$destFilename
+        if($properties -eq $null){
+            $properties = @{}
         }
-        InternalNew-PWTemplate -template $template -destPath $destPath -properties $props
+
+        if(-not ([string]::IsNullOrWhiteSpace($itemName))) {
+            $properties['ItemName'] = $itemName
+        }
+        if(-not ([string]::IsNullOrWhiteSpace($destFilename))){
+            $properties['DestFileName'] = $destFilename
+        }
+
+        InternalNew-PWTemplate -template $template -destPath $destPath -properties $properties
     }
 }
 Set-Alias Add-Item New-PWItem -Description 'obsolete: This was added for back compat and will be removed soon'
