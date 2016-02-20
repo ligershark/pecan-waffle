@@ -832,6 +832,44 @@ function New-PWItem{
 }
 Set-Alias Add-Item New-PWItem -Description 'obsolete: This was added for back compat and will be removed soon'
 
+function InternalGet-EvaluatedPropertiesFrom{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [object]$template,
+        [Parameter(Position=1)]
+        [hashtable]$properties,
+        [Parameter(Position=2)]
+        [System.IO.DirectoryInfo]$templateWorkDir
+    )
+    process{
+        # eval properties here
+        $evaluatedProps = @{}
+        if($properties -ne $null){
+            foreach($key in $properties.Keys){
+                $evaluatedProps[$key]=$properties[$key]
+            }
+        }
+
+        if($templateWorkDir -ne $null){
+            $evaluatedProps['templateWorkingDir'] = $templateWorkDir.FullName
+        }
+        # add all the properties of $template into evaluatedProps
+        foreach($name in $template.psobject.Properties.Name){
+            $evaluatedProps[$name]=($template.$name)
+        }
+
+        if($template.Replacements -ne $null){
+            foreach($rep in $template.Replacements){
+                $evaluatedProps[$rep.ReplaceKey] = InternalGet-ReplacementValue -template $template -replaceKey $rep.ReplaceKey -evaluatedProperties $evaluatedProps
+            }
+        }
+
+        # return the result
+        $evaluatedProps
+    }
+}
+
 function InternalNew-PWTemplate{
     [cmdletbinding()]
     param(
@@ -850,24 +888,7 @@ function InternalNew-PWTemplate{
         
         try{
             # eval properties here
-            $evaluatedProps = @{}
-            if($properties -ne $null){
-                foreach($key in $properties.Keys){
-                    $evaluatedProps[$key]=$properties[$key]
-                }
-            }
-
-            $evaluatedProps['templateWorkingDir'] = $tempWorkDir.FullName
-            # add all the properties of $template into evaluatedProps
-            foreach($name in $template.psobject.Properties.Name){
-                $evaluatedProps[$name]=($template.$name)
-            }
-            
-            if($template.Replacements -ne $null){
-                foreach($rep in $template.Replacements){
-                    $evaluatedProps[$rep.ReplaceKey] = InternalGet-ReplacementValue -template $template -replaceKey $rep.ReplaceKey -evaluatedProperties $evaluatedProps
-                }
-            }
+            $evaluatedProps =  InternalGet-EvaluatedPropertiesFrom -template $template -properties $properties -templateWorkDir $tempWorkDir
 
             if( ($template.SourceFiles -eq $null) -or ($template.SourceFiles.Count -le 0)){
                 # copy all of the files to the temp directory

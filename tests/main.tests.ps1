@@ -385,6 +385,68 @@ Describe 'InternalGet-ReplacementValue tests'{
     }
 }
 
+Describe 'InternalGet-EvaluatedPropertiesFrom tests'{
+    It 'can get from value from template property 01'{
+        Clear-PWTemplates
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'template-name-here'
+            Type = 'ProjectTemplate'
+        }
+
+        $templateInfo | replace (
+            ,('EmptyProject', {$Name})
+        )
+
+        Set-TemplateInfo -templateInfo $templateInfo
+        $templateObj = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate' -and $_.Name -eq 'template-name-here'}|Select-Object -First 1)
+
+        $allprops = InternalGet-EvaluatedPropertiesFrom -template $templateObj
+        $result = $allprops['EmptyProject']
+        $result | should be 'template-name-here'
+    }
+
+    It 'can get from value from template property 02'{
+        Clear-PWTemplates
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'template-name-here'
+            Type = 'ProjectTemplate'
+            SomeOtherProp = 'some other value'
+        }
+
+        $templateInfo | replace (
+            ,('EmptyProject', {$SomeOtherProp})
+        )
+
+        Set-TemplateInfo -templateInfo $templateInfo
+        $templateObj = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate' -and $_.Name -eq 'template-name-here'}|Select-Object -First 1)
+
+        $allprops = InternalGet-EvaluatedPropertiesFrom -template $templateObj
+        $result = $allprops['EmptyProject']
+        $result | should be 'some other value'
+    }
+
+    It 'can get from value from template property via default'{
+        Clear-PWTemplates
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'template-name-here'
+            Type = 'ProjectTemplate'
+            SomeOtherProp = 'some other value'
+        }
+
+        $templateInfo | replace (
+            ,('EmptyProject',{$null}, {$SomeOtherProp})
+        )
+
+        Set-TemplateInfo -templateInfo $templateInfo
+        $templateObj = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate' -and $_.Name -eq 'template-name-here'}|Select-Object -First 1)
+
+        $allprops = InternalGet-EvaluatedPropertiesFrom -template $templateObj
+        $result = $allprops['EmptyProject']
+        $result | should be 'some other value'
+    }
+}
+
+
 Describe 'misc tests'{
     . $importPecanWaffle
 
