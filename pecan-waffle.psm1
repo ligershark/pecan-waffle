@@ -676,7 +676,7 @@ function InternalGet-EvaluatedProperty{
         [Parameter(Position=0,Mandatory=$true)]
         [ScriptBlock]$expression,
 
-        [Parameter(Position=1,Mandatory=$true)]
+        [Parameter(Position=1)]
         [hashtable]$properties,
 
         [Parameter(Position=2)]
@@ -684,8 +684,15 @@ function InternalGet-EvaluatedProperty{
     )
     process{
         [hashtable]$allProps += $properties
+        if($allProps -eq $null){
+            $allProps = @{}
+        }
         if($extraProperties -ne $null){
-            $allProps += $extraProperties
+            foreach($key in $extraProperties.Keys){
+                if(-not [string]::IsNullOrEmpty($extraProperties[$key])){
+                    $allProps[$key]=$extraProperties[$key]
+                }
+            }
         }
         $scriptToExec = [ScriptBlock]::Create({$fargs=$args; foreach($f in $fargs.Keys){ New-Variable -Name $f -Value $fargs.$f };}.ToString() + (InternalGet-CreateStringFor -properties $allProps) + ';' + $expression.ToString())
         $value = & ($scriptToExec) $allProps
@@ -699,7 +706,6 @@ function InternalGet-CreateStringFor{
     [cmdletbinding()]
     param(
         [Parameter(Position=1,Mandatory=$true)]
-        [ValidateNotNull()]
         [hashtable]$properties
     )
     process{

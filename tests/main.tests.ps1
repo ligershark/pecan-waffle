@@ -249,48 +249,69 @@ Describe 'template source tests'{
     }
 }
 
-Describe 'git tests'{
-    It 'can clone from github w/o repo name'{
-        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'github01')
-        Ensure-PathExists -path $dest.FullName
-
-        $repoName = 'pecan-waffle'
-        {InternalAdd-GitFolder -url 'https://github.com/ligershark/pecan-waffle.git' -localfolder $dest.FullName} | should not throw
-        $dest.FullName | should exist
-        (Join-Path $dest.FullName "$repoName\readme.md") | should exist
+Describe 'InternalGet-EvaluatedProperty tests' {
+    It 'can eval from string'{
+        $expectedvalue = 'some value'
+        $result = InternalGet-EvaluatedProperty -expression {"some value"}
+        $result | should be $expectedvalue
     }
 
-    It 'can clone from github with repo name'{
-        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'github02')
-        Ensure-PathExists -path $dest.FullName
-
-        $repoName = 'pecan-waffle'
-        {InternalAdd-GitFolder -url 'https://github.com/ligershark/pecan-waffle.git' -repoName $repoName -localfolder $dest.FullName} | should not throw
-        $dest.FullName | should exist
-        (Join-Path $dest.FullName "$repoName\readme.md") | should exist
+    It 'can get from $p'{
+        $expectedvalue = 'some value'
+        $result = InternalGet-EvaluatedProperty -expression {$p['MyProp']} -properties @{'MyProp'=$expectedvalue}
+        $result | should be $expectedvalue
     }
 
-    It 'can clone from github with repo name and branch'{
-        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'github03')
-        Ensure-PathExists -path $dest.FullName
+    It 'will return null if the property is not passed'{
+        $expectedvalue = 'some value'
+        $result = InternalGet-EvaluatedProperty -expression {$p['MyProp222']} -properties @{'MyProp'=$expectedvalue}
+        $result | should be $null
+    }
 
-        $repoName = 'pecan-waffle'
-        $branch = 'dev'
-        {InternalAdd-GitFolder -url 'https://github.com/ligershark/pecan-waffle.git' -repoName $repoName -branch $branch -localfolder $dest.FullName } | should not throw
-        $dest.FullName | should exist
-        (Join-Path $dest.FullName "$repoName\readme.md") | should exist
+    It 'can get from $p via extraProperties'{
+        $expectedvalue = 'some value'
+        $result = InternalGet-EvaluatedProperty -expression {$p['MyProp2']} -properties @{'MyProp'='ignored'} -extraProperties @{'MyProp2'=$expectedvalue}
+        $result | should be $expectedvalue
+    }
+
+    # todo: do we want users to go through $p?
+    It 'can get via extraProperties'{
+        $expectedvalue = 'some value'
+        $result = InternalGet-EvaluatedProperty -expression {$MyProp2} -properties @{'MyProp'='ignored'} -extraProperties @{'MyProp2'=$expectedvalue}
+        $result | should be $expectedvalue
+    }
+
+    It 'will get from extraProperties instead of properties when both exist'{
+        $expectedvalue = 'some value'
+        $result = InternalGet-EvaluatedProperty -expression {$MyProp} -properties @{'MyProp'='ignored'} -extraProperties @{'MyProp'=$expectedvalue}
+        $result | should be $expectedvalue
+    }
+
+    It 'can evaluate expressions 01'{
+        [System.Guid]$result = InternalGet-EvaluatedProperty -expression {[System.Guid]::NewGuid()}
+        $result | should not be null
+        $result.Guid | should not be ([System.Guid]::Empty)
+    }
+
+    It 'can evaluate expressions with properties'{
+        $result = InternalGet-EvaluatedProperty -expression {$Name + $Extension} -properties @{'Name'='controller';'Extension'='.js'}
+        $result | should be 'controller.js'
+    }
+
+    It 'can evaluate expressions with properties and ex properties'{
+        $result = InternalGet-EvaluatedProperty -expression {$Name + $Extension} -properties @{'Name'='controller'} -extraProperties @{'Extension'='.js'}
+        $result | should be 'controller.js'
+    }
+
+    # todo: maybe we should disable this somehow?
+    It 'can get from global var'{
+        $global:expectedvalue1 = 'some value'
+        $result = InternalGet-EvaluatedProperty -expression {"$global:expectedvalue1"}
+        $result | should be $global:expectedvalue1
     }
 }
 
-Describe 'get repo name tests'{
-    It 'can get repo name from url'{
-        # InternalGet-RepoName
-        $url = 'https://github.com/ligershark/pecan-waffle.git'
-        $repoName = InternalGet-RepoName -url $url
 
-        $repoName | should be 'pecan-waffle'
-    }
-}
 
 Describe 'misc tests'{
     . $importPecanWaffle
