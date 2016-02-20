@@ -311,7 +311,79 @@ Describe 'InternalGet-EvaluatedProperty tests' {
     }
 }
 
+Describe 'InternalGet-ReplacementValue tests'{
+    It 'can get via hard coded string'{
+        Clear-PWTemplates
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'template-name-here'
+            Type = 'ProjectTemplate'
+        }
 
+        $templateInfo | replace (
+            ,('EmptyProject', {"demo01"})
+        )
+
+        Set-TemplateInfo -templateInfo $templateInfo
+        $templateObj = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate' -and $_.Name -eq 'template-name-here'}|Select-Object -First 1)
+
+        $result = InternalGet-ReplacementValue -template $templateObj -replaceKey 'EmptyProject'
+        $result | should be 'demo01'
+    }
+
+    It 'can get via hard coded string in default'{
+        Clear-PWTemplates
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'template-name-here'
+            Type = 'ProjectTemplate'
+        }
+
+        $templateInfo | replace (
+            ,('EmptyProject', {$null}, {"demo02"})
+        )
+
+        Set-TemplateInfo -templateInfo $templateInfo
+        $templateObj = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate' -and $_.Name -eq 'template-name-here'}|Select-Object -First 1)
+
+        $result = InternalGet-ReplacementValue -template $templateObj -replaceKey 'EmptyProject'
+        $result | should be 'demo02'
+    }
+
+    It 'can get properties and $p'{
+        Clear-PWTemplates
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'template-name-here'
+            Type = 'ProjectTemplate'
+        }
+
+        $templateInfo | replace (
+            ,('EmptyProject', {$p['SomeProp']})
+        )
+
+        Set-TemplateInfo -templateInfo $templateInfo
+        $templateObj = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate' -and $_.Name -eq 'template-name-here'}|Select-Object -First 1)
+
+        $result = InternalGet-ReplacementValue -template $templateObj -replaceKey 'EmptyProject' -evaluatedProperties @{'SomeProp'='value here'}
+        $result | should be 'value here'
+    }
+
+    It 'can get properties and w/o $p'{
+        Clear-PWTemplates
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'template-name-here'
+            Type = 'ProjectTemplate'
+        }
+
+        $templateInfo | replace (
+            ,('EmptyProject', {$SomeProp})
+        )
+
+        Set-TemplateInfo -templateInfo $templateInfo
+        $templateObj = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate' -and $_.Name -eq 'template-name-here'}|Select-Object -First 1)
+
+        $result = InternalGet-ReplacementValue -template $templateObj -replaceKey 'EmptyProject' -evaluatedProperties @{'SomeProp'='value here'}
+        $result | should be 'value here'
+    }
+}
 
 Describe 'misc tests'{
     . $importPecanWaffle

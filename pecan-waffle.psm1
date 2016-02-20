@@ -737,8 +737,7 @@ function InternalGet-ReplacementValue{
         [ValidateNotNullOrEmpty()]
         [string]$replaceKey,
 
-        [Parameter(Position=2,Mandatory=$true)]
-        [ValidateNotNull()]
+        [Parameter(Position=2)]
         [hashtable]$evaluatedProperties
     )
     process{
