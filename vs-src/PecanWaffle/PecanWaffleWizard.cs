@@ -18,6 +18,9 @@
         private DTE2 _dte2 { get; set; }
         private string _projectName;
 
+        private string _installScript;
+        private string _templateName;
+
         public void BeforeOpeningFile(ProjectItem projectItem) {
         }
 
@@ -79,8 +82,13 @@
             // here is where we want to call pecan-waffle
             try {
                 using (PowerShell instance = PowerShell.Create()) {
-                    // string actualScript = string.Format(_psNewProjectScript, projectName, destPath, GetPathToModuleFile());
-                    string actualScript = _psNewProjectScript.Replace(@"<ProjectName>", projectName).Replace("<DestPath>",destPath);
+
+                    string actualScript = _psNewProjectScript
+                                            .Replace(@"<ProjectName>", projectName)
+                                            .Replace("<DestPath>",destPath)
+                                            .Replace("<InstallScript>", _installScript)
+                                            .Replace("<TemplateName>", _templateName)
+                                            ;
                     instance.AddScript(actualScript);
 
                     var result = instance.Invoke();
@@ -111,6 +119,8 @@
         }
         public void RunStarted(object automationObject, Dictionary<string, string> replacementsDictionary, WizardRunKind runKind, object[] customParams) {
             _dte2 = automationObject as DTE2;
+            _templateName = replacementsDictionary["TemplateName"];
+            _installScript = replacementsDictionary["InstallScript"];
 
             string projName;
             if(replacementsDictionary.TryGetValue("$projectname$", out projName)) {
@@ -189,10 +199,6 @@
 
         private string _psNewProjectScript = @"
 # parameters declared here
-if([string]::IsNullOrWhiteSpace($installurl)){
-    $installurl = 'https://raw.githubusercontent.com/ligershark/pecan-waffle/master/install.ps1'
-}
-
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned | out-null
 $pwNeedsInstall = $true
 try{
@@ -208,12 +214,11 @@ catch{
 
 if($pwNeedsInstall){
     # TODO: Update branch to master or via parameter
-    &{set-variable -name pwbranch -value 'dev';$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString('https://raw.githubusercontent.com/ligershark/pecan-waffle/dev/install.ps1'))}
+    <InstallScript>
 }
 
 # Remove-Module pecan-waffle -Force -ErrorAction SilentlyContinue | out-null
-# Import-Module '{2}' -Global -DisableNameChecking
-$templatename = 'aspnet5-empty'
+$templatename = '<TemplateName>'
 $projectname = '<ProjectName>'
 $destpath = '<DestPath>'
 
