@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.24720.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PecanWaffleVs", "PecanWaffleVs\PecanWaffleVs.csproj", "{F7EE1379-9BE9-42E9-A98B-DFF8C85679F8}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PecanWaffle", "PecanWaffle\PecanWaffle.csproj", "{94F2C23E-C3E4-4D9A-AF08-885FDDB90C44}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F7EE1379-9BE9-42E9-A98B-DFF8C85679F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F7EE1379-9BE9-42E9-A98B-DFF8C85679F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F7EE1379-9BE9-42E9-A98B-DFF8C85679F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F7EE1379-9BE9-42E9-A98B-DFF8C85679F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{94F2C23E-C3E4-4D9A-AF08-885FDDB90C44}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{94F2C23E-C3E4-4D9A-AF08-885FDDB90C44}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{94F2C23E-C3E4-4D9A-AF08-885FDDB90C44}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{94F2C23E-C3E4-4D9A-AF08-885FDDB90C44}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
