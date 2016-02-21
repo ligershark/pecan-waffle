@@ -60,7 +60,7 @@
         }
 
         public bool ShouldAddProjectItem(string filePath) {
-            return true;
+            return false;
         }
 
         private string _psNewProjectScript = @"
