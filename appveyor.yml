@@ -1,7 +1,7 @@
-os: Windows Server 2012
+os: Visual Studio 2015
 
 build_script:
   - ps: .\appveyor.ps1
 
 artifacts:
-  - path: .appveyor\dest\**\*
+  - path: OutputRoot\vs\PecanWaffle*

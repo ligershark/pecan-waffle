@@ -1,5 +1,8 @@
 [cmdletbinding()]
-param()
+param(
+    [Parameter(Position=0)]
+    [string]$configuration = 'Release'
+)
 
 function Get-ScriptDirectory
 {
@@ -30,6 +33,16 @@ function EnsurePsbuildInstlled{
         # make sure it's loaded and throw if not
         if(-not (Get-Command "Invoke-MsBuild" -errorAction SilentlyContinue)){
             throw ('Unable to install/load psbuild from [{0}]' -f $psbuildInstallUri)
+        }
+    }
+}
+function InternalEnsure-DirectoryExists{
+    param([Parameter(Position=0)][System.IO.DirectoryInfo]$path)
+    process{
+        if($path -ne $null){
+            if(-not (Test-Path $path.FullName)){
+                New-Item -Path $path.FullName -ItemType Directory
+            }
         }
     }
 }
@@ -95,13 +108,51 @@ function Remove-LocalInstall {
         }
     }
 }
+
+function CleanOutputFolder{
+    [cmdletbinding()]
+    param()
+    process{
+        if( ($outputroot -eq $null) -or ([string]::IsNullOrWhiteSpace($outputroot.FullName))){
+            return
+        }
+        elseif(Test-Path $outputroot.FullName){
+            'Removing output folder at [{0}]' -f $outputroot.FullName | Write-Output
+            Remove-Item $outputroot -Recurse
+        }
+    }
+}
+
+function BuildSolution{
+    [cmdletbinding()]
+    param()
+    process{
+        if(-not (Test-Path $slnfile.FullName)){
+            throw ('Solution not found at [{0}]' -f $slnfile.FullName)
+        }
+        if($outputroot -eq $null){
+            throw ('output path is null')
+        }
+
+        [System.IO.DirectoryInfo]$vsoutputpath = (Join-Path $outputroot.FullName "vs")
+        InternalEnsure-DirectoryExists -path $vsoutputpath.FullName
+
+        'Building soution at [{0}]' -f $slnfile.FullName | Write-Output
+        Invoke-MSBuild -projectsToBuild $slnfile.FullName -visualStudioVersion 14.0 -configuration $configuration -outputpath $vsoutputpath.FullName
+    }
+}
+
 # begin script
 
-
+[System.IO.FileInfo]$slnfile = "$scriptDir\vs-src\PecanWaffleVs.sln"
+[System.IO.DirectoryInfo]$outputroot="$scriptDir\OutputRoot"
 try{
     $env:IsDeveloperMachine=$true
     Remove-LocalInstall
     EnsurePsbuildInstlled
+
+    CleanOutputFolder
+    BuildSolution
 
     Run-Tests -testDirectory (Join-Path $scriptDir 'tests')
 }
