@@ -1,5 +1,8 @@
 os: Visual Studio 2015
 
+environment:
+  DeployExtension: false
+
 build_script:
   - ps: .\appveyor.ps1
 
