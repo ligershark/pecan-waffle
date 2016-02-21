@@ -1,0 +1,32 @@
+<VSTemplate Version="3.0.0" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" Type="Project">
+  <TemplateData>
+    <Name>PecanWaffle - sayed</Name>
+    <Description>Hard coded pecan waffle template</Description>
+    <DefaultName>DummyProjectToRemove</DefaultName>
+    <ProjectType>CSharp</ProjectType>
+    <ProjectSubType>
+    </ProjectSubType>
+    <SortOrder>1000</SortOrder>
+    <CreateNewFolder>true</CreateNewFolder>
+    <ProvideDefaultName>true</ProvideDefaultName>
+    <LocationField>Enabled</LocationField>
+    <EnableLocationBrowseButton>true</EnableLocationBrowseButton>
+    <Icon>sw-file-icon.png</Icon>
+    <TemplateID>2df34b1f-f8e6-461e-8e31-6de4c7b63b66</TemplateID>
+    <!-- Indicates how many parent folders this item template should appear in -->
+    <NumberOfParentCategoriesToRollUp>1</NumberOfParentCategoriesToRollUp>
+  </TemplateData>
+  <TemplateContent>
+    <Project TargetFileName="DummyProjectToRemove.csproj" File="DummyProjectToRemove.csproj" ReplaceParameters="true">
+    </Project>
+    <CustomParameters>
+      <CustomParameter Name="SideWaffle Project Template Files" Value="Your name here" />
+      <CustomParameter Name="8e0a6fff-7069-4384-9bb3-5e53d6cbb0b3" Value="f292d270-4e1c-416b-9434-1e3a6bb9b7a6" />
+	  <CustomParameter Name="Item" Value="Item" />
+    </CustomParameters>
+  </TemplateContent>
+  <WizardExtension>
+    <Assembly>PecanWaffle, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null</Assembly>
+    <FullClassName>PecanWaffle.PecanWaffleWizard</FullClassName>
+  </WizardExtension>
+</VSTemplate>

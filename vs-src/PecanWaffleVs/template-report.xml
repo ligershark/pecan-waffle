@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TemplateReport>
+  <ItemTemplates />
+  <ProjectTemplates>
+    <ProjectTemplate Path="..\DummyProjectToRemove\_Definitions\_project.vstemplate.xml" Name="PecanWaffle - sayed" Description="Hard coded pecan waffle template" ProjectType="CSharp" ProjectSubType="" />
+  </ProjectTemplates>
+  <Snippets />
+</TemplateReport>
