@@ -175,49 +175,69 @@ function InternalGet-NewTempDir{
 }
 
 # Items related to template sources
-
 function Add-PWTemplateSource{
-    [cmdletbinding(DefaultParameterSetName='local')]
+    [cmdletbinding()]
     param(
-        [Parameter(Position=0,Mandatory=$true,ParameterSetName='local')]
-        [System.IO.DirectoryInfo]$path,
-
-        [Parameter(Position=1,Mandatory=$true,ParameterSetName='git')]
+        [Parameter(Position=0,Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$url,
+        [string]$path,
 
-        [Parameter(Position=2,ParameterSetName='git')]
+        [Parameter(Position=1)]
         $branch = 'master',
 
-        [Parameter(Position=3,ParameterSetName='git')]
+        [Parameter(Position=2)]
         [System.IO.DirectoryInfo]$localfolder = ($global:pecanwafflesettings.TempRemoteDir),
 
-        [Parameter(Position=4,ParameterSetName='git')]
+        [Parameter(Position=3)]
         [string]$repoName
     )
     process{
-        [string]$localpath = $null
+        $isGit = $false
+        $isLocal = $false
+        $isZip = $false
 
-        if($path -ne $null){
-            if(-not [System.IO.Path]::IsPathRooted($path)){
-                $path = (Join-Path $pwd $path)
-            }
-            [string]$localpath = $path.FullName
+        $path = $path.Trim()
+        [string]$pathlastfour = $null
+        if($path.Length -gt 4){
+            $pathlastfour = $path.Substring($path.Length -4)
+        }
+
+        if([string]::Compare('.git',$pathlastfour,[System.StringComparison]::OrdinalIgnoreCase) -eq 0){
+            $isGit = $true
+        }
+        elseif([string]::Compare('.zip',$pathlastfour,[System.StringComparison]::OrdinalIgnoreCase) -eq 0){
+            $isZip = $true
+
+            throw ('.zip extension not supported for Add-PWTemplateSource yet')
         }
         else{
-            InternalEnsure-DirectoryExists -path $localfolder.FullName
-            if([string]::IsNullOrWhiteSpace($repoName)){
-                $repoName = ( '{0}-{1}' -f (InternalGet-RepoName -url $url),(InternalGet-StringHash -text $url))
-            }
+            $isLocal = $true
+        }
 
-            [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
-            $path =([System.IO.DirectoryInfo]$repoFolder).FullName
-            if(-not (Test-Path $repoFolder.FullName)){
-                InternalAdd-GitFolder -url $url -repoName $repoName -branch $branch -localfolder $localfolder
+        [System.IO.DirectoryInfo]$localInstallFolder = $null
+        if($isLocal){
+            if(-not [System.IO.Path]::IsPathRooted($path)){
+                $localInstallFolder = ([System.IO.DirectoryInfo](Join-Path $pwd $path)).FullName
+            }
+            else{
+                $localInstallFolder = ([System.IO.DirectoryInfo]($path)).FullName
             }
         }
 
-        $files = (Get-ChildItem -Path $path 'pw-templateinfo*.ps1' -Recurse -File -Exclude '.git','node_modules','bower_components' -ErrorAction SilentlyContinue)
+        InternalEnsure-DirectoryExists -path $localfolder.FullName
+
+        if($isGit){
+            [System.IO.DirectoryInfo]$localInstallFolder = (Join-Path $localfolder.FullName $repoName)
+            if(-not (Test-Path $localInstallFolder.FullName)){
+                InternalAdd-GitFolder -url $url -repoName $repoName -branch $branch -localfolder $localInstallFolder.FullName
+            }
+        }
+
+        if($localInstallFolder -eq $null){
+            throw ('localInstallFolder is null')
+        }
+
+        $files = (Get-ChildItem -Path $localInstallFolder.FullName 'pw-templateinfo*.ps1' -Recurse -File -Exclude '.git','node_modules','bower_components' -ErrorAction SilentlyContinue)
         foreach($file in $files){
             & ([System.IO.FileInfo]$file.FullName)
         }
@@ -230,6 +250,7 @@ function Add-PWTemplateSource{
         $global:pecanwafflesettings.TemplateSources += $templateSource
     }
 }
+
 Set-Alias Add-TemplateSource Add-PWTemplateSource
 
 function InternalGet-RepoName{

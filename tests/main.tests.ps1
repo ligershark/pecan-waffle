@@ -299,7 +299,7 @@ Describe 'template source tests'{
 
         [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'angularfiles')
         Ensure-PathExists -path $dest.FullName
-        Add-PWTemplateSource -url $url -localfolder $dest.FullName
+        Add-PWTemplateSource -path $url -localfolder $dest.FullName
 
         $numTemplatesAfter = ($Global:pecanwafflesettings.Templates.Count)
 

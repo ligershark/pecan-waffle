@@ -7,7 +7,7 @@ function Get-ScriptDirectory
 
 $scriptDir = ((Get-ScriptDirectory) + "\")
 $moduleName = 'pecan-waffle'
-$modulePath = (Join-Path -Path $scriptDir -ChildPath ("..\{0}.psm1" -f $moduleName))
+$modulePath = ([System.IO.DirectoryInfo](Join-Path -Path $scriptDir -ChildPath ("..\{0}.psm1" -f $moduleName))).FullName
 $env:IsDeveloperMachine=$true
 if(Test-Path $modulePath){
     "Importing module from [{0}]" -f $modulePath | Write-Verbose
