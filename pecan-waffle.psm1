@@ -227,9 +227,12 @@ function Add-PWTemplateSource{
         InternalEnsure-DirectoryExists -path $localfolder.FullName
 
         if($isGit){
+            if([string]::IsNullOrWhiteSpace($repoName)){
+                $repoName = ( '{0}-{1}' -f (InternalGet-RepoName -url $path),(InternalGet-StringHash -text $path))
+            }
             [System.IO.DirectoryInfo]$localInstallFolder = (Join-Path $localfolder.FullName $repoName)
             if(-not (Test-Path $localInstallFolder.FullName)){
-                InternalAdd-GitFolder -url $url -repoName $repoName -branch $branch -localfolder $localInstallFolder.FullName
+                InternalAdd-GitFolder -url $path -repoName $repoName -branch $branch -localfolder $localfolder.FullName
             }
         }
 
@@ -244,7 +247,7 @@ function Add-PWTemplateSource{
 
         $templateSource = New-Object -TypeName psobject -Property @{
             LocalFolder = $repoFolder.FullName
-            Url = $url
+            Url = $path
         }
 
         $global:pecanwafflesettings.TemplateSources += $templateSource
