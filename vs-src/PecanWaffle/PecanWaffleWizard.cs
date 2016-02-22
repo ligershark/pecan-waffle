@@ -16,10 +16,12 @@
     public class PecanWaffleWizard : IWizard {
         private Solution4 _solution { get; set; }
         private DTE2 _dte2 { get; set; }
-        private string _projectName;
 
         private string _installScript;
+
+        private string _projectName;
         private string _templateName;
+        private string _pecanWaffleBranchName;
 
         public void BeforeOpeningFile(ProjectItem projectItem) {
         }
@@ -82,14 +84,15 @@
             // here is where we want to call pecan-waffle
             try {
                 using (PowerShell instance = PowerShell.Create()) {
+                    instance.AddScript(_psNewProjectScript);
 
-                    string actualScript = _psNewProjectScript
-                                            .Replace(@"<ProjectName>", projectName)
-                                            .Replace("<DestPath>",destPath)
-                                            .Replace("<InstallScript>", _installScript)
-                                            .Replace("<TemplateName>", _templateName)
-                                            ;
-                    instance.AddScript(actualScript);
+                    instance.AddParameter("templatename", _templateName);
+                    instance.AddParameter("projectName", projectName);
+                    instance.AddParameter("destpath", destPath);
+                    if (!string.IsNullOrWhiteSpace(_pecanWaffleBranchName)) {
+                        instance.AddParameter("pwInstallBranch", _pecanWaffleBranchName);
+                    }
+
 
                     var result = instance.Invoke();
 
@@ -123,8 +126,24 @@
             _installScript = replacementsDictionary["InstallScript"];
 
             string projName;
-            if(replacementsDictionary.TryGetValue("$projectname$", out projName)) {
+            if(replacementsDictionary.TryGetValue("$safeprojectname$", out projName)) {
                 _projectName = projName;
+            }
+
+            string tname;
+            if (replacementsDictionary.TryGetValue("TemplateName", out tname)) {
+                _templateName = tname;
+            }
+            else {
+                MessageBox.Show("TemplateName parameter is missing from CustomParameters");
+            }
+
+            string pwbranch;
+            if (replacementsDictionary.TryGetValue("PecanWaffleInstallBranch", out pwbranch)) {
+                _pecanWaffleBranchName = pwbranch;
+            }
+            else {
+                MessageBox.Show("TemplateName parameter is missing from CustomParameters");
             }
         }
 
@@ -132,7 +151,9 @@
             return false;
         }
 
+        // http://blogs.msdn.com/b/kebab/archive/2014/04/28/executing-powershell-scripts-from-c.aspx
         // https://github.com/ligershark/template-builder/blob/master/src/TemplateBuilder/SolutionWizard.cs
+
 
         /// <summary>
         /// Gets the projects in a solution recursively.
@@ -198,6 +219,24 @@
         }
 
         private string _psNewProjectScript = @"
+param($templateName,$projectname,$destpath,$pwInstallBranch)
+
+if([string]::IsNullOrWhiteSpace($templateName)){
+    throw ('$templateName is null')
+}
+if([string]::IsNullOrWhiteSpace($projectname)){
+    throw ('$projectname is null')
+}
+if([string]::IsNullOrWhiteSpace($destpath)){
+    throw ('$destpath is null')
+}
+
+if([string]::IsNullOrWhiteSpace($pwInstallBranch)){
+    $pwInstallBranch = 'master'
+}
+
+$destpath = ([System.IO.DirectoryInfo]$destpath)
+
 # parameters declared here
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned | out-null
 $pwNeedsInstall = $true
@@ -213,16 +252,11 @@ catch{
 }
 
 if($pwNeedsInstall){
+    Remove-Module pecan-waffle -ErrorAction SilentlyContinue | Out-Null
     # TODO: Update branch to master or via parameter
-    <InstallScript>
+    $installUrl = ('https://raw.githubusercontent.com/ligershark/pecan-waffle/{0}/install.ps1' -f $pwInstallBranch)
+    &{set-variable -name pwbranch -value $pwInstallBranch;$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString($installUrl))}
 }
-
-# Remove-Module pecan-waffle -Force -ErrorAction SilentlyContinue | out-null
-$templatename = '<TemplateName>'
-$projectname = '<ProjectName>'
-$destpath = '<DestPath>'
-
-$destpath = ([System.IO.DirectoryInfo]$destpath)
 
 New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -noNewFolder
 ";

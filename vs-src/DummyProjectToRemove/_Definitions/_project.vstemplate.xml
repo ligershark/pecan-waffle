@@ -25,6 +25,7 @@
 
       <CustomParameter Name="InstallScript" Value="&amp;{set-variable -name pwbranch -value 'dev';$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString('https://raw.githubusercontent.com/ligershark/pecan-waffle/dev/install.ps1'))}"/>
       <CustomParameter Name="TemplateName" Value="aspnet5-empty"/>
+      <CustomParameter Name="PecanWaffleInstallBranch" Value="dev"/>
 	  <CustomParameter Name="Item" Value="Item" />
     </CustomParameters>
   </TemplateContent>
