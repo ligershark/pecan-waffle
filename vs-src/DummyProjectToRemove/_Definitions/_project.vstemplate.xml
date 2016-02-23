@@ -24,8 +24,9 @@
       <CustomParameter Name="8e0a6fff-7069-4384-9bb3-5e53d6cbb0b3" Value="f292d270-4e1c-416b-9434-1e3a6bb9b7a6" />
 
       <CustomParameter Name="InstallScript" Value="&amp;{set-variable -name pwbranch -value 'dev';$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString('https://raw.githubusercontent.com/ligershark/pecan-waffle/dev/install.ps1'))}"/>
-      <CustomParameter Name="TemplateName" Value="aspnet5-empty"/>
-      <CustomParameter Name="PecanWaffleInstallBranch" Value="dev"/>
+      <CustomParameter Name="TemplateName" Value="SayedMvc"/>
+      <CustomParameter Name="PecanWaffleInstallBranch" Value="wizard"/>
+      <CustomParameter Name="TemplateSource" Value="https://github.com/sayedihashimi/cli-samples.git"/>
 	  <CustomParameter Name="Item" Value="Item" />
     </CustomParameters>
   </TemplateContent>

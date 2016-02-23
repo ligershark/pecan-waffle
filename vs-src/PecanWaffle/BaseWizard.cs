@@ -19,6 +19,7 @@
         private string _templateName;
         private string _projectName;
         private string _pecanWaffleBranchName;
+        private string _templateSource;
 
         internal Solution4 GetSolution() {
             Solution4 result = null;
@@ -39,6 +40,10 @@
         internal string PecanWaffleBranchName
         {
             get { return _pecanWaffleBranchName; }
+        }
+        internal string TemplateSource
+        {
+            get { return _templateSource; }
         }
 
         public virtual void BeforeOpeningFile(ProjectItem projectItem) { }
@@ -79,13 +84,18 @@
                 // TODO: improve
                 throw new ApplicationException("TemplateName parameter is missing from CustomParameters");
             }
+
+            string tsource;
+            if (replacementsDictionary.TryGetValue("TemplateSource", out tsource)) {
+                _templateSource = tsource;
+            }
         }
 
         public bool ShouldAddProjectItem(string filePath) {
             return false;
         }
 
-        internal void CreateProjectWithPecanWaffle(string projectName, string destPath, string templateName, string pwBranchName) {
+        internal void CreateProjectWithPecanWaffle(string projectName, string destPath, string templateName, string pwBranchName, string templateSource) {
             bool hadErrors = false;
             string errorString = "";
             // here is where we want to call pecan-waffle
@@ -99,7 +109,9 @@
                     if (!string.IsNullOrWhiteSpace(pwBranchName)) {
                         instance.AddParameter("pwInstallBranch", pwBranchName);
                     }
-
+                    if (!string.IsNullOrWhiteSpace(templateSource)) {
+                        instance.AddParameter("TemplateSource", templateSource);
+                    }
                     var result = instance.Invoke();
 
                     var errorsb = new StringBuilder();
@@ -228,7 +240,7 @@
         }
 
         private string _psNewProjectScript = @"
-param($templateName,$projectname,$destpath,$pwInstallBranch)
+param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource)
 
 if([string]::IsNullOrWhiteSpace($templateName)){
     throw ('$templateName is null')
@@ -274,7 +286,12 @@ if($pwNeedsInstall){
     &{set-variable -name pwbranch -value $pwInstallBranch;$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString($installUrl))}
 }
 
-New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -noNewFolder
-";
+if(-not [string]::IsNullOrWhiteSpace($templateSource)){
+    Add-PWTemplateSource -path $templateSource
+    # TODO: Update to just update this specific template
+    Update-RemoteTemplates
+}
+
+New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -noNewFolder";
     }
 }

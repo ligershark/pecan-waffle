@@ -1107,5 +1107,5 @@ if( ($env:IsDeveloperMachine -eq $true) ){
     Export-ModuleMember -function * -Alias *
 }
 else{
-    Export-ModuleMember -function Get-*,Set-*,Invoke-*,Save-*,Test-*,Find-*,Add-*,Remove-*,Test-*,Open-*,New-*,Import-*,Clear-* -Alias *
+    Export-ModuleMember -function Get-*,Set-*,Invoke-*,Save-*,Test-*,Find-*,Add-*,Remove-*,Test-*,Open-*,New-*,Import-*,Clear-*,Update-* -Alias *
 }
