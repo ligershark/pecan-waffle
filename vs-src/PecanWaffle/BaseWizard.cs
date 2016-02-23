@@ -210,7 +210,7 @@
             return (new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)).FullName);
         }
         internal void AddProjectsUnderPathToSolution(Solution4 solution, string folderPath,string pattern=@"*.*proj") {
-            string[] projFiles = Directory.GetFiles(folderPath, pattern);
+            string[] projFiles = Directory.GetFiles(folderPath, pattern, SearchOption.AllDirectories);
 
             foreach (string path in projFiles) {
                 // TODO: Check to see if the project is already added to the solution
