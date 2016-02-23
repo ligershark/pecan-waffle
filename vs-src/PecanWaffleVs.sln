@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PecanWaffle", "PecanWaffle\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DummyProjectToRemove", "DummyProjectToRemove\DummyProjectToRemove.csproj", "{E1E07F5B-E617-4DFD-99F7-35F9816F44F4}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TemplateWithUi", "TemplateWithUi\TemplateWithUi.csproj", "{EF4B0504-D1E7-4B65-AB93-315AD3580E3C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,6 +27,8 @@ Global
 		{94F2C23E-C3E4-4D9A-AF08-885FDDB90C44}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E1E07F5B-E617-4DFD-99F7-35F9816F44F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{E1E07F5B-E617-4DFD-99F7-35F9816F44F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EF4B0504-D1E7-4B65-AB93-315AD3580E3C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EF4B0504-D1E7-4B65-AB93-315AD3580E3C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

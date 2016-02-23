@@ -1,4 +1,4 @@
-﻿param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource)
+﻿param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch)
 
 if([string]::IsNullOrWhiteSpace($templateName)){
     throw ('$templateName is null')
@@ -12,6 +12,9 @@ if([string]::IsNullOrWhiteSpace($destpath)){
 
 if([string]::IsNullOrWhiteSpace($pwInstallBranch)){
     $pwInstallBranch = 'master'
+}
+if([string]::IsNullOrWhiteSpace($templateSourceBranch)){
+    $templateSourceBranch = 'master'
 }
 
 $destpath = ([System.IO.DirectoryInfo]$destpath)
@@ -45,7 +48,7 @@ if($pwNeedsInstall){
 }
 
 if(-not [string]::IsNullOrWhiteSpace($templateSource)){
-    Add-PWTemplateSource -path $templateSource
+    Add-PWTemplateSource -path $templateSource -branch $templateSourceBranch
     # TODO: Update to just update this specific template
     Update-RemoteTemplates
 }

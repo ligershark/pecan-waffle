@@ -100,7 +100,17 @@
   <ItemGroup>
     <Compile Include="BaseWizard.cs" />
     <Compile Include="PecanWaffleWizard.cs" />
+    <Compile Include="PocUiWizard.cs" />
+    <Compile Include="PocWindow.xaml.cs">
+      <DependentUpon>PocWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Page Include="PocWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

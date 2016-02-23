@@ -31,7 +31,7 @@
 
                 if (solution != null) {
                     string projectFolder = RemovePlaceholderProjectCreatedByVs(ProjectName);
-                    CreateProjectWithPecanWaffle(ProjectName, projectFolder, TemplateName, PecanWaffleBranchName,TemplateSource);
+                    CreateProjectWithPecanWaffle(ProjectName, projectFolder, TemplateName, PecanWaffleBranchName,TemplateSource,TemplateSourceBranch);
                     AddProjectsUnderPathToSolution(solution, projectFolder, "*.*proj");
                 }
                 else {

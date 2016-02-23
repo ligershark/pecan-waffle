@@ -306,7 +306,7 @@ function InternalAdd-GitFolder{
             Set-Location $localfolder
 
             if(-not (Test-Path $repoFolder.FullName)){
-                Execute-CommandString "git clone $url --branch $branch --single-branch $repoName"
+                Execute-CommandString "git clone $url --branch $branch --single-branch $repoName" -ignoreExitCode
             }
         }
         finally{
@@ -342,7 +342,7 @@ function Update-PWRemoteTemplates{
                 $oldpath = Get-Location
                 try{
                     Set-Location $ts.LocalFolder
-                    Execute-CommandString "git pull"
+                    Execute-CommandString "git pull" -ignoreExitCode
                 }
                 finally{
                     Set-Location $oldpath

@@ -7,5 +7,6 @@
   <TemplateInfo Path="CSharp\Web\PecanWaffle"/>
   <Replacements Include="*.*" Exclude="*.vstemplate;*.csproj;*.fsproj;*.vbproj;*.jpg;*.png;*.ico;_preprocess.xml;_project.vstemplate.xml">
     <add key="DummyProjectToRemove" value="$safeprojectname$"/>
+    <add key="TemplateWithUi" value="$safeprojectname$"/>
   </Replacements>
 </Preprocess>

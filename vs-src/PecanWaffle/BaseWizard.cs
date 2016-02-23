@@ -20,6 +20,7 @@
         private string _projectName;
         private string _pecanWaffleBranchName;
         private string _templateSource;
+        private string _templateSourceBranch;
 
         internal Solution4 GetSolution() {
             Solution4 result = null;
@@ -45,6 +46,10 @@
         {
             get { return _templateSource; }
         }
+        internal string TemplateSourceBranch
+        {
+            get { return _templateSourceBranch; }
+        }
 
         public virtual void BeforeOpeningFile(ProjectItem projectItem) { }
 
@@ -60,7 +65,6 @@
         
         public virtual void RunStarted(object automationObject, Dictionary<string, string> replacementsDictionary, WizardRunKind runKind, object[] customParams) {
             _dte2 = automationObject as DTE2;
-            _templateName = replacementsDictionary["TemplateName"];
 
             string projName;
             if (replacementsDictionary.TryGetValue("$safeprojectname$", out projName)) {
@@ -71,23 +75,20 @@
             if (replacementsDictionary.TryGetValue("TemplateName", out tname)) {
                 _templateName = tname;
             }
-            else {
-                // TODO: improve
-                throw new ApplicationException("TemplateName parameter is missing from CustomParameters");
-            }
 
             string pwbranch;
             if (replacementsDictionary.TryGetValue("PecanWaffleInstallBranch", out pwbranch)) {
                 _pecanWaffleBranchName = pwbranch;
             }
-            else {
-                // TODO: improve
-                throw new ApplicationException("TemplateName parameter is missing from CustomParameters");
-            }
 
             string tsource;
             if (replacementsDictionary.TryGetValue("TemplateSource", out tsource)) {
                 _templateSource = tsource;
+            }
+
+            string tbranch;
+            if (replacementsDictionary.TryGetValue("TemplateSourceBranch", out tbranch)) {
+                _templateSourceBranch = tbranch;
             }
         }
 
@@ -95,7 +96,7 @@
             return false;
         }
 
-        internal void CreateProjectWithPecanWaffle(string projectName, string destPath, string templateName, string pwBranchName, string templateSource) {
+        internal void CreateProjectWithPecanWaffle(string projectName, string destPath, string templateName, string pwBranchName, string templateSource, string templateSourceBranch) {
             bool hadErrors = false;
             string errorString = "";
             // here is where we want to call pecan-waffle
@@ -112,6 +113,10 @@
                     if (!string.IsNullOrWhiteSpace(templateSource)) {
                         instance.AddParameter("TemplateSource", templateSource);
                     }
+                    if (!string.IsNullOrWhiteSpace(templateSourceBranch)) {
+                        instance.AddParameter("TemplateSourceBranch", templateSourceBranch);
+                    }
+
                     var result = instance.Invoke();
 
                     var errorsb = new StringBuilder();
@@ -240,7 +245,7 @@
         }
 
         private string _psNewProjectScript = @"
-param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource)
+param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch)
 
 if([string]::IsNullOrWhiteSpace($templateName)){
     throw ('$templateName is null')
@@ -254,6 +259,9 @@ if([string]::IsNullOrWhiteSpace($destpath)){
 
 if([string]::IsNullOrWhiteSpace($pwInstallBranch)){
     $pwInstallBranch = 'master'
+}
+if([string]::IsNullOrWhiteSpace($templateSourceBranch)){
+    $templateSourceBranch = 'master'
 }
 
 $destpath = ([System.IO.DirectoryInfo]$destpath)
@@ -287,7 +295,7 @@ if($pwNeedsInstall){
 }
 
 if(-not [string]::IsNullOrWhiteSpace($templateSource)){
-    Add-PWTemplateSource -path $templateSource
+    Add-PWTemplateSource -path $templateSource -branch $templateSourceBranch
     # TODO: Update to just update this specific template
     Update-RemoteTemplates
 }
