@@ -166,6 +166,7 @@ try{
     EnsurePsbuildInstlled
 
     CleanOutputFolder
+    Import-NuGetPowershell
     RestoreNuGetPackages
     BuildSolution
 
