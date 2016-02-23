@@ -13,72 +13,39 @@
     using System.Text;
     using System.Threading.Tasks;
     using System.Windows.Forms;
-    public class PecanWaffleWizard : IWizard {
-        private Solution4 _solution { get; set; }
-        private DTE2 _dte2 { get; set; }
-
-        private string _installScript;
-
-        private string _projectName;
-        private string _templateName;
-        private string _pecanWaffleBranchName;
-
-        public void BeforeOpeningFile(ProjectItem projectItem) {
+    public class PecanWaffleWizard : BaseWizard {
+        public override void RunStarted(object automationObject, Dictionary<string, string> replacementsDictionary, WizardRunKind runKind, object[] customParams) {
+            try {
+                base.RunStarted(automationObject, replacementsDictionary, runKind, customParams);
+            }
+            catch(Exception ex) {
+                // TODO: Improve this
+                MessageBox.Show(ex.ToString());
+            }
         }
+        public override void RunFinished() {
+            try {
+                base.RunFinished();
 
-        public void ProjectFinishedGenerating(Project project) {
-        }
+                Solution4 solution = GetSolution();
 
-        public void ProjectItemFinishedGenerating(ProjectItem projectItem) {
-        }
-
-        public void RunFinished() {
-            if (_dte2 != null) _solution = (Solution4)_dte2.Solution;
-
-            string projectName = _projectName;
-            if(_solution != null) {
-                string projectFolder = RemovePlaceholderProjectCreatedByVs(projectName);
-                CreateProjectWithPecanWaffle(_projectName, projectFolder);
-                // look in the dest folder for the newly created project
-                string[]projFiles = Directory.GetFiles(projectFolder, @"*.*proj");
-
-                foreach (string path in projFiles) {
-                    // TODO: Check to see if the project is already added to the solution
-                    _solution.AddFromFile(path, false);
+                if (solution != null) {
+                    string projectFolder = RemovePlaceholderProjectCreatedByVs(ProjectName);
+                    CreateProjectWithPecanWaffle(ProjectName, projectFolder, TemplateName, PecanWaffleBranchName);
+                    AddProjectsUnderPathToSolution(solution, projectFolder, "*.*proj");
+                }
+                else {
+                    // TODO: Improve
+                    throw new ApplicationException("Solution is null");
                 }
             }
-            else {
-                System.Windows.Forms.MessageBox.Show("Solution is null");
+            catch(Exception ex) {
+                // TODO: Improve this
+                MessageBox.Show(ex.ToString());
             }
         }
 
-        private string RemovePlaceholderProjectCreatedByVs(string projectName) {
-            bool foundProjToRemove = false;
-            var projects = GetProjects();
-            Project removedProject = null;
-            string projectFolder = null;
-            foreach(var proj in projects) {
-                if (string.Compare(projectName, proj.Name, StringComparison.OrdinalIgnoreCase) == 0) {
-                    string removedProjPath = proj.FullName;
-                    _solution.Remove(proj);
-                    if (File.Exists(removedProjPath)) {
-                        File.Delete(removedProjPath);
-                    }
-                    projectFolder = new FileInfo(removedProjPath).Directory.FullName;
-                    foundProjToRemove = true;
-                    removedProject = proj;
-                    break;
-                }
-            }
-
-            if(!foundProjToRemove) {
-                MessageBox.Show("project to remove was null");
-            }
-
-            return projectFolder;
-        }
-
-        private void CreateProjectWithPecanWaffle(string projectName, string destPath) {
+        private void CreateProjectWithPecanWaffleOld(string projectName, string destPath) {
             bool hadErrors = false;
             string errorString = "";
             // here is where we want to call pecan-waffle
@@ -86,13 +53,12 @@
                 using (PowerShell instance = PowerShell.Create()) {
                     instance.AddScript(_psNewProjectScript);
 
-                    instance.AddParameter("templatename", _templateName);
+                    instance.AddParameter("templatename", TemplateName);
                     instance.AddParameter("projectName", projectName);
                     instance.AddParameter("destpath", destPath);
-                    if (!string.IsNullOrWhiteSpace(_pecanWaffleBranchName)) {
-                        instance.AddParameter("pwInstallBranch", _pecanWaffleBranchName);
+                    if (!string.IsNullOrWhiteSpace(PecanWaffleBranchName)) {
+                        instance.AddParameter("pwInstallBranch", PecanWaffleBranchName);
                     }
-
 
                     var result = instance.Invoke();
 
@@ -120,103 +86,6 @@
                 System.Windows.Forms.MessageBox.Show(errorString);
             }
         }
-        public void RunStarted(object automationObject, Dictionary<string, string> replacementsDictionary, WizardRunKind runKind, object[] customParams) {
-            _dte2 = automationObject as DTE2;
-            _templateName = replacementsDictionary["TemplateName"];
-            _installScript = replacementsDictionary["InstallScript"];
-
-            string projName;
-            if(replacementsDictionary.TryGetValue("$safeprojectname$", out projName)) {
-                _projectName = projName;
-            }
-
-            string tname;
-            if (replacementsDictionary.TryGetValue("TemplateName", out tname)) {
-                _templateName = tname;
-            }
-            else {
-                MessageBox.Show("TemplateName parameter is missing from CustomParameters");
-            }
-
-            string pwbranch;
-            if (replacementsDictionary.TryGetValue("PecanWaffleInstallBranch", out pwbranch)) {
-                _pecanWaffleBranchName = pwbranch;
-            }
-            else {
-                MessageBox.Show("TemplateName parameter is missing from CustomParameters");
-            }
-        }
-
-        public bool ShouldAddProjectItem(string filePath) {
-            return false;
-        }
-
-        // http://blogs.msdn.com/b/kebab/archive/2014/04/28/executing-powershell-scripts-from-c.aspx
-        // https://github.com/ligershark/template-builder/blob/master/src/TemplateBuilder/SolutionWizard.cs
-
-
-        /// <summary>
-        /// Gets the projects in a solution recursively.
-        /// </summary>
-        /// <returns></returns>
-        private IList<Project> GetProjects() {
-            var projects = _solution.Projects;
-            var list = new List<Project>();
-            var item = projects.GetEnumerator();
-
-            while (item.MoveNext()) {
-                var project = item.Current as Project;
-                if (project == null) {
-                    continue;
-                }
-
-                if (project.Kind == ProjectKinds.vsProjectKindSolutionFolder) {
-                    list.AddRange(GetSolutionFolderProjects(project));
-                }
-                else {
-                    list.Add(project);
-                }
-            }
-            return list;
-        }
-
-        /// <summary>
-        /// Gets the solution folder projects.
-        /// </summary>
-        /// <param name="solutionFolder">The solution folder.</param>
-        /// <returns></returns>
-        private static IEnumerable<Project> GetSolutionFolderProjects(Project solutionFolder) {
-            var list = new List<Project>();
-            for (var i = 1; i <= solutionFolder.ProjectItems.Count; i++) {
-                var subProject = solutionFolder.ProjectItems.Item(i).SubProject;
-                if (subProject == null) {
-                    continue;
-                }
-
-                // If this is another solution folder, do a recursive call, otherwise add
-                if (subProject.Kind == ProjectKinds.vsProjectKindSolutionFolder) {
-                    list.AddRange(GetSolutionFolderProjects(subProject));
-                }
-                else {
-                    list.Add(subProject);
-                }
-            }
-            return list;
-        }
-
-        private string GetPathToModuleFile() {
-            string path = Path.Combine(GetPecanWaffleExtensionInstallDir(), "pecan-waffle.psm1");
-            path = new FileInfo(path).FullName;
-            if (!File.Exists(path)) {
-                MessageBox.Show(string.Format("Module not found at [{0}]", path));
-            }
-
-            return path;
-        }
-
-        private string GetPecanWaffleExtensionInstallDir() {
-            return (new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)).FullName);
-        }
 
         private string _psNewProjectScript = @"
 param($templateName,$projectname,$destpath,$pwInstallBranch)
@@ -239,7 +108,14 @@ $destpath = ([System.IO.DirectoryInfo]$destpath)
 
 # parameters declared here
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned | out-null
+
+# TODO: Remove this later and detect version to see if upgrade is needed
 $pwNeedsInstall = $true
+[System.IO.DirectoryInfo]$localInstallFolder = ""$env:USERPROFILE\Documents\WindowsPowerShell\Modules\pecan-waffle""
+if(test-path $localInstallFolder.FullName){
+    Remove-Item $localInstallFolder.FullName -Recurse
+}
+
 try{
     Import-Module pecan-waffle -ErrorAction SilentlyContinue | out-null
 

@@ -18,7 +18,14 @@ $destpath = ([System.IO.DirectoryInfo]$destpath)
 
 # parameters declared here
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned | out-null
+
+# TODO: Remove this later and detect version to see if upgrade is needed
 $pwNeedsInstall = $true
+[System.IO.DirectoryInfo]$localInstallFolder = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\pecan-waffle"
+if(test-path $localInstallFolder.FullName){
+    Remove-Item $localInstallFolder.FullName -Recurse
+}
+
 try{
     Import-Module pecan-waffle -ErrorAction SilentlyContinue | out-null
 
