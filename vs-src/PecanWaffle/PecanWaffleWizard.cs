@@ -17,11 +17,10 @@
         private Solution4 _solution { get; set; }
         private DTE2 _dte2 { get; set; }
 
-        private string _installScript;
-
         private string _projectName;
         private string _templateName;
         private string _pecanWaffleBranchName;
+        private string _templateSource;
 
         public void BeforeOpeningFile(ProjectItem projectItem) {
         }
@@ -89,10 +88,14 @@
                     instance.AddParameter("templatename", _templateName);
                     instance.AddParameter("projectName", projectName);
                     instance.AddParameter("destpath", destPath);
+
                     if (!string.IsNullOrWhiteSpace(_pecanWaffleBranchName)) {
                         instance.AddParameter("pwInstallBranch", _pecanWaffleBranchName);
                     }
 
+                    if (!string.IsNullOrWhiteSpace(_templateSource)) {
+                        instance.AddParameter("templateSource", _templateSource);
+                    }
 
                     var result = instance.Invoke();
 
@@ -123,7 +126,6 @@
         public void RunStarted(object automationObject, Dictionary<string, string> replacementsDictionary, WizardRunKind runKind, object[] customParams) {
             _dte2 = automationObject as DTE2;
             _templateName = replacementsDictionary["TemplateName"];
-            _installScript = replacementsDictionary["InstallScript"];
 
             string projName;
             if(replacementsDictionary.TryGetValue("$safeprojectname$", out projName)) {
@@ -144,6 +146,11 @@
             }
             else {
                 MessageBox.Show("TemplateName parameter is missing from CustomParameters");
+            }
+
+            string tsource;
+            if (replacementsDictionary.TryGetValue("TemplateSource", out tsource)) {
+                _templateSource = tsource;
             }
         }
 
@@ -219,7 +226,7 @@
         }
 
         private string _psNewProjectScript = @"
-param($templateName,$projectname,$destpath,$pwInstallBranch)
+param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource)
 
 if([string]::IsNullOrWhiteSpace($templateName)){
     throw ('$templateName is null')
@@ -256,6 +263,12 @@ if($pwNeedsInstall){
     # TODO: Update branch to master or via parameter
     $installUrl = ('https://raw.githubusercontent.com/ligershark/pecan-waffle/{0}/install.ps1' -f $pwInstallBranch)
     &{set-variable -name pwbranch -value $pwInstallBranch;$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString($installUrl))}
+}
+
+if(-not [string]::IsNullOrWhiteSpace($templateSource)){
+    Add-PWTemplateSource -path $templateSource
+    # TODO: Update to just update this specific template
+    Update-RemoteTemplates
 }
 
 New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -noNewFolder
