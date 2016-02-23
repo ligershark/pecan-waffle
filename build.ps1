@@ -122,7 +122,21 @@ function CleanOutputFolder{
         }
     }
 }
-
+function RestoreNuGetPackages(){
+    [cmdletbinding()]
+    param()
+    process{
+        $oldloc = Get-Location
+        try{
+            'restoring nuget packages' | Write-Output
+            Set-Location $slnfile.Directory.FullName
+            Invoke-CommandString -command (Get-Nuget) -commandArgs restore
+        }
+        finally{
+            Set-Location $oldloc
+        }
+    }
+}
 function BuildSolution{
     [cmdletbinding()]
     param()
@@ -152,6 +166,7 @@ try{
     EnsurePsbuildInstlled
 
     CleanOutputFolder
+    RestoreNuGetPackages
     BuildSolution
 
     Run-Tests -testDirectory (Join-Path $scriptDir 'tests')
