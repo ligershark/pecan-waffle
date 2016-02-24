@@ -391,7 +391,8 @@ function TemplateAdd-SourceFile{
             }
 
             $templateInfo.SourceFiles += New-Object -TypeName psobject -Property @{
-                SourceFile = [System.IO.FileInfo]($sourceFiles[$i])
+#                SourceFile = [System.IO.FileInfo]($sourceFiles[$i])
+                SourceFile = [string]($sourceFiles[$i])
                 DestFile = [ScriptBlock]$dest
             }
         }
@@ -885,7 +886,7 @@ function InternalGet-EvaluatedPropertiesFrom{
         [Parameter(Position=1)]
         [hashtable]$properties,
         [Parameter(Position=2)]
-        [System.IO.DirectoryInfo]$templateWorkDir
+        [string]$templateWorkDir
     )
     process{
         # eval properties here
@@ -897,7 +898,7 @@ function InternalGet-EvaluatedPropertiesFrom{
         }
 
         if($templateWorkDir -ne $null){
-            $evaluatedProps['templateWorkingDir'] = $templateWorkDir.FullName
+            $evaluatedProps['templateWorkingDir'] = $templateWorkDir
         }
         # add all the properties of $template into evaluatedProps
         foreach($name in $template.psobject.Properties.Name){
@@ -931,23 +932,35 @@ function InternalNew-PWTemplate{
         [System.IO.DirectoryInfo]$tempWorkDir = InternalGet-NewTempDir
         [string]$sourcePath = $template.TemplatePath
         
+        [string[]]$drivesCreated = @()
+        $srcdrive=('pwsrc{0}' -f [DateTime]::UtcNow.Ticks)
+        New-PSDrive -Name $srcdrive -PSProvider FileSystem -Root $sourcePath -Scope Global | Out-Null
+        $drivesCreated += $srcdrive
+
+        $mTempDrive=('pwtmp{0}' -f [DateTime]::UtcNow.Ticks)
+        New-PSDrive -Name $mTempDrive -PSProvider FileSystem -Root $tempWorkDir.FullName -Scope Global| Out-Null
+        $drivesCreated += $mTempDrive
+
+        [string]$mappedSourcePath = ('{0}:\' -f $srcdrive)
+        [string]$mappedTempWorkDir = ('{0}:\' -f $mTempDrive)
         try{
             # eval properties here
-            $evaluatedProps =  InternalGet-EvaluatedPropertiesFrom -template $template -properties $properties -templateWorkDir $tempWorkDir
+            $evaluatedProps =  InternalGet-EvaluatedPropertiesFrom -template $template -properties $properties -templateWorkDir $mappedTempWorkDir
 
             if( ($template.SourceFiles -eq $null) -or ($template.SourceFiles.Count -le 0)){
                 # copy all of the files to the temp directory
-                'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$tempWorkDir.FullName | Write-Verbose
-                Copy-Item -Path $sourcePath\* -Destination $tempWorkDir.FullName -Recurse -Include * -Exclude ($template.ExcludeFiles)
+                'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$mappedTempWorkDir | Write-Verbose
+                Copy-Item -Path $mappedSourcePath\* -Destination $mappedTempWorkDir -Recurse -Include * -Exclude ($template.ExcludeFiles)
             }
             else{
                 foreach($sf in  $template.SourceFiles){
                     $source = $sf.SourceFile;
                     
-                    [System.IO.FileInfo]$sourceFile = (Join-Path $sourcePath $source)
+                    # [System.IO.FileInfo]$sourceFile = (Join-Path $mappedSourcePath $source)
+                    $sourceItem = Get-Item (Join-Path $mappedSourcePath $source)
                     [hashtable]$extraProps = @{
-                        'ThisItemName' = $sourceFile.BaseName
-                        'ThisItemFileName' = $sourceFile.Name
+                        'ThisItemName' = ($sourceItem|Select-Object -ExpandProperty BaseName)
+                        'ThisItemFileName' = ($sourceItem|Select-Object -ExpandProperty Name)
                     }
 
                     $dest = (InternalGet-EvaluatedProperty -expression ($sf.DestFile) -properties $evaluatedProps -extraProperties $extraProps)
@@ -956,14 +969,15 @@ function InternalNew-PWTemplate{
                         throw ('Dest is null or empty for source [{0}]' -f $source)
                     }
 
-                    Copy-Item -Path $sourceFile.FullName -Destination ((Join-Path $tempWorkDir.FullName $dest))
+                    #Copy-Item -Path $sourceFile.FullName -Destination ((Join-Path $tempWorkDir.FullName $dest))
+                    Copy-Item -Path ($sourceItem|Select-Object -ExpandProperty FullName) -Destination ((Join-Path $mappedTempWorkDir $dest))
                 }
             }
 
             # remove excluded files (in some cases excluded files can still be copied to temp
             #   for example if you specify sourcefile/destfile and include a file that should be excluded
             if($template.ExcludeFiles -ne $null){
-                $files = (Get-ChildItem $tempWorkDir.FullName ($template.ExcludeFiles -join ';') -Recurse -File)
+                $files = (Get-ChildItem $mappedTempWorkDir ($template.ExcludeFiles -join ';') -Recurse -File)
                 if( ($files -ne $null) -and ($files.Length -gt 0) ){
                     Remove-Item $files.FullName -ErrorAction SilentlyContinue
                 }
@@ -971,7 +985,7 @@ function InternalNew-PWTemplate{
 
             # remove directories in the exclude list
             if($template.ExcludeFolder -ne $null){
-                Get-ChildItem -Path $tempWorkDir.FullName -Include $template.ExcludeFolder -Recurse -Directory | Remove-Item -Recurse -ErrorAction SilentlyContinue
+                Get-ChildItem -Path $mappedTempWorkDir -Include $template.ExcludeFolder -Recurse -Directory | Remove-Item -Recurse -ErrorAction SilentlyContinue
             }
 
             # replace file names
@@ -984,7 +998,7 @@ function InternalNew-PWTemplate{
                         $repvalue = InternalGet-EvaluatedProperty -expression $current.DefaultValue -properties $evaluatedProps
                     }
 
-                    foreach($folder in ([System.IO.DirectoryInfo[]](Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory)) ){
+                    foreach($folder in ([System.IO.DirectoryInfo[]](Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory)) ){
                         if(Test-Path ($folder.FullName)){
                             $newname = $folder.Name.Replace($current.ReplaceKey, $repvalue)
                             [System.IO.DirectoryInfo]$newpath = (Join-Path ($folder.Parent.FullName) $newname)
@@ -992,7 +1006,7 @@ function InternalNew-PWTemplate{
                         }
                     }
 
-                    foreach($file in ([System.IO.FileInfo[]](Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse -File)) ){
+                    foreach($file in ([System.IO.FileInfo[]](Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -File)) ){
                         $file = [System.IO.FileInfo]$file
 
                         if([string]::IsNullOrWhiteSpace($repvalue) -and ($current.DefaultValue -ne $null)){
@@ -1023,7 +1037,7 @@ function InternalNew-PWTemplate{
                 }
 
                 $replaceArgs = @{
-                    folder = $tempWorkDir.FullName
+                    folder = $mappedTempWorkDir
                     replacements = $replacements
                     include = '*'
                     exclude = $null
@@ -1041,7 +1055,7 @@ function InternalNew-PWTemplate{
 
             # copy the final result to the destination
             InternalEnsure-DirectoryExists -path $destPath.FullName
-            [string]$tpath = $tempWorkDir.FullName
+            [string]$tpath = $mappedTempWorkDir
             
             Copy-Item $tpath\* -Destination $destPath.FullName -Recurse -Include *
 
@@ -1052,7 +1066,11 @@ function InternalNew-PWTemplate{
         finally{
             # delete the temp dir and ignore any errors
             if(Test-Path $tempWorkDir.FullName){
-                Remove-Item $tempWorkDir.FullName -Recurse -ErrorAction SilentlyContinue
+                Remove-Item $tempWorkDir.FullName -Recurse -ErrorAction SilentlyContinue | Out-Null
+            }
+
+            if( ($drivesCreated -ne $null) -and ($drivesCreated.Length -gt 0)){
+                Remove-PSDrive -Name $drivesCreated -PSProvider FileSystem | Out-Null
             }
         }
     }
