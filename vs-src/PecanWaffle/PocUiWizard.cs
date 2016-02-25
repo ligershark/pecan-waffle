@@ -13,6 +13,7 @@
     using System.Text;
     using System.Threading.Tasks;
     using System.Windows.Forms;
+    using NuGet;
 
     public class PocUiWizard : BaseWizard {
         public override void RunFinished() {

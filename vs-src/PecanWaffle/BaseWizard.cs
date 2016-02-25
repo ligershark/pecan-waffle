@@ -3,6 +3,7 @@
     using EnvDTE100;
     using EnvDTE80;
     using Microsoft.VisualStudio.TemplateWizard;
+    using NuGet;
     using System;
     using System.Collections.Generic;
     using System.IO;
@@ -50,10 +51,28 @@
         {
             get { return _templateSourceBranch; }
         }
+        internal string PackagesDir
+        {
+            get;
+            private set;
+        }
 
         public virtual void BeforeOpeningFile(ProjectItem projectItem) { }
 
-        public virtual void ProjectFinishedGenerating(Project project) { }
+        public virtual void ProjectFinishedGenerating(Project project) {
+            string projectFilePath = project.FileName;
+            string solutionFilePath = project.CodeModel.DTE.Solution.FileName;
+
+            string projectDirectoryPath = Path.GetDirectoryName(projectFilePath);
+            string solutionDirectoryPath = string.IsNullOrEmpty(solutionFilePath) ? projectDirectoryPath : Path.GetDirectoryName(solutionFilePath);
+
+            string customPackagesDirectoryPath = ProjectHelper.GetCustomPackagesDirectoryPath(solutionDirectoryPath);
+
+            PackagesDir = ProjectHelper.GetRelativePackagesDirectoryPath(
+                projectDirectoryPath,
+                solutionDirectoryPath,
+                customPackagesDirectoryPath);
+        }
 
         public virtual void ProjectItemFinishedGenerating(ProjectItem projectItem) { }
 
@@ -217,7 +236,8 @@
             foreach (string path in projFiles) {
                 // TODO: Check to see if the project is already added to the solution
                 try {
-                    solution.AddFromFile(path, false);
+                    Project projectAdded = solution.AddFromFile(path, false);
+                    // ProjectHelper.UpdatePackagesPathInProject(projectAdded, GetSolution().FileName);
                 }
                 catch(Exception ex) {
                     errorsb.AppendLine(ex.ToString());
@@ -254,6 +274,7 @@
 
             return projectFolder;
         }
+
 
         private string _psNewProjectScript = @"
 param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch)
