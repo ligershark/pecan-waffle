@@ -10,9 +10,9 @@
         <Label x:Name="label" Content="Path or url:" HorizontalAlignment="Left" Margin="56,30,0,0" VerticalAlignment="Top"/>
         <Label x:Name="label1" Content="Branch (git only)" HorizontalAlignment="Left" Margin="56,61,0,0" VerticalAlignment="Top"/>
         <Label x:Name="label2" Content="Template Name" HorizontalAlignment="Left" Margin="56,97,0,0" VerticalAlignment="Top"/>
-        <TextBox x:Name="textPath" HorizontalAlignment="Left" Height="23" Margin="166,31,0,0" TextWrapping="Wrap" Text="https://github.com/sayedihashimi/cli-samples.git" VerticalAlignment="Top" Width="412"/>
+        <TextBox x:Name="textPath" HorizontalAlignment="Left" Height="23" Margin="166,31,0,0" TextWrapping="Wrap" Text="c:\templates" VerticalAlignment="Top" Width="412"/>
         <TextBox x:Name="textBranch" HorizontalAlignment="Left" Height="23" Margin="166,62,0,0" TextWrapping="Wrap" Text="master" VerticalAlignment="Top" Width="202"/>
-        <TextBox x:Name="textTemplateName" HorizontalAlignment="Left" Height="23" Margin="166,99,0,0" TextWrapping="Wrap" Text="SayedMvc" VerticalAlignment="Top" Width="202"/>
+        <TextBox x:Name="textTemplateName" HorizontalAlignment="Left" Height="23" Margin="166,99,0,0" TextWrapping="Wrap" Text="JumpStreetMobile" VerticalAlignment="Top" Width="202"/>
         <Button x:Name="buttonOk" Content="OK" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="423,157,0,0" Click="ButtonOkClick"/>
         <Button x:Name="buttonCancel" Content="Cancel" HorizontalAlignment="Left" VerticalAlignment="Top" Width="75" Margin="503,157,0,0" RenderTransformOrigin="0.424,-1.259" Click="ButtonCancelClick"/>
     </Grid>

@@ -212,9 +212,20 @@
         internal void AddProjectsUnderPathToSolution(Solution4 solution, string folderPath,string pattern=@"*.*proj") {
             string[] projFiles = Directory.GetFiles(folderPath, pattern, SearchOption.AllDirectories);
 
+            bool hadErrors = false;
+            StringBuilder errorsb = new StringBuilder();
             foreach (string path in projFiles) {
                 // TODO: Check to see if the project is already added to the solution
-                solution.AddFromFile(path, false);
+                try {
+                    solution.AddFromFile(path, false);
+                }
+                catch(Exception ex) {
+                    errorsb.AppendLine(ex.ToString());
+                }
+            }
+
+            if (hadErrors) {
+                MessageBox.Show(errorsb.ToString());
             }
         }
         internal string RemovePlaceholderProjectCreatedByVs(string projectName) {
