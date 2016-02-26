@@ -237,7 +237,7 @@
                 // TODO: Check to see if the project is already added to the solution
                 try {
                     Project projectAdded = solution.AddFromFile(path, false);
-                    // ProjectHelper.UpdatePackagesPathInProject(projectAdded, GetSolution().FileName);
+                    // ProjectHelper.UpdatePackagesPathInProject(projectAdded,GetSolution());
                 }
                 catch(Exception ex) {
                     errorsb.AppendLine(ex.ToString());
@@ -299,7 +299,7 @@ if([string]::IsNullOrWhiteSpace($templateSourceBranch)){
 $destpath = ([System.IO.DirectoryInfo]$destpath)
 
 # parameters declared here
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned | out-null
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
 
 # TODO: Remove this later and detect version to see if upgrade is needed
 $pwNeedsInstall = $true

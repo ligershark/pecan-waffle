@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Build.Evaluation;
+using EnvDTE100;
 
 namespace PecanWaffle {
     public class ProjectHelper {
@@ -15,9 +16,11 @@ namespace PecanWaffle {
         private const string HintPath = "HintPath";
         // taken from: https://github.com/ligershark/template-builder/blob/e801f5ef53a18739a3fb11b0c9b22d1e57bc00b5/src/TemplateBuilder/FixNuGetPackageHintPathsWizard.cs
 
-        internal static void UpdatePackagesPathInProject(global::EnvDTE.Project project, string solutionFilePath) {
+        internal static void UpdatePackagesPathInProject(global::EnvDTE.Project project, Solution4 solution) {
             if (project == null) { throw new ArgumentNullException(nameof(project)); }
+            if (solution == null) { throw new ArgumentNullException(nameof(solution)); }
 
+            string solutionFilePath = solution.FileName;
             string projectFilePath = project.FileName;
 
             string projectDirectoryPath = Path.GetDirectoryName(projectFilePath);
@@ -29,6 +32,7 @@ namespace PecanWaffle {
                 solutionDirectoryPath,
                 customPackagesDirectoryPath);
 
+            // fix items
             bool hasChanged = false;
             Project buildProject = new Project(projectFilePath);
             foreach (ProjectMetadata metadata in buildProject.Items
@@ -36,25 +40,11 @@ namespace PecanWaffle {
                 .SelectMany(x => x.Metadata)
                 .Where(x => string.Equals(x.Name, HintPath, StringComparison.OrdinalIgnoreCase) &&
                     (x.UnevaluatedValue.StartsWith(PackagesSlash) || x.UnevaluatedValue.Contains(SlashPackagesSlash)))) {
-                int startIndex;
-                if (customPackagesDirectoryPath == null) {
-                    startIndex = metadata.UnevaluatedValue.IndexOf(PackagesSlash);
-                }
-                else {
-                    startIndex = metadata.UnevaluatedValue.IndexOf(PackagesSlash) + PackagesSlash.Length;
-                }
-
-                if (startIndex != -1) {
-                    string newUnevaluatedValue = relativePackagesDirectoryPath + metadata.UnevaluatedValue.Substring(startIndex);
-                    if (!string.Equals(metadata.UnevaluatedValue, newUnevaluatedValue, StringComparison.OrdinalIgnoreCase)) {
-                        hasChanged = true;
-                        metadata.UnevaluatedValue = newUnevaluatedValue;
-                    }
-                }
-                else {
-                    // If the project template author has used a nuget.config of their own, we are screwed. We don't 
-                    // know which reference is a NuGet package reference as the folder could be named anything.
-                    // So for safety we do nothing.
+                
+                string newValue;
+                if(FixPackagesString(metadata.UnevaluatedValue,customPackagesDirectoryPath,relativePackagesDirectoryPath,out newValue)) {
+                    hasChanged = true;
+                    metadata.UnevaluatedValue = newValue;
                 }
             }
 
@@ -62,41 +52,102 @@ namespace PecanWaffle {
                 project.Save();
             }
 
-            StringBuilder sb = new StringBuilder();
-            foreach(var imp in buildProject.Imports) {
-                sb.AppendLine(imp.ImportingElement.Project);
-            }
-
-            var foo = sb.ToString();
             var projElement = Microsoft.Build.Construction.ProjectRootElement.Open(projectFilePath);
-            // x=>x.ImportingElement.Project.StartsWith(PackagesSlash) || x.ImportingElement.Project.Contains(SlashPackagesSlash))
-            foreach (var import in projElement.Imports
-                    .Where( x=>x.Project.StartsWith(PackagesSlash) || x.Project.Contains(SlashPackagesSlash) )) {
-                int startIndex;
-                if (customPackagesDirectoryPath == null) {
-                    startIndex = import.Project.IndexOf(PackagesSlash);
-                }
-                else {
-                    startIndex = import.Project.IndexOf(PackagesSlash) + PackagesSlash.Length;
+            bool hasChangedProjElement = false;
+
+            // fix imports
+            foreach(var import in projElement.Imports) {
+                // check Project element
+                string newProjValue;
+                if(FixPackagesString(import.Project, customPackagesDirectoryPath,relativePackagesDirectoryPath,out newProjValue)) {
+                    import.Project = newProjValue;
+                    hasChangedProjElement = true;
                 }
 
-                if (startIndex != -1) {
-                    string newUnevaluatedValue = relativePackagesDirectoryPath + import.Project.Substring(startIndex);
-                    if (!string.Equals(import.Project, newUnevaluatedValue, StringComparison.OrdinalIgnoreCase)) {
-                        hasChanged = true;
-                        import.Project = newUnevaluatedValue;
+                // check Condition
+                if (import.Condition != null && import.Condition.Length > 0) {
+                    string newCondition;
+                    if(FixPackagesString(import.Condition,customPackagesDirectoryPath,relativePackagesDirectoryPath,out newCondition)) {
+                        import.Condition = newCondition;
+                    }
+                }                
+            }
+            // fix error tasks
+            var errorTasks = from t in projElement.Targets
+                               from task in t.Tasks
+                               where string.Equals("Error", task.Name, StringComparison.OrdinalIgnoreCase)
+                               select task;
+
+            foreach(var error in errorTasks) {
+                string condStr;
+                if(FixPackagesString(error.Condition,customPackagesDirectoryPath,relativePackagesDirectoryPath,out condStr)) {
+                    error.Condition = condStr;
+                    hasChangedProjElement = true;
+                }
+
+                // TODO: How to update the Text attribute on the Error task?
+                //string textStr;
+                //if (FixPackagesString(error.Condition, customPackagesDirectoryPath, relativePackagesDirectoryPath, out condStr)) {
+                //    error.Condition = condStr;
+                //    hasChangedProjElement = true;
+                //}
+            }
+            
+
+            if (hasChangedProjElement) {
+                var existingProjects = new List<EnvDTE.Project>();
+                foreach(global::EnvDTE.Project proj in solution.Projects) {
+                    if (string.Equals(project.Name, proj.Name, StringComparison.OrdinalIgnoreCase)) {
+                        solution.Remove(proj);
+                    }
+                    else {
+                        existingProjects.Add(proj);
                     }
                 }
-                else {
-                    // If the project template author has used a nuget.config of their own, we are screwed. We don't 
-                    // know which reference is a NuGet package reference as the folder could be named anything.
-                    // So for safety we do nothing.
+
+                solution.Close(false);
+                if (File.Exists(solutionFilePath)) {
+                    solution.Open(solutionFilePath);
                 }
+                else {
+                    var slnFileInfo = new FileInfo(solutionFilePath);
+                    solution.Create(solutionFilePath, slnFileInfo.Name);
+                }
+
+                foreach(EnvDTE.Project proj in existingProjects) {
+                    // see if it's already in the solution and if not add it
+                    bool hasProject = false;
+                    foreach(EnvDTE.Project p in solution.Projects) {
+                        if (string.Equals(proj.Name, p.Name, StringComparison.OrdinalIgnoreCase)) {
+                            hasChanged = true;
+                            break;
+                        }
+                    }
+
+                    if (!hasProject) {
+                        solution.AddFromFile(proj.FileName, false);
+                    }
+                }
+
+                solution = solution.DTE.Solution as Solution4;
+
+                projElement.Save();
+                solution.AddFromFile(projectFilePath, false);
+            }
+        }
+        internal static bool FixPackagesString(string packagesString, string customPackagesDirectoryPath, string relativePackagesDirectoryPath, out string newPackagesString) {
+            if (string.IsNullOrEmpty(packagesString)) { throw new ArgumentNullException(nameof(packagesString)); }
+
+            bool hasChanged = false;
+            
+            var pkgRegex = new System.Text.RegularExpressions.Regex(@"[\.\\/]+packages");
+            newPackagesString = pkgRegex.Replace(packagesString, relativePackagesDirectoryPath + "packages");
+
+            if (!string.Equals(packagesString, newPackagesString, StringComparison.OrdinalIgnoreCase)) {
+                hasChanged = true;
             }
 
-            if (hasChanged) {
-                project.Save();
-            }
+            return hasChanged;
         }
         internal static string GetRelativePackagesDirectoryPath(
             string projectDirectoryPath,
