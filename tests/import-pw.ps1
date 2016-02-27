@@ -24,4 +24,21 @@ else{
 	return
 }
 
+# shared functions declared here
+function global:Create-TestFileAt{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [System.IO.FileInfo]$path,
 
+        [Parameter(Position=1)]
+        [string]$contents = ('test file created at {0}' -f [DateTime]::Now)
+    )
+    process{
+        if(-not (Test-Path $path.FullName)){
+            Ensure-PathExists $path.DirectoryName
+            New-Item -Path $path.FullName -ItemType File -Value $contents
+        }
+
+    }
+}

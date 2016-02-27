@@ -8,10 +8,6 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     DefaultProjectName = 'MyApiProject'
     LicenseUrl = 'https://raw.githubusercontent.com/ligershark/pecan-waffle/master/LICENSE'
     ProjectUrl = 'https://github.com/ligershark/pecan-waffle'
-    GitUrl = 'https://github.com/ligershark/pecan-waffle.git'
-    GitBranch = 'master'
-    BeforeInstall = { 'before install' | Write-Output}
-    AfterInstall = { 'after install' | Write-Output}
 }
 
 $templateInfo | replace (
