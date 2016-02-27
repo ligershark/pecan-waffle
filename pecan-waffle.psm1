@@ -11,6 +11,8 @@ $global:pecanwafflesettings = New-Object -TypeName psobject -Property @{
     TemplateSources = @()
     GitSources = @()
     EnableAddLocalSourceOnLoad = $true
+    RobocopySystemPath = ('{0}\robocopy.exe' -f [System.Environment]::SystemDirectory)
+    RobocopyDownloadUrl = 'https://dl.dropboxusercontent.com/u/40134810/SideWaffle/tools/robocopy.exe'
 }
 
 function InternalOverrideSettingsFromEnv{
@@ -55,6 +57,155 @@ InternalOverrideSettingsFromEnv -settings $global:pecanwafflesettings -prefix 'P
 
 function InternalGet-ScriptDirectory{
     split-path (((Get-Variable MyInvocation -Scope 1).Value).MyCommand.Path)
+}
+function Invoke-CommandString{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
+        [string[]]$command,
+        
+        [Parameter(Position=1)]
+        $commandArgs,
+
+        $ignoreErrors,
+
+        [switch]$disableCommandQuoting
+    )
+    process{
+        foreach($cmdToExec in $command){
+            'Executing command [{0}]' -f $cmdToExec | Write-Verbose
+            
+            # write it to a .cmd file
+            $destPath = "$([System.IO.Path]::GetTempFileName()).cmd"
+            if(Test-Path $destPath){Remove-Item $destPath|Out-Null}
+            
+            try{
+                $commandstr = $cmdToExec
+                if(-not $disableCommandQuoting -and $commandstr.Contains(' ') -and (-not ($commandstr -match '''.*''|".*"' ))){
+                    $commandstr = ('"{0}"' -f $commandstr)
+                }
+
+                '{0} {1}' -f $commandstr, ($commandArgs -join ' ') | Set-Content -Path $destPath | Out-Null
+
+                $actualCmd = ('"{0}"' -f $destPath)
+
+                cmd.exe /D /C $actualCmd
+                
+                if(-not $ignoreErrors -and ($LASTEXITCODE -ne 0)){
+                    $msg = ('The command [{0}] exited with code [{1}]' -f $commandstr, $LASTEXITCODE)
+                    throw $msg
+                }
+            }
+            finally{
+                if(Test-Path $destPath){Remove-Item $destPath -ErrorAction SilentlyContinue |Out-Null}
+            }
+        }
+    }
+}
+function Copy-ItemRobocopy{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$sourcePath,
+
+        [Parameter(Position=1,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$destPath,
+
+        [Parameter(Position=2)]
+        [switch]$ignoreErrors,
+
+        [Parameter(Position=3)]
+        [ValidateNotNullOrEmpty()]
+        [string[]]$foldersToSkip,
+
+        [Parameter(Position=4)]
+        [ValidateNotNullOrEmpty()]
+        [string[]]$filesToSkip,
+
+        [Parameter(Position=5)]
+        [ValidateNotNullOrEmpty()]
+        [string]$roboCopyOptions = ('/E'),
+
+        [Parameter(Position=6)]
+        [ValidateNotNullOrEmpty()]
+        [string]$roboLoggingOptions = ('/NFL /NDL /NJS /NJH /NP')
+
+    )
+    process{
+        [System.Text.StringBuilder]$sb = New-Object -TypeName 'System.Text.StringBuilder'
+        $sb.AppendFormat('"{0}" ',$sourcePath.Trim('"').Trim("'")) | out-null
+        $sb.AppendFormat('"{0}" ',$destPath.Trim('"').Trim("'")) | out-null
+
+        if(-not [string]::IsNullOrWhiteSpace($roboLoggingOptions)){
+            $sb.AppendFormat('{0} ',$roboLoggingOptions) | out-null
+        }
+
+        if(-not [string]::IsNullOrWhiteSpace($roboCopyOptions)){
+            $sb.AppendFormat('{0} ',$roboCopyOptions) | out-null
+        }
+
+        if( ($foldersToSkip -ne $null) -and ($foldersToSkip.Length -gt 0)){
+            $sb.Append('/XD ') | out-null
+            foreach($folder in $foldersToSkip){
+                $sb.AppendFormat('"{0}" ',$folder) | out-null
+            }
+        }
+
+        if( ($filesToSkip -ne $null) -and ($filesToSkip.Length -gt 0)){
+            $sb.Append('/XF ') | out-null
+            foreach($file in $filesToSkip){
+                $sb.AppendFormat('"{0}" ',$file) | out-null
+            }
+        }
+
+        'Copying files with command [{0} {1}]' -f (Get-Robocopy),$sb.ToString() | write-verbose
+
+        $copyArgs = @{
+            'command' = (Get-Robocopy)
+            'commandArgs'=$sb.ToString()
+        }
+
+        if($ignoreErrors){
+            $copyArgs['ignoreErrors']=$true
+        }
+
+        Invoke-CommandString @copyArgs        
+    }
+}
+
+function Get-Robocopy{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0)]
+        [string]$roboCopyPath = ($global:pecanwafflesettings.RobocopySystemPath),
+        
+        [Parameter(Position=1)]
+        [string]$roboCopyDownloadUrl = ($global:pecanwafflesettings.RobocopyDownloadUrl)
+    )
+    process{
+        if(Test-Path $roboCopyPath){
+            # return the path
+            $roboCopyPath
+        }
+        else{
+            # download it to temp if it's not already there
+            $roboCopyTemp = (Join-Path $global:pecanwafflesettings.TempDir 'robocopy.exe')
+            if(-not (Test-Path $roboCopyTemp)){
+                # download it now
+                'Downloading robocopy.exe from [{0}] to [{1}]' -f $roboCopyDownloadUrl,$roboCopyTemp | Write-Verbose
+                (New-Object 'System.Net.WebClient').DownloadFile($roboCopyDownloadUrl,$roboCopyTemp) | write-verbose
+            }
+
+            if(-not (Test-Path $roboCopyPath)){
+                throw ('Unable to find/download robocopy from [{0}] to [{1}]' -f $roboCopyDownloadUrl,$roboCopyTemp)
+            }
+
+            # return the path
+            $roboCopyPath
+        }
+    }
 }
 
 <#
@@ -951,6 +1102,7 @@ function InternalNew-PWTemplate{
                 # copy all of the files to the temp directory
                 'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$mappedTempWorkDir | Write-Verbose
                 Copy-Item -Path $mappedSourcePath\* -Destination $mappedTempWorkDir -Recurse -Include * -Exclude ($template.ExcludeFiles)
+                # Copy-ItemRobocopy -sourcePath $mappedSourcePath -destPath $mappedTempWorkDir -ErrorAction
             }
             else{
                 foreach($sf in  $template.SourceFiles){
