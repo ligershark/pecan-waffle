@@ -292,6 +292,7 @@ if([string]::IsNullOrWhiteSpace($pwInstallBranch)){ $pwInstallBranch = 'master' 
 if([string]::IsNullOrWhiteSpace($templateSourceBranch)){ $templateSourceBranch = 'master' }
 
 $destpath = ([System.IO.DirectoryInfo]$destpath)
+$env:EnableAddLocalSourceOnLoad =$false
 
 # parameters declared here
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
@@ -313,6 +314,12 @@ if( ($installedVersion -ne $null) -and ($installedVersion.CompareTo($minPwVersio
     $pwNeedsInstall = $false
 }
 
+$localPath = $env:PWLocalPath
+
+if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
+    $pwNeedsInstall = $true
+}
+
 if($pwNeedsInstall){
     Remove-Module pecan-waffle -ErrorAction SilentlyContinue | Out-Null
     
@@ -320,9 +327,14 @@ if($pwNeedsInstall){
     if(test-path $localInstallFolder.FullName){
         Remove-Item $localInstallFolder.FullName -Recurse
     }
-
-    $installUrl = ('https://raw.githubusercontent.com/ligershark/pecan-waffle/{0}/install.ps1' -f $pwInstallBranch)
-    &{set-variable -name pwbranch -value $pwInstallBranch;$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString($installUrl))}
+    
+    if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
+        Import-Module ""$localPath\pecan-waffle.psm1"" -Global -DisableNameChecking
+    }
+    else{
+        $installUrl = ('https://raw.githubusercontent.com/ligershark/pecan-waffle/{0}/install.ps1' -f $pwInstallBranch)
+        &{set-variable -name pwbranch -value $pwInstallBranch;$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString($installUrl))}
+    }
 }
 
 if(-not [string]::IsNullOrWhiteSpace($templateSource)){

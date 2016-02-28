@@ -8,6 +8,20 @@ catch{
     # do nothing
 }
 
+function Get-SolutionDirPath{
+    [cmdletbinding()]
+    param()
+    process{
+        $result = $destPath
+        if(-not [string]::IsNullOrWhiteSpace($solutionRoot)){
+            $result = $solutionRoot
+        }
+
+        # return the result
+        $result
+    }
+}
+
 <#
 .SYNOPSIS
     This will update the packages path in the given dir for the file pattern. The most common usage of this
@@ -31,6 +45,7 @@ function Update-PWPackagesPath{
             throw ('Did not find solution root at [{0}]' -f $solutionRoot)
         }
 
+        $slnpath = $solutionRoot.FullName.TrimEnd('\')
         foreach($file in $filesToUpdate){
             if(-not (Test-Path $file)){
                 throw ('Did not find project file at [{0}]' -f $file)
@@ -42,7 +57,7 @@ function Update-PWPackagesPath{
             if( ($pkgsString -ne $null) -and ($pkgsString.Length -gt 0) ){
                 # calculate the rel path to the solution and get packages path based on that
                 $projDir = (Split-Path $file.FullName -Parent)
-                $relPkgsDir = (InternalGet-RelativePath -fromPath $projDir -toPath $solutionRoot.FullName)
+                $relPkgsDir = (InternalGet-RelativePath -fromPath $projDir -toPath $slnpath)
                 $newPkgsStr = '{0}packages' -f $relPkgsDir
                 $replacements = @{}
                 foreach($pkgStr in $pkgsString){
@@ -50,6 +65,25 @@ function Update-PWPackagesPath{
                 }
 
                 Replace-TextInFolder -folder $projDir -include $file.Name -replacements $replacements
+            }
+        }
+    }
+}
+
+function Update-PWPackagesPathInProjectFiles{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0)]
+        [string]$slnRoot = (Get-SolutionDirPath),
+
+        [Parameter(Position=1)]
+        [string]$filePattern = '*.*proj'
+    )
+    process{
+        if(-not ([string]::IsNullOrWhiteSpace($slnRoot))){
+            $projFiles = (Get-ChildItem -Path $slnRoot $filePattern -Recurse -File).FullName
+            if( ($projFiles -ne $null) -and ($projFiles.Length -gt 0)){
+                Update-PWPackagesPath -filesToUpdate $projFiles -solutionRoot $slnRoot
             }
         }
     }
