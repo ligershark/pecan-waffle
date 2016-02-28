@@ -336,7 +336,7 @@ function InternalGet-NewTempDir{
     process{
         InternalEnsure-DirectoryExists -path $global:pecanwafflesettings.TempDir | Out-Null
 
-        [System.IO.DirectoryInfo]$newpath = (Join-Path ($global:pecanwafflesettings.TempDir) ([System.Guid]::NewGuid()))
+        [System.IO.DirectoryInfo]$newpath = (Join-Path ($global:pecanwafflesettings.TempDir) ([datetime]::UtcNow.Ticks))
         New-Item -ItemType Directory -Path ($newpath.FullName) | out-null
         # return the fullpath
         $newpath.FullName
@@ -434,7 +434,7 @@ function InternalGet-RepoName{
     )
     process{
         $startIndex = $url.LastIndexOf('/')
-        [string]$repoName = [System.Guid]::NewGuid()
+        [string]$repoName = [datetime]::UtcNow.Ticks
         if($startIndex -gt 0){
             $repoName = $url.Substring($startIndex +1).Replace('.git','')
         }
