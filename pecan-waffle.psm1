@@ -1,7 +1,5 @@
 ﻿[cmdletbinding()]
-param(
-    $nugetPsMinModuleVersion = '0.2.1.1'
-)
+param()
 
 # all types here must be strings
 $global:pecanwafflesettings = New-Object -TypeName psobject -Property @{
@@ -1303,6 +1301,9 @@ if($global:pecanwafflesettings.EnableAddLocalSourceOnLoad -eq $true){
     Add-PWTemplateSource -path (join-path (InternalGet-ScriptDirectory) 'templates\aspnet5')
     
 }
+
+Import-Module (Join-Path (InternalGet-ScriptDirectory) 'pecan-waffle-visualstudio.psm1')
+
 
 # TODO: Update this later
 if( ($env:IsDeveloperMachine -eq $true) ){

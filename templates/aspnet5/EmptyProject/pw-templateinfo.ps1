@@ -11,13 +11,20 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     GitUrl = 'https://github.com/ligershark/pecan-waffle.git'
     GitBranch = 'master'
     BeforeInstall = { 'before install' | Write-Output}
-    AfterInstall = { 'after install' | Write-Output}
+    AfterInstall = {
+    <#
+        'destPath: [{0}]' -f $destPath | write-output
+        $projFiles = (Get-ChildItem -Path $destPath *.*proj -Recurse -File).FullName
+        if( ($projFiles -ne $null) -and ($projFiles.Length -gt 0)){
+            Update-PWPackagesPath -filesToUpdate $projFiles -solutionRoot $destPath -Verbose
+        }
+        #>
+    }
 }
 
 $templateInfo | replace (
     ('EmptyProject', {"$ProjectName"}, {"$DefaultProjectName"}),
-    ('SolutionDir', {"$SolutionDir"}, {'..\..\'}),
-    ('..\..\artifacts', {"$ArtifactsDir"}, {"$SolutionDir" + 'artifacts'}),
+    ('..\..\artifacts', {"$ArtifactsDir"}, {'..\..\artifacts'}),
     ('97b148d4-829e-4de3-840b-9c6600caa117', {"$ProjectId"}, {[System.Guid]::NewGuid()})
 )
 
