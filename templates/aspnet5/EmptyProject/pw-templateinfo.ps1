@@ -13,10 +13,16 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     BeforeInstall = { 'before install' | Write-Output}
     AfterInstall = {
     <#
+        Get-Variable|clip
         'destPath: [{0}]' -f $destPath | write-output
+        $actualSlnDir = $destPath
+        #$actualSlnDir = (resolve-path (Split-Path $destPath -Parent)).Path
+        if(-not ([string]::IsNullOrWhiteSpace($SolutionRoot))){
+            $actualSlnDir = $SolutionRoot
+        }
         $projFiles = (Get-ChildItem -Path $destPath *.*proj -Recurse -File).FullName
         if( ($projFiles -ne $null) -and ($projFiles.Length -gt 0)){
-            Update-PWPackagesPath -filesToUpdate $projFiles -solutionRoot $destPath -Verbose
+            Update-PWPackagesPath -filesToUpdate $projFiles -solutionRoot $actualSlnDir -Verbose
         }
         #>
     }

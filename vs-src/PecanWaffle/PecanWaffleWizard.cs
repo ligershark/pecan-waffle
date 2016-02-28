@@ -4,6 +4,7 @@
     using EnvDTE80;
     using Microsoft.VisualStudio.TemplateWizard;
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.IO;
     using System.IO.Compression;
@@ -31,7 +32,12 @@
 
                 if (solution != null) {
                     string projectFolder = RemovePlaceholderProjectCreatedByVs(ProjectName);
-                    CreateProjectWithPecanWaffle(ProjectName, projectFolder, TemplateName, PecanWaffleBranchName,TemplateSource,TemplateSourceBranch);
+                    var properties = new Hashtable();
+                    if (!string.IsNullOrWhiteSpace(solution.FileName)) {
+                        properties.Add("SolutionFile", new FileInfo(solution.FileName).FullName);
+                        properties.Add("SolutionRoot", new FileInfo(solution.FileName).DirectoryName);
+                    }
+                    CreateProjectWithPecanWaffle(ProjectName, projectFolder, TemplateName, PecanWaffleBranchName, TemplateSource, TemplateSourceBranch, properties);
                     AddProjectsUnderPathToSolution(solution, projectFolder, "*.*proj");
                 }
                 else {

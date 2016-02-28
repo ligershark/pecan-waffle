@@ -1,4 +1,4 @@
-﻿param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch)
+﻿param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch,$properties)
 
 if([string]::IsNullOrWhiteSpace($templateName)){ throw ('$templateName is null') }
 if([string]::IsNullOrWhiteSpace($projectname)){ throw ('$projectname is null') }
@@ -47,4 +47,4 @@ if(-not [string]::IsNullOrWhiteSpace($templateSource)){
     Update-RemoteTemplates
 }
 
-New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -noNewFolder
+New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -noNewFolder -properties $properties

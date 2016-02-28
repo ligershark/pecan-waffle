@@ -5,6 +5,7 @@
     using Microsoft.VisualStudio.TemplateWizard;
     using NuGet;
     using System;
+    using System.Collections;
     using System.Collections.Generic;
     using System.IO;
     using System.IO.Compression;
@@ -115,7 +116,7 @@
             return false;
         }
 
-        internal void CreateProjectWithPecanWaffle(string projectName, string destPath, string templateName, string pwBranchName, string templateSource, string templateSourceBranch) {
+        internal void CreateProjectWithPecanWaffle(string projectName, string destPath, string templateName, string pwBranchName, string templateSource, string templateSourceBranch, Hashtable properties) {
             bool hadErrors = false;
             string errorString = "";
             // here is where we want to call pecan-waffle
@@ -134,6 +135,10 @@
                     }
                     if (!string.IsNullOrWhiteSpace(templateSourceBranch)) {
                         instance.AddParameter("TemplateSourceBranch", templateSourceBranch);
+                    }
+
+                    if(properties != null) {
+                        instance.AddParameter("Properties", properties);
                     }
 
                     var result = instance.Invoke();
@@ -277,7 +282,7 @@
 
 
         private string _psNewProjectScript = @"
-param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch)
+param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch,$properties)
 
 if([string]::IsNullOrWhiteSpace($templateName)){ throw ('$templateName is null') }
 if([string]::IsNullOrWhiteSpace($projectname)){ throw ('$projectname is null') }
@@ -326,6 +331,6 @@ if(-not [string]::IsNullOrWhiteSpace($templateSource)){
     Update-RemoteTemplates
 }
 
-New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -noNewFolder";
+New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -noNewFolder -properties $properties";
     }
 }

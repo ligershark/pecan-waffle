@@ -14,7 +14,7 @@
     using System.Threading.Tasks;
     using System.Windows.Forms;
     using NuGet;
-
+    using System.Collections;
     public class PocUiWizard : BaseWizard {
         public override void RunFinished() {
             try {
@@ -30,7 +30,12 @@
 
                     if (solution != null) {
                         string projectFolder = RemovePlaceholderProjectCreatedByVs(ProjectName);
-                        CreateProjectWithPecanWaffle(ProjectName, projectFolder, form.TemplateName, PecanWaffleBranchName, form.TemplatePathOrUrl, form.TemplateBranch);
+                        var properties = new Hashtable();
+                        if (!string.IsNullOrWhiteSpace(solution.FileName)) {
+                            properties.Add("SolutionFile", new FileInfo(solution.FileName).FullName);
+                            properties.Add("SolutionRoot", new FileInfo(solution.FileName).DirectoryName);
+                        }
+                        CreateProjectWithPecanWaffle(ProjectName, projectFolder, form.TemplateName, PecanWaffleBranchName, form.TemplatePathOrUrl, form.TemplateBranch, properties);
                         AddProjectsUnderPathToSolution(solution, projectFolder, "*.*proj");
                     }
                     else {
