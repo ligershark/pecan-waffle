@@ -1,4 +1,8 @@
-﻿function EnsureDirectoryExists{
+﻿if([string]::IsNullOrWhiteSpace($pwbranch)){
+    $pwbranch = 'master'
+}
+
+function EnsureDirectoryExists{
     param([Parameter(Position=0)][System.IO.DirectoryInfo]$path)
     process{
         if($path -ne $null){
@@ -29,7 +33,8 @@ function GetPsModulesPath{
 
 # 1. download .zip file from github
 [System.IO.DirectoryInfo]$tempinstalldir = ('{0}\pecan-waffle\install\' -f $env:LOCALAPPDATA)
-$zipurl = 'https://github.com/ligershark/pecan-waffle/archive/master.zip'
+$zipurl = 'https://github.com/ligershark/pecan-waffle/archive/' + $pwbranch + '.zip'
+'Download url [{0}]' -f $zipurl | Write-Output
 [System.IO.FileInfo]$tempzipdest = (join-path $tempinstalldir.FullName 'pecan-waffle.zip')
 EnsureDirectoryExists $tempzipdest.Directory.FullName
 
@@ -45,7 +50,11 @@ EnsureDirectoryExists $tempextractdir.FullName
 Add-Type -assembly “system.io.compression.filesystem”
 [io.compression.zipfile]::ExtractToDirectory($tempzipdest.FullName, $tempextractdir.FullName)
 
-$foldertocopy = ([System.IO.DirectoryInfo](Join-Path $tempextractdir.FullName 'pecan-waffle-master')).FullName
+$foldertocopy = ([System.IO.DirectoryInfo](Join-Path $tempextractdir.FullName ('pecan-waffle-' + $pwbranch) )).FullName
+
+if( ($foldertocopy -eq $null) -or (-not (Test-Path $foldertocopy))){
+    throw ('Unable to copy files to modules folder, bad value for foldertocopy [{0}]' -f $foldertocopy)
+}
 
 # 4. copy contents to ps modules folder
 [System.IO.DirectoryInfo]$moduledestfolder = (Join-Path (GetPsModulesPath) 'pecan-waffle')
