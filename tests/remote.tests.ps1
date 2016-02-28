@@ -66,3 +66,20 @@ Describe 'get repo name tests'{
         $repoName | should be 'pecan-waffle'
     }
 }
+
+Describe 'handle-install-project.ps1 tests'{
+    BeforeEach{
+        Remove-Module pecan-waffle -Force
+    }
+
+    [string]$handleInstallFile = (get-item (Join-Path $scriptDir '..\vs-src\PecanWaffleVs\handle-install-project.ps1')).FullName
+    It 'can run handle install file'{
+        $templatePath = (get-item (Join-Path $scriptDir '..\templates')).FullName
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'hinstall01')
+        Ensure-PathExists -path $dest.FullName
+
+        { & $handleInstallFile -templateName aspnet5-empty -projectname myproj -destpath $dest.FullName -pwInstallBranch wizard -templateSource $templatePath} | Should not throw
+        "$dest\project.json" | should exist
+        "$dest\startup.cs" | should exist
+    }
+}

@@ -58,6 +58,14 @@ InternalOverrideSettingsFromEnv -settings $global:pecanwafflesettings -prefix 'P
 function InternalGet-ScriptDirectory{
     split-path (((Get-Variable MyInvocation -Scope 1).Value).MyCommand.Path)
 }
+
+function Get-PecanWaffleVersion{
+    param()
+    process{
+        New-Object -TypeName 'system.version' -ArgumentList '0.0.1.0'
+    }
+}
+
 function Invoke-CommandString{
     [cmdletbinding()]
     param(
