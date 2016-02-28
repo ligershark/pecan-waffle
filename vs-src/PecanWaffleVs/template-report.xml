@@ -1,0 +1,9 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TemplateReport>
+  <ItemTemplates />
+  <ProjectTemplates>
+    <ProjectTemplate Path="..\DummyProjectToRemove\_Definitions\_project.vstemplate.xml" Name="PecanWaffle - aspnet5-empty" Description="Hard coded pecan waffle template" ProjectType="CSharp" ProjectSubType="" />
+    <ProjectTemplate Path="..\TemplateWithUi\_Definitions\_project.vstemplate.xml" Name="PecanWaffle - with UI" Description="PecanWaffle wizard with UI" ProjectType="CSharp" ProjectSubType="" />
+  </ProjectTemplates>
+  <Snippets />
+</TemplateReport>

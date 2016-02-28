@@ -11,6 +11,8 @@ $global:pecanwafflesettings = New-Object -TypeName psobject -Property @{
     TemplateSources = @()
     GitSources = @()
     EnableAddLocalSourceOnLoad = $true
+    RobocopySystemPath = ('{0}\robocopy.exe' -f [System.Environment]::SystemDirectory)
+    RobocopyDownloadUrl = 'https://dl.dropboxusercontent.com/u/40134810/SideWaffle/tools/robocopy.exe'
 }
 
 function InternalOverrideSettingsFromEnv{
@@ -55,6 +57,167 @@ InternalOverrideSettingsFromEnv -settings $global:pecanwafflesettings -prefix 'P
 
 function InternalGet-ScriptDirectory{
     split-path (((Get-Variable MyInvocation -Scope 1).Value).MyCommand.Path)
+}
+function Invoke-CommandString{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,Position=0,ValueFromPipeline=$true)]
+        [string[]]$command,
+        
+        [Parameter(Position=1)]
+        $commandArgs,
+
+        $ignoreErrors,
+
+        [switch]$disableCommandQuoting
+    )
+    process{
+        foreach($cmdToExec in $command){
+            'Executing command [{0}]' -f $cmdToExec | Write-Verbose
+            
+            # write it to a .cmd file
+            $destPath = "$([System.IO.Path]::GetTempFileName()).cmd"
+            if(Test-Path $destPath){Remove-Item $destPath|Out-Null}
+            
+            try{
+                $commandstr = $cmdToExec
+                if(-not $disableCommandQuoting -and $commandstr.Contains(' ') -and (-not ($commandstr -match '''.*''|".*"' ))){
+                    $commandstr = ('"{0}"' -f $commandstr)
+                }
+
+                '{0} {1}' -f $commandstr, ($commandArgs -join ' ') | Set-Content -Path $destPath | Out-Null
+
+                $actualCmd = ('"{0}"' -f $destPath)
+
+                cmd.exe /D /C $actualCmd
+                
+                if(-not $ignoreErrors -and ($LASTEXITCODE -ne 0)){
+                    $msg = ('The command [{0}] exited with code [{1}]' -f $commandstr, $LASTEXITCODE)
+                    throw $msg
+                }
+            }
+            finally{
+                if(Test-Path $destPath){Remove-Item $destPath -ErrorAction SilentlyContinue |Out-Null}
+            }
+        }
+    }
+}
+function Copy-ItemRobocopy{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$sourcePath,
+
+        [Parameter(Position=1,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$destPath,
+
+        [Parameter(Position=2)]
+        [string[]]$fileNames,
+
+        [Parameter(Position=3)]
+        [switch]$ignoreErrors,
+
+        [Parameter(Position=4)]
+        [string[]]$foldersToSkip,
+
+        [Parameter(Position=5)]
+        [string[]]$filesToSkip,
+
+        [Parameter(Position=6)]
+        [switch]$recurse,
+
+        [Parameter(Position=7)]
+        [string]$roboCopyOptions,
+
+        [Parameter(Position=8)]
+        [string]$roboLoggingOptions = ('/NFL /NDL /NJS /NJH /NP')
+
+    )
+    process{
+        [System.Text.StringBuilder]$sb = New-Object -TypeName 'System.Text.StringBuilder'
+        $sb.AppendFormat('"{0}" ',$sourcePath.Trim('"').Trim("'")) | out-null
+        $sb.AppendFormat('"{0}" ',$destPath.Trim('"').Trim("'")) | out-null
+
+        if( ($fileNames -ne $null) -and ($fileNames.Count -gt 0)){
+            foreach($file in $fileNames){
+                $sb.AppendFormat('"{0}" ',$file)
+            }
+        }
+
+        if(-not [string]::IsNullOrWhiteSpace($roboLoggingOptions)){
+            $sb.AppendFormat('{0} ',$roboLoggingOptions) | out-null
+        }
+
+        if($recurse){
+            $sb.Append('/E ') | Out-Null
+        }
+
+        if(-not [string]::IsNullOrWhiteSpace($roboCopyOptions)){
+            $sb.AppendFormat('{0} ',$roboCopyOptions) | out-null
+        }
+
+        if( ($foldersToSkip -ne $null) -and ($foldersToSkip.Length -gt 0)){
+            $sb.Append('/XD ') | out-null
+            foreach($folder in $foldersToSkip){
+                $sb.AppendFormat('"{0}" ',$folder) | out-null
+            }
+        }
+
+        if( ($filesToSkip -ne $null) -and ($filesToSkip.Length -gt 0)){
+            $sb.Append('/XF ') | out-null
+            foreach($file in $filesToSkip){
+                $sb.AppendFormat('"{0}" ',$file) | out-null
+            }
+        }
+
+        'Copying files with command [{0} {1}]' -f (Get-Robocopy),$sb.ToString() | write-verbose
+
+        $copyArgs = @{
+            'command' = (Get-Robocopy)
+            'commandArgs'=$sb.ToString()
+        }
+
+        if($ignoreErrors){
+            $copyArgs['ignoreErrors']=$true
+        }
+
+        Invoke-CommandString @copyArgs        
+    }
+}
+
+function Get-Robocopy{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0)]
+        [string]$roboCopyPath = ($global:pecanwafflesettings.RobocopySystemPath),
+        
+        [Parameter(Position=1)]
+        [string]$roboCopyDownloadUrl = ($global:pecanwafflesettings.RobocopyDownloadUrl)
+    )
+    process{
+        if(Test-Path $roboCopyPath){
+            # return the path
+            $roboCopyPath
+        }
+        else{
+            # download it to temp if it's not already there
+            $roboCopyTemp = (Join-Path $global:pecanwafflesettings.TempDir 'robocopy.exe')
+            if(-not (Test-Path $roboCopyTemp)){
+                # download it now
+                'Downloading robocopy.exe from [{0}] to [{1}]' -f $roboCopyDownloadUrl,$roboCopyTemp | Write-Verbose
+                (New-Object 'System.Net.WebClient').DownloadFile($roboCopyDownloadUrl,$roboCopyTemp) | write-verbose
+            }
+
+            if(-not (Test-Path $roboCopyPath)){
+                throw ('Unable to find/download robocopy from [{0}] to [{1}]' -f $roboCopyDownloadUrl,$roboCopyTemp)
+            }
+
+            # return the path
+            $roboCopyPath
+        }
+    }
 }
 
 <#
@@ -175,61 +338,85 @@ function InternalGet-NewTempDir{
 }
 
 # Items related to template sources
-
 function Add-PWTemplateSource{
-    [cmdletbinding(DefaultParameterSetName='local')]
+    [cmdletbinding()]
     param(
-        [Parameter(Position=0,Mandatory=$true,ParameterSetName='local')]
-        [System.IO.DirectoryInfo]$path,
-
-        [Parameter(Position=1,Mandatory=$true,ParameterSetName='git')]
+        [Parameter(Position=0,Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
-        [string]$url,
+        [string]$path,
 
-        [Parameter(Position=2,ParameterSetName='git')]
+        [Parameter(Position=1)]
         $branch = 'master',
 
-        [Parameter(Position=3,ParameterSetName='git')]
+        [Parameter(Position=2)]
         [System.IO.DirectoryInfo]$localfolder = ($global:pecanwafflesettings.TempRemoteDir),
 
-        [Parameter(Position=4,ParameterSetName='git')]
+        [Parameter(Position=3)]
         [string]$repoName
     )
     process{
-        [string]$localpath = $null
+        $isGit = $false
+        $isLocal = $false
+        $isZip = $false
 
-        if($path -ne $null){
-            if(-not [System.IO.Path]::IsPathRooted($path)){
-                $path = (Join-Path $pwd $path)
-            }
-            [string]$localpath = $path.FullName
+        $path = $path.Trim()
+        [string]$pathlastfour = $null
+        if($path.Length -gt 4){
+            $pathlastfour = $path.Substring($path.Length -4)
+        }
+
+        if([string]::Compare('.git',$pathlastfour,[System.StringComparison]::OrdinalIgnoreCase) -eq 0){
+            $isGit = $true
+        }
+        elseif([string]::Compare('.zip',$pathlastfour,[System.StringComparison]::OrdinalIgnoreCase) -eq 0){
+            $isZip = $true
+
+            throw ('.zip extension not supported for Add-PWTemplateSource yet')
         }
         else{
-            InternalEnsure-DirectoryExists -path $localfolder.FullName
-            if([string]::IsNullOrWhiteSpace($repoName)){
-                $repoName = ( '{0}-{1}' -f (InternalGet-RepoName -url $url),(InternalGet-StringHash -text $url))
-            }
+            $isLocal = $true
+        }
 
-            [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
-            $path =([System.IO.DirectoryInfo]$repoFolder).FullName
-            if(-not (Test-Path $repoFolder.FullName)){
-                InternalAdd-GitFolder -url $url -repoName $repoName -branch $branch -localfolder $localfolder
+        [System.IO.DirectoryInfo]$localInstallFolder = $null
+        if($isLocal){
+            if(-not [System.IO.Path]::IsPathRooted($path)){
+                $localInstallFolder = ([System.IO.DirectoryInfo](Join-Path $pwd $path)).FullName
+            }
+            else{
+                $localInstallFolder = ([System.IO.DirectoryInfo]($path)).FullName
             }
         }
 
-        $files = (Get-ChildItem -Path $path 'pw-templateinfo*.ps1' -Recurse -File -Exclude '.git','node_modules','bower_components' -ErrorAction SilentlyContinue)
+        InternalEnsure-DirectoryExists -path $localfolder.FullName
+
+        if($isGit){
+            if([string]::IsNullOrWhiteSpace($repoName)){
+                $repoName = ( '{0}-{1}' -f (InternalGet-RepoName -url $path),(InternalGet-StringHash -text $path))
+            }
+            [System.IO.DirectoryInfo]$localInstallFolder = (Join-Path $localfolder.FullName $repoName)
+            if(-not (Test-Path $localInstallFolder.FullName)){
+                InternalAdd-GitFolder -url $path -repoName $repoName -branch $branch -localfolder $localfolder.FullName
+            }
+        }
+
+        if($localInstallFolder -eq $null){
+            throw ('localInstallFolder is null')
+        }
+
+        $files = (Get-ChildItem -Path $localInstallFolder.FullName 'pw-templateinfo*.ps1' -Recurse -File -Exclude '.git','node_modules','bower_components' -ErrorAction SilentlyContinue)
         foreach($file in $files){
             & ([System.IO.FileInfo]$file.FullName)
         }
 
         $templateSource = New-Object -TypeName psobject -Property @{
             LocalFolder = $repoFolder.FullName
-            Url = $url
+            Url = $path
         }
 
         $global:pecanwafflesettings.TemplateSources += $templateSource
     }
 }
+
 Set-Alias Add-TemplateSource Add-PWTemplateSource
 
 function InternalGet-RepoName{
@@ -282,7 +469,7 @@ function InternalAdd-GitFolder{
             Set-Location $localfolder
 
             if(-not (Test-Path $repoFolder.FullName)){
-                Execute-CommandString "git clone $url --branch $branch --single-branch $repoName"
+                Execute-CommandString "git clone $url --branch $branch --single-branch $repoName" -ignoreExitCode
             }
         }
         finally{
@@ -318,7 +505,7 @@ function Update-PWRemoteTemplates{
                 $oldpath = Get-Location
                 try{
                     Set-Location $ts.LocalFolder
-                    Execute-CommandString "git pull"
+                    Execute-CommandString "git pull" -ignoreExitCode
                 }
                 finally{
                     Set-Location $oldpath
@@ -367,7 +554,8 @@ function TemplateAdd-SourceFile{
             }
 
             $templateInfo.SourceFiles += New-Object -TypeName psobject -Property @{
-                SourceFile = [System.IO.FileInfo]($sourceFiles[$i])
+#                SourceFile = [System.IO.FileInfo]($sourceFiles[$i])
+                SourceFile = [string]($sourceFiles[$i])
                 DestFile = [ScriptBlock]$dest
             }
         }
@@ -861,7 +1049,7 @@ function InternalGet-EvaluatedPropertiesFrom{
         [Parameter(Position=1)]
         [hashtable]$properties,
         [Parameter(Position=2)]
-        [System.IO.DirectoryInfo]$templateWorkDir
+        [string]$templateWorkDir
     )
     process{
         # eval properties here
@@ -873,7 +1061,7 @@ function InternalGet-EvaluatedPropertiesFrom{
         }
 
         if($templateWorkDir -ne $null){
-            $evaluatedProps['templateWorkingDir'] = $templateWorkDir.FullName
+            $evaluatedProps['templateWorkingDir'] = $templateWorkDir
         }
         # add all the properties of $template into evaluatedProps
         foreach($name in $template.psobject.Properties.Name){
@@ -907,23 +1095,36 @@ function InternalNew-PWTemplate{
         [System.IO.DirectoryInfo]$tempWorkDir = InternalGet-NewTempDir
         [string]$sourcePath = $template.TemplatePath
         
+        [string[]]$drivesCreated = @()
+        $srcdrive=('pwsrc{0}' -f [DateTime]::UtcNow.Ticks)
+        New-PSDrive -Name $srcdrive -PSProvider FileSystem -Root $sourcePath -Scope Global | Out-Null
+        $drivesCreated += $srcdrive
+
+        $mTempDrive=('pwtmp{0}' -f [DateTime]::UtcNow.Ticks)
+        New-PSDrive -Name $mTempDrive -PSProvider FileSystem -Root $tempWorkDir.FullName -Scope Global| Out-Null
+        $drivesCreated += $mTempDrive
+
+        [string]$mappedSourcePath = ('{0}:\' -f $srcdrive)
+        [string]$mappedTempWorkDir = ('{0}:\' -f $mTempDrive)
         try{
             # eval properties here
-            $evaluatedProps =  InternalGet-EvaluatedPropertiesFrom -template $template -properties $properties -templateWorkDir $tempWorkDir
+            $evaluatedProps =  InternalGet-EvaluatedPropertiesFrom -template $template -properties $properties -templateWorkDir $mappedTempWorkDir
 
             if( ($template.SourceFiles -eq $null) -or ($template.SourceFiles.Count -le 0)){
                 # copy all of the files to the temp directory
-                'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$tempWorkDir.FullName | Write-Verbose
-                Copy-Item -Path $sourcePath\* -Destination $tempWorkDir.FullName -Recurse -Include * -Exclude ($template.ExcludeFiles)
+                'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$mappedTempWorkDir | Write-Verbose
+                # Copy-Item -Path $mappedSourcePath\* -Destination $mappedTempWorkDir -Recurse -Include * -Exclude ($template.ExcludeFiles)
+                Copy-ItemRobocopy -sourcePath $sourcePath -destPath $tempWorkDir.FullName -filesToSkip ($template.ExcludeFiles) -recurse -ignoreErrors
             }
             else{
                 foreach($sf in  $template.SourceFiles){
                     $source = $sf.SourceFile;
                     
-                    [System.IO.FileInfo]$sourceFile = (Join-Path $sourcePath $source)
+                    # [System.IO.FileInfo]$sourceFile = (Join-Path $mappedSourcePath $source)
+                    $sourceItem = Get-Item (Join-Path $mappedSourcePath $source)
                     [hashtable]$extraProps = @{
-                        'ThisItemName' = $sourceFile.BaseName
-                        'ThisItemFileName' = $sourceFile.Name
+                        'ThisItemName' = ($sourceItem|Select-Object -ExpandProperty BaseName)
+                        'ThisItemFileName' = ($sourceItem|Select-Object -ExpandProperty Name)
                     }
 
                     $dest = (InternalGet-EvaluatedProperty -expression ($sf.DestFile) -properties $evaluatedProps -extraProperties $extraProps)
@@ -932,14 +1133,28 @@ function InternalNew-PWTemplate{
                         throw ('Dest is null or empty for source [{0}]' -f $source)
                     }
 
-                    Copy-Item -Path $sourceFile.FullName -Destination ((Join-Path $tempWorkDir.FullName $dest))
+                    $destItem = (Join-Path $tempWorkDir.FullName $dest)
+                    $destFolder = (Split-Path -Path $destItem -Parent)
+                    $destName = (Split-Path -Path $destItem -Leaf)
+                    Copy-ItemRobocopy -sourcePath ($sourceItem.DirectoryName) -destPath $destFolder -fileNames $sourceItem.Name -ignoreErrors
+                    if(-not [string]::Equals($sourceItem.Name,$destName,[System.StringComparison]::OrdinalIgnoreCase)){
+                        # move the file to the new file name
+                        $oldloc = Get-Location
+                        try{
+                            Set-Location $destFolder
+                            Move-Item -Path $sourceItem.Name -Destination $destName
+                        }
+                        finally{
+                            Set-Location -Path $oldloc
+                        }
+                    }
                 }
             }
 
             # remove excluded files (in some cases excluded files can still be copied to temp
             #   for example if you specify sourcefile/destfile and include a file that should be excluded
             if($template.ExcludeFiles -ne $null){
-                $files = (Get-ChildItem $tempWorkDir.FullName ($template.ExcludeFiles -join ';') -Recurse -File)
+                $files = (Get-ChildItem $mappedTempWorkDir ($template.ExcludeFiles -join ';') -Recurse -File)
                 if( ($files -ne $null) -and ($files.Length -gt 0) ){
                     Remove-Item $files.FullName -ErrorAction SilentlyContinue
                 }
@@ -947,7 +1162,7 @@ function InternalNew-PWTemplate{
 
             # remove directories in the exclude list
             if($template.ExcludeFolder -ne $null){
-                Get-ChildItem -Path $tempWorkDir.FullName -Include $template.ExcludeFolder -Recurse -Directory | Remove-Item -Recurse -ErrorAction SilentlyContinue
+                Get-ChildItem -Path $mappedTempWorkDir -Include $template.ExcludeFolder -Recurse -Directory | Remove-Item -Recurse -ErrorAction SilentlyContinue
             }
 
             # replace file names
@@ -960,7 +1175,7 @@ function InternalNew-PWTemplate{
                         $repvalue = InternalGet-EvaluatedProperty -expression $current.DefaultValue -properties $evaluatedProps
                     }
 
-                    foreach($folder in ([System.IO.DirectoryInfo[]](Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory)) ){
+                    foreach($folder in ([System.IO.DirectoryInfo[]](Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory)) ){
                         if(Test-Path ($folder.FullName)){
                             $newname = $folder.Name.Replace($current.ReplaceKey, $repvalue)
                             [System.IO.DirectoryInfo]$newpath = (Join-Path ($folder.Parent.FullName) $newname)
@@ -968,7 +1183,7 @@ function InternalNew-PWTemplate{
                         }
                     }
 
-                    foreach($file in ([System.IO.FileInfo[]](Get-ChildItem $tempWorkDir.FullName ('*{0}*' -f $current.ReplaceKey) -Recurse -File)) ){
+                    foreach($file in ([System.IO.FileInfo[]](Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -File)) ){
                         $file = [System.IO.FileInfo]$file
 
                         if([string]::IsNullOrWhiteSpace($repvalue) -and ($current.DefaultValue -ne $null)){
@@ -999,7 +1214,7 @@ function InternalNew-PWTemplate{
                 }
 
                 $replaceArgs = @{
-                    folder = $tempWorkDir.FullName
+                    folder = $mappedTempWorkDir
                     replacements = $replacements
                     include = '*'
                     exclude = $null
@@ -1017,9 +1232,10 @@ function InternalNew-PWTemplate{
 
             # copy the final result to the destination
             InternalEnsure-DirectoryExists -path $destPath.FullName
-            [string]$tpath = $tempWorkDir.FullName
+            [string]$tpath = $mappedTempWorkDir
             
-            Copy-Item $tpath\* -Destination $destPath.FullName -Recurse -Include *
+            # Copy-Item $tpath\* -Destination $destPath.FullName -Recurse -Include *
+            Copy-ItemRobocopy -sourcePath $tempWorkDir.FullName -destPath $destPath.FullName -ignoreErrors -recurse
 
             if($template.AfterInstall -ne $null){
                 InternalGet-EvaluatedProperty -expression $template.AfterInstall -properties $evaluatedProps
@@ -1028,7 +1244,11 @@ function InternalNew-PWTemplate{
         finally{
             # delete the temp dir and ignore any errors
             if(Test-Path $tempWorkDir.FullName){
-                Remove-Item $tempWorkDir.FullName -Recurse -ErrorAction SilentlyContinue
+                Remove-Item $tempWorkDir.FullName -Recurse -ErrorAction SilentlyContinue | Out-Null
+            }
+
+            if( ($drivesCreated -ne $null) -and ($drivesCreated.Length -gt 0)){
+                Remove-PSDrive -Name $drivesCreated -PSProvider FileSystem | Out-Null
             }
         }
     }
@@ -1083,5 +1303,5 @@ if( ($env:IsDeveloperMachine -eq $true) ){
     Export-ModuleMember -function * -Alias *
 }
 else{
-    Export-ModuleMember -function Get-*,Set-*,Invoke-*,Save-*,Test-*,Find-*,Add-*,Remove-*,Test-*,Open-*,New-*,Import-*,Clear-* -Alias *
+    Export-ModuleMember -function Get-*,Set-*,Invoke-*,Save-*,Test-*,Find-*,Add-*,Remove-*,Test-*,Open-*,New-*,Import-*,Clear-*,Update-* -Alias *
 }

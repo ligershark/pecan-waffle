@@ -299,7 +299,7 @@ Describe 'template source tests'{
 
         [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'angularfiles')
         Ensure-PathExists -path $dest.FullName
-        Add-PWTemplateSource -url $url -localfolder $dest.FullName
+        Add-PWTemplateSource -path $url -localfolder $dest.FullName
 
         $numTemplatesAfter = ($Global:pecanwafflesettings.Templates.Count)
 
@@ -504,6 +504,220 @@ Describe 'InternalGet-EvaluatedPropertiesFrom tests'{
     }
 }
 
+Describe 'exclude tests'{
+    . $importPecanWaffle
+    It 'can exclude a specific file'{
+        [System.IO.DirectoryInfo]$templateSource = (Join-Path $TestDrive 'exclude01\src')
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'exclude01\dest')
+        Ensure-PathExists -path $templateSource.FullName
+        Ensure-PathExists -path $dest.FullName
+
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'appsettings.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'project.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'Startup.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'WebApiProject.xproj')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'otherfile.json')
+
+        # remove all templates
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'exclude01'
+            Type = 'ProjectTemplate'
+        }
+
+        $templateInfo | exclude-file 'otherfile.json'
+
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $templateSource.FullName
+
+        { New-PWProject -templateName 'exclude01' -destPath $dest.FullName -projectName 'MyNewApiProj' -noNewFolder} |should not throw
+
+        $destFull = $dest.FullName
+        "$destFull\appsettings.json" | should exist
+        "$destFull\project.json" | should exist
+        "$destFull\Startup.cs" | should exist
+        "$destFull\WebApiProject.xproj" | should exist
+        "$destFull\otherfile.json" | should not exist
+    }
+
+    It 'can exclude multiple files by pattern'{
+        [System.IO.DirectoryInfo]$templateSource = (Join-Path $TestDrive 'exclude02\src')
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'exclude02\dest')
+        Ensure-PathExists -path $templateSource.FullName
+        Ensure-PathExists -path $dest.FullName
+
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'appsettings.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'project.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'Startup.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'WebApiProject.xproj')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'otherfile.cs')
+
+        # remove all templates
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'exclude02'
+            Type = 'ProjectTemplate'
+        }
+
+        $templateInfo | exclude-file '*.cs'
+
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $templateSource.FullName
+
+        { New-PWProject -templateName 'exclude02' -destPath $dest.FullName -projectName 'MyNewApiProj' -noNewFolder} |should not throw
+
+        $destFull = $dest.FullName
+        (Get-ChildItem -Path $destFull).Length | should be 2
+        "$destFull\appsettings.cs" | should not exist
+        "$destFull\project.json" | should exist
+        "$destFull\Startup.cs" | should not exist
+        "$destFull\WebApiProject.xproj" | should exist
+        "$destFull\otherfile.cs" | should not exist
+    }
+
+    It 'can exclude a single folder'{
+        [System.IO.DirectoryInfo]$templateSource = (Join-Path $TestDrive 'exclude03\src')
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'exclude03\dest')
+        Ensure-PathExists -path $templateSource.FullName
+        Ensure-PathExists -path $dest.FullName
+
+        # root dir
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'appsettings.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'project.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'Startup.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'WebApiProject.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'otherfile.json')
+        # artifacts folder
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts\02.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts\other\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts\other\02.cs')
+        # models folder
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'models\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'models\person\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'models\02.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'models\other\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'models\03.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'models\04.cs')
+
+        # remove all templates
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'exclude03'
+            Type = 'ProjectTemplate'
+        }
+
+        $templateInfo | exclude-folder 'artifacts'
+
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $templateSource.FullName
+
+        { New-PWProject -templateName 'exclude03' -destPath $dest.FullName -projectName 'MyNewApiProj' -noNewFolder} |should not throw
+
+        $destFull = $dest.FullName
+        "$destFull" | Write-output
+        "$destFull\appsettings.json" | should exist
+        "$destFull\artifacts" | should not exist
+        "$destFull\models\" | should exist
+        "$destFull\models\person" | should exist
+        (Get-ChildItem -Path "$destFull" '*.json' -File).Length | should be 5
+        (Get-ChildItem -Path "$destFull\models" '*.cs' -Recurse -File).Length | should be 6
+    }
+
+    It 'can exclude a multiple folders'{
+        [System.IO.DirectoryInfo]$templateSource = (Join-Path $TestDrive 'exclude04\src')
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'exclude04\dest')
+        Ensure-PathExists -path $templateSource.FullName
+        Ensure-PathExists -path $dest.FullName
+
+        # root dir
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'appsettings.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'project.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'Startup.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'WebApiProject.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'otherfile.json')
+        # artifacts folder
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts\02.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts\other\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts\other\02.cs')
+        # models folder
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'models\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'models\person\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'models\02.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'models\other\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'models\03.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'models\04.cs')
+
+        # remove all templates
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'exclude04'
+            Type = 'ProjectTemplate'
+        }
+
+        $templateInfo | exclude-folder 'artifacts','models'
+
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $templateSource.FullName
+
+        { New-PWProject -templateName 'exclude04' -destPath $dest.FullName -projectName 'MyNewApiProj' -noNewFolder} |should not throw
+
+        $destFull = $dest.FullName
+        "$destFull" | Write-output
+        "$destFull\appsettings.json" | should exist
+        "$destFull\artifacts" | should not exist
+        "$destFull\models\" | should not exist
+        (Get-ChildItem -Path "$destFull" '*.json' -File).Length | should be 5
+    }
+
+    It 'can exclude a multiple folders by pattern'{
+        [System.IO.DirectoryInfo]$templateSource = (Join-Path $TestDrive 'exclude05\src')
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'exclude05\dest')
+        Ensure-PathExists -path $templateSource.FullName
+        Ensure-PathExists -path $dest.FullName
+
+        # root dir
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'appsettings.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'project.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'Startup.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'WebApiProject.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'otherfile.json')
+        # artifacts folder
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts\02.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts\other\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts\other\02.cs')
+        # models folder
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts2\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts2\person\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts2\02.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts2\other\01.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts2\03.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'artifacts2\04.cs')
+
+        # remove all templates
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'exclude05'
+            Type = 'ProjectTemplate'
+        }
+
+        $templateInfo | exclude-folder 'artifacts*'
+
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $templateSource.FullName
+
+        { New-PWProject -templateName 'exclude05' -destPath $dest.FullName -projectName 'MyNewApiProj' -noNewFolder} |should not throw
+
+        $destFull = $dest.FullName
+        "$destFull" | Write-output
+        "$destFull\appsettings.json" | should exist
+        "$destFull\artifacts" | should not exist
+        "$destFull\artifacts2\" | should not exist
+        (Get-ChildItem -Path "$destFull" '*.json' -File).Length | should be 5
+    }
+}
 
 Describe 'misc tests'{
     . $importPecanWaffle
