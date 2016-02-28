@@ -114,22 +114,24 @@ function Copy-ItemRobocopy{
         [string]$destPath,
 
         [Parameter(Position=2)]
-        [switch]$ignoreErrors,
+        [string[]]$fileNames,
 
         [Parameter(Position=3)]
-        [ValidateNotNullOrEmpty()]
-        [string[]]$foldersToSkip,
+        [switch]$ignoreErrors,
 
         [Parameter(Position=4)]
-        [ValidateNotNullOrEmpty()]
-        [string[]]$filesToSkip,
+        [string[]]$foldersToSkip,
 
         [Parameter(Position=5)]
-        [ValidateNotNullOrEmpty()]
-        [string]$roboCopyOptions = ('/E'),
+        [string[]]$filesToSkip,
 
         [Parameter(Position=6)]
-        [ValidateNotNullOrEmpty()]
+        [switch]$recurse,
+
+        [Parameter(Position=7)]
+        [string]$roboCopyOptions,
+
+        [Parameter(Position=8)]
         [string]$roboLoggingOptions = ('/NFL /NDL /NJS /NJH /NP')
 
     )
@@ -138,8 +140,18 @@ function Copy-ItemRobocopy{
         $sb.AppendFormat('"{0}" ',$sourcePath.Trim('"').Trim("'")) | out-null
         $sb.AppendFormat('"{0}" ',$destPath.Trim('"').Trim("'")) | out-null
 
+        if( ($fileNames -ne $null) -and ($fileNames.Count -gt 0)){
+            foreach($file in $fileNames){
+                $sb.AppendFormat('"{0}" ',$file)
+            }
+        }
+
         if(-not [string]::IsNullOrWhiteSpace($roboLoggingOptions)){
             $sb.AppendFormat('{0} ',$roboLoggingOptions) | out-null
+        }
+
+        if($recurse){
+            $sb.Append('/E ') | Out-Null
         }
 
         if(-not [string]::IsNullOrWhiteSpace($roboCopyOptions)){
@@ -1101,8 +1113,8 @@ function InternalNew-PWTemplate{
             if( ($template.SourceFiles -eq $null) -or ($template.SourceFiles.Count -le 0)){
                 # copy all of the files to the temp directory
                 'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$mappedTempWorkDir | Write-Verbose
-                Copy-Item -Path $mappedSourcePath\* -Destination $mappedTempWorkDir -Recurse -Include * -Exclude ($template.ExcludeFiles)
-                # Copy-ItemRobocopy -sourcePath $mappedSourcePath -destPath $mappedTempWorkDir -ErrorAction
+                # Copy-Item -Path $mappedSourcePath\* -Destination $mappedTempWorkDir -Recurse -Include * -Exclude ($template.ExcludeFiles)
+                Copy-ItemRobocopy -sourcePath $sourcePath -destPath $tempWorkDir.FullName -filesToSkip ($template.ExcludeFiles) -recurse -ignoreErrors
             }
             else{
                 foreach($sf in  $template.SourceFiles){
@@ -1121,8 +1133,21 @@ function InternalNew-PWTemplate{
                         throw ('Dest is null or empty for source [{0}]' -f $source)
                     }
 
-                    #Copy-Item -Path $sourceFile.FullName -Destination ((Join-Path $tempWorkDir.FullName $dest))
-                    Copy-Item -Path ($sourceItem|Select-Object -ExpandProperty FullName) -Destination ((Join-Path $mappedTempWorkDir $dest))
+                    $destItem = (Join-Path $tempWorkDir.FullName $dest)
+                    $destFolder = (Split-Path -Path $destItem -Parent)
+                    $destName = (Split-Path -Path $destItem -Leaf)
+                    Copy-ItemRobocopy -sourcePath ($sourceItem.DirectoryName) -destPath $destFolder -fileNames $sourceItem.Name -ignoreErrors
+                    if(-not [string]::Equals($sourceItem.Name,$destName,[System.StringComparison]::OrdinalIgnoreCase)){
+                        # move the file to the new file name
+                        $oldloc = Get-Location
+                        try{
+                            Set-Location $destFolder
+                            Move-Item -Path $sourceItem.Name -Destination $destName
+                        }
+                        finally{
+                            Set-Location -Path $oldloc
+                        }
+                    }
                 }
             }
 
@@ -1209,7 +1234,8 @@ function InternalNew-PWTemplate{
             InternalEnsure-DirectoryExists -path $destPath.FullName
             [string]$tpath = $mappedTempWorkDir
             
-            Copy-Item $tpath\* -Destination $destPath.FullName -Recurse -Include *
+            # Copy-Item $tpath\* -Destination $destPath.FullName -Recurse -Include *
+            Copy-ItemRobocopy -sourcePath $tempWorkDir.FullName -destPath $destPath.FullName -ignoreErrors -recurse
 
             if($template.AfterInstall -ne $null){
                 InternalGet-EvaluatedProperty -expression $template.AfterInstall -properties $evaluatedProps
