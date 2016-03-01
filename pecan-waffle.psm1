@@ -1120,7 +1120,7 @@ function InternalNew-PWTemplate{
                 # copy all of the files to the temp directory
                 'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$mappedTempWorkDir | Write-Verbose
                 # Copy-Item -Path $mappedSourcePath\* -Destination $mappedTempWorkDir -Recurse -Include * -Exclude ($template.ExcludeFiles)
-                Copy-ItemRobocopy -sourcePath $sourcePath -destPath $tempWorkDir.FullName -filesToSkip ($template.ExcludeFiles) -recurse -ignoreErrors
+                Copy-ItemRobocopy -sourcePath $sourcePath -destPath $tempWorkDir.FullName -filesToSkip ($template.ExcludeFiles) -foldersToSkip ($template.ExcludeFolder) -recurse -ignoreErrors
             }
             else{
                 foreach($sf in  $template.SourceFiles){
@@ -1159,17 +1159,18 @@ function InternalNew-PWTemplate{
 
             # remove excluded files (in some cases excluded files can still be copied to temp
             #   for example if you specify sourcefile/destfile and include a file that should be excluded
-            if($template.ExcludeFiles -ne $null){
-                $files = (Get-ChildItem $mappedTempWorkDir ($template.ExcludeFiles -join ';') -Recurse -File)
-                if( ($files -ne $null) -and ($files.Length -gt 0) ){
-                    Remove-Item $files.FullName -ErrorAction SilentlyContinue
-                }
+            $excludeStr = '';
+            if( ($template.ExcludeFiles -ne $null) -and ( $template.ExcludeFiles.Count -gt 0) ){
+                $excludeStr += ($template.ExcludeFiles -join ';')
+            }
+            if( ($template.ExcludeFolder -ne $null) -and ($template.ExcludeFolder.Count -gt 0) ){
+                $excludeStr += ($template.ExcludeFolder -join ';')
             }
 
-            # remove directories in the exclude list
-            if($template.ExcludeFolder -ne $null){
-                Get-ChildItem -Path $mappedTempWorkDir -Include $template.ExcludeFolder -Recurse -Directory | Remove-Item -Recurse -ErrorAction SilentlyContinue
+            if(-not [string]::IsNullOrWhiteSpace($excludeStr) ){
+                (Get-ChildItem $mappedTempWorkDir $excludeStr -Recurse -File) | Remove-Item 
             }
+
 
             # replace file names
             if($template.UpdateFilenames -ne $null){
@@ -1189,7 +1190,8 @@ function InternalNew-PWTemplate{
                         }
                     }
 
-                    foreach($file in ([System.IO.FileInfo[]](Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -File)) ){
+                    $files = ([System.IO.FileInfo[]](Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -File))
+                    foreach($file in ($files)){
                         $file = [System.IO.FileInfo]$file
 
                         if([string]::IsNullOrWhiteSpace($repvalue) -and ($current.DefaultValue -ne $null)){
