@@ -22,6 +22,65 @@ function Get-SolutionDirPath{
     }
 }
 
+function Update-PWArtifactsPath{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [System.IO.FileInfo[]]$filesToUpdate,
+
+        [Parameter(Position=1,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [System.IO.DirectoryInfo]$solutionRoot
+    )
+    process{
+        if(-not (Test-Path $solutionRoot)){
+            throw ('Did not find solution root at [{0}]' -f $solutionRoot)
+        }
+
+        $slnpath = $solutionRoot.FullName.TrimEnd('\')
+        foreach($file in $filesToUpdate){
+            if(-not (Test-Path $file)){
+                throw ('Did not find project file at [{0}]' -f $file)
+            }
+
+            [string[]]$artifactsStrings = InternalGet-ArtifactsStringsFromFile -files $file
+            # define replacements for each
+            if( ($artifactsStrings -ne $null) -and ($artifactsStrings.Length -gt 0) ){
+                # calculate the rel path to the solution and get packages path based on that
+                $projDir = (Split-Path $file.FullName -Parent)
+                $relArtsDir = (InternalGet-RelativePath -fromPath $projDir -toPath $slnpath)
+                $newArtStr = '{0}packages' -f $relArtsDir
+                $replacements = @{}
+                foreach($artStr in $artifactsStrings){
+                    $replacements[$artStr]=$newArtStr
+                }
+
+                Replace-TextInFolder -folder $projDir -include $file.Name -replacements $replacements
+            }
+        }
+    }
+}
+
+function Update-PWArtifactsPathInProjectFiles{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0)]
+        [string]$slnRoot = (Get-SolutionDirPath),
+
+        [Parameter(Position=1)]
+        [string]$filePattern = '*.*proj'
+    )
+    process{
+        if(-not ([string]::IsNullOrWhiteSpace($slnRoot))){
+            $projFiles = (Get-ChildItem -Path $slnRoot $filePattern -Recurse -File).FullName
+            if( ($projFiles -ne $null) -and ($projFiles.Length -gt 0)){
+                Update-PWArtifactsPath -filesToUpdate $projFiles -solutionRoot $slnRoot
+            }
+        }
+    }
+}
+
 <#
 .SYNOPSIS
     This will update the packages path in the given dir for the file pattern. The most common usage of this
@@ -136,19 +195,22 @@ function InternalGet-RelativePath{
     }
 }
 
-function InternalGet-PackageStringsFromFile{
+
+function InternalGet-MatchingStringsFromFile{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true,ValueFromPipeline=$true)]
-        [System.IO.FileInfo[]]$files
+        [System.IO.FileInfo[]]$files,
+
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        $pattern
     )
     process{
         foreach($filePath in $files){
             if(-not (Test-Path $filePath.FullName)){
                 throw ('File not found at [{0}]' -f $filePath.FullName)
             }
-
-            $pattern = '[\.\\/]+packages'
 
             Get-Content $filePath.FullName | select-string $pattern | % {
                 $match = [regex]::Match($_,$pattern)
@@ -157,6 +219,28 @@ function InternalGet-PackageStringsFromFile{
                 }
             } | Select-Object -Unique
         }
+    }
+}
+
+function InternalGet-PackageStringsFromFile{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true,ValueFromPipeline=$true)]
+        [System.IO.FileInfo[]]$files
+    )
+    process{
+        InternalGet-MatchingStringsFromFile -files $files -pattern '[\.\\/]+packages'
+    }
+}
+
+function InternalGet-ArtifactsStringsFromFile{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true,ValueFromPipeline=$true)]
+        [System.IO.FileInfo[]]$files
+    )
+    process{
+        InternalGet-MatchingStringsFromFile -files $files -pattern '[\.\\/]+artifacts'
     }
 }
 

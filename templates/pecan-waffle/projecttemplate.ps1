@@ -6,14 +6,11 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     Type = 'ProjectTemplate'
     Description = 'Template description'
     DefaultProjectName = 'MyProject'
-    LicenseUrl = ''
-    ProjectUrl = ''
 }
 
 $templateInfo | replace (
     ('MyProjectName', {"$ProjectName"}, {"$DefaultProjectName"}),
-    ('SolutionDir', {"$SolutionDir"}, {'..\..\'}),
-    ('..\..\artifacts', {"$ArtifactsDir"}, {"$SolutionDir" + 'artifacts'}),
+    ('..\..\artifacts', {"$ArtifactsDir"}, {'..\..\artifacts'}),
     ('97b148d4-829e-4de3-840b-9c6600caa117', {"$ProjectId"}, {[System.Guid]::NewGuid()})
 )
 
