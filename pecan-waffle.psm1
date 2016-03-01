@@ -123,21 +123,24 @@ function Copy-ItemRobocopy{
         [string[]]$fileNames,
 
         [Parameter(Position=3)]
-        [switch]$ignoreErrors,
+        [switch]$move,
 
         [Parameter(Position=4)]
-        [string[]]$foldersToSkip,
+        [switch]$ignoreErrors,
 
         [Parameter(Position=5)]
-        [string[]]$filesToSkip,
+        [string[]]$foldersToSkip,
 
         [Parameter(Position=6)]
-        [switch]$recurse,
+        [string[]]$filesToSkip,
 
         [Parameter(Position=7)]
-        [string]$roboCopyOptions,
+        [switch]$recurse,
 
         [Parameter(Position=8)]
+        [string]$roboCopyOptions,
+
+        [Parameter(Position=9)]
         [string]$roboLoggingOptions = ('/NFL /NDL /NJS /NJH /NP')
 
     )
@@ -150,6 +153,10 @@ function Copy-ItemRobocopy{
             foreach($file in $fileNames){
                 $sb.AppendFormat('"{0}" ',$file)
             }
+        }
+
+        if($move){
+            $sb.Append('/MOVE')
         }
 
         if(-not [string]::IsNullOrWhiteSpace($roboLoggingOptions)){
@@ -1182,13 +1189,27 @@ function InternalNew-PWTemplate{
                         $repvalue = InternalGet-EvaluatedProperty -expression $current.DefaultValue -properties $evaluatedProps
                     }
 
+                    <#
                     foreach($folder in ([System.IO.DirectoryInfo[]](Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory)) ){
                         if(Test-Path ($folder.FullName)){
                             $newname = $folder.Name.Replace($current.ReplaceKey, $repvalue)
                             [System.IO.DirectoryInfo]$newpath = (Join-Path ($folder.Parent.FullName) $newname)
-                            Move-Item $folder.FullName $newpath.FullName
+                            Copy-ItemRobocopy -sourcePath $folder.FullName -destPath $newpath.FullName -move
                         }
                     }
+                    #>
+
+                    (Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory) |
+                        Select-Object -Property FullName,Name,Parent | ForEach-Object {
+                            $folderPath = $_.FullName
+                            $folderName = $_.Name
+                            $parent = $_.Parent
+                            $newname = $folderName.Replace($current.ReplaceKey, $repvalue)
+                            $newPath = (Join-Path $parent.FullName $newname)
+                            if(Test-Path $folderPath){
+                                Copy-ItemRobocopy -sourcePath $folderPath -destPath $newPath
+                            }
+                        }
 
                     $files = ([System.IO.FileInfo[]](Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -File))
                     foreach($file in ($files)){
