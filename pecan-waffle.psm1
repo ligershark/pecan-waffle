@@ -156,7 +156,7 @@ function Copy-ItemRobocopy{
         }
 
         if($move){
-            $sb.Append('/MOVE')
+            $sb.Append('/MOVE ')
         }
 
         if(-not [string]::IsNullOrWhiteSpace($roboLoggingOptions)){
@@ -1207,7 +1207,7 @@ function InternalNew-PWTemplate{
                             $newname = $folderName.Replace($current.ReplaceKey, $repvalue)
                             $newPath = (Join-Path $parent.FullName $newname)
                             if(Test-Path $folderPath){
-                                Copy-ItemRobocopy -sourcePath $folderPath -destPath $newPath -move -ignoreErrors
+                                Copy-ItemRobocopy -sourcePath $folderPath -destPath $newPath -move -recurse -ignoreErrors
                             }
                         }
 
