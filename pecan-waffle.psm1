@@ -1207,7 +1207,7 @@ function InternalNew-PWTemplate{
                             $newname = $folderName.Replace($current.ReplaceKey, $repvalue)
                             $newPath = (Join-Path $parent.FullName $newname)
                             if(Test-Path $folderPath){
-                                Copy-ItemRobocopy -sourcePath $folderPath -destPath $newPath
+                                Copy-ItemRobocopy -sourcePath $folderPath -destPath $newPath -move -ignoreErrors
                             }
                         }
 
