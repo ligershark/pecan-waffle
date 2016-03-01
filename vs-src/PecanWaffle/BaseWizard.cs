@@ -24,6 +24,19 @@
         private string _templateSource;
         private string _templateSourceBranch;
 
+        ~BaseWizard() {
+            // TODO: to be improved?
+            if(PowerShellInstance != null) {
+                PowerShellInstance.Dispose();
+                PowerShellInstance = null;
+            }
+        }
+
+        internal PowerShell PowerShellInstance
+        {
+            get;
+            private set;
+        }
         internal Solution4 GetSolution() {
             Solution4 result = null;
             if (_dte2 != null) {
@@ -84,6 +97,7 @@
         }
         
         public virtual void RunStarted(object automationObject, Dictionary<string, string> replacementsDictionary, WizardRunKind runKind, object[] customParams) {
+            PowerShellInstance = PowerShell.Create();
             _dte2 = automationObject as DTE2;
 
             string projName;
@@ -279,7 +293,6 @@
 
             return projectFolder;
         }
-
 
         private string _psNewProjectScript = @"
 param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch,$properties)
