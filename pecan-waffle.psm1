@@ -138,10 +138,10 @@ function Copy-ItemRobocopy{
         [switch]$recurse,
 
         [Parameter(Position=8)]
-        [string]$roboCopyOptions,
+        [string]$roboCopyOptions = ('/MT /R:1 /W:2 /XA:SH /XJ /FFT'),
 
         [Parameter(Position=9)]
-        [string]$roboLoggingOptions = ('/NFL /NDL /NJS /NJH /NP')
+        [string]$roboLoggingOptions = ('/NFL /NDL /NJS /NJH /NP /NS /NC')
 
     )
     process{
@@ -1189,17 +1189,7 @@ function InternalNew-PWTemplate{
                         $repvalue = InternalGet-EvaluatedProperty -expression $current.DefaultValue -properties $evaluatedProps
                     }
 
-                    <#
-                    foreach($folder in ([System.IO.DirectoryInfo[]](Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory)) ){
-                        if(Test-Path ($folder.FullName)){
-                            $newname = $folder.Name.Replace($current.ReplaceKey, $repvalue)
-                            [System.IO.DirectoryInfo]$newpath = (Join-Path ($folder.Parent.FullName) $newname)
-                            Copy-ItemRobocopy -sourcePath $folder.FullName -destPath $newpath.FullName -move
-                        }
-                    }
-                    #>
-
-                    (Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory) |
+                    (Get-ChildItem $tempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory) |
                         Select-Object -Property FullName,Name,Parent | ForEach-Object {
                             $folderPath = $_.FullName
                             $folderName = $_.Name
@@ -1207,9 +1197,21 @@ function InternalNew-PWTemplate{
                             $newname = $folderName.Replace($current.ReplaceKey, $repvalue)
                             $newPath = (Join-Path $parent.FullName $newname)
                             if(Test-Path $folderPath){
+                                # Move-Item -Path $folderPath -Destination $newPath
                                 Copy-ItemRobocopy -sourcePath $folderPath -destPath $newPath -move -recurse -ignoreErrors
+                                # Rename-Item -Path $folderPath -NewName $newPath
                             }
                         }
+                    # TODO: Before switching to this make sure there is no issues with long paths
+                    <#
+                    foreach($item in (Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory)){
+                        $newname = $item.Name.Replace($current.ReplaceKey, $repvalue)
+                        $newpath = (Join-Path $item.Parent.FullName $newname)
+                        if(Test-Path $item.FullName){
+                            Copy-ItemRobocopy -sourcePath $item.FullName -destPath $newpath -move -recurse -ignoreErrors
+                        }
+                    }
+                    #>
 
                     $files = ([System.IO.FileInfo[]](Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -File))
                     foreach($file in ($files)){
@@ -1325,7 +1327,7 @@ if($global:pecanwafflesettings.EnableAddLocalSourceOnLoad -eq $true){
     
 }
 
-Import-Module (Join-Path (InternalGet-ScriptDirectory) 'pecan-waffle-visualstudio.psm1')
+Import-Module (Join-Path (InternalGet-ScriptDirectory) 'pecan-waffle-visualstudio.psm1') -Global -DisableNameChecking
 
 
 # TODO: Update this later
