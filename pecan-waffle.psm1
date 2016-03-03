@@ -1123,6 +1123,10 @@ function InternalNew-PWTemplate{
             # eval properties here
             $evaluatedProps =  InternalGet-EvaluatedPropertiesFrom -template $template -properties $properties -templateWorkDir $mappedTempWorkDir
 
+            if($template.BeforeInstall -ne $null){
+                InternalGet-EvaluatedProperty -expression $template.BeforeInstall -properties $evaluatedProps
+            }
+
             if( ($template.SourceFiles -eq $null) -or ($template.SourceFiles.Count -le 0)){
                 # copy all of the files to the temp directory
                 'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$mappedTempWorkDir | Write-Verbose
@@ -1224,10 +1228,6 @@ function InternalNew-PWTemplate{
                         Move-Item $file.FullName $newpath.FullName
                     }
                 }
-            }
-
-            if($template.BeforeInstall -ne $null){
-                InternalGet-EvaluatedProperty -expression $template.BeforeInstall -properties $evaluatedProps
             }
 
             # replace content in files
