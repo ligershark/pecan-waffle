@@ -60,7 +60,7 @@ function InternalGet-ScriptDirectory{
 function Get-PecanWaffleVersion{
     param()
     process{
-        New-Object -TypeName 'system.version' -ArgumentList '0.0.1.0'
+        New-Object -TypeName 'system.version' -ArgumentList '0.0.2.0'
     }
 }
 
@@ -146,8 +146,8 @@ function Copy-ItemRobocopy{
     )
     process{
         [System.Text.StringBuilder]$sb = New-Object -TypeName 'System.Text.StringBuilder'
-        $sb.AppendFormat('"{0}" ',$sourcePath.Trim('"').Trim("'")) | out-null
-        $sb.AppendFormat('"{0}" ',$destPath.Trim('"').Trim("'")) | out-null
+        $sb.AppendFormat('"{0}" ',$sourcePath.Trim('"').Trim("'").TrimEnd("\")) | out-null
+        $sb.AppendFormat('"{0}" ',$destPath.Trim('"').Trim("'").TrimEnd("\")) | out-null
 
         if( ($fileNames -ne $null) -and ($fileNames.Count -gt 0)){
             foreach($file in $fileNames){

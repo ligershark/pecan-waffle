@@ -34,7 +34,7 @@
                             properties.Add("SolutionFile", new FileInfo(solution.FileName).FullName);
                             properties.Add("SolutionRoot", new FileInfo(solution.FileName).DirectoryName);
                         }
-                        CreateProjectWithPecanWaffle(ProjectName, projectFolder, form.TemplateName, PecanWaffleBranchName, form.TemplatePathOrUrl, form.TemplateBranch, properties);
+                        PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, projectFolder, form.TemplateName, PecanWaffleBranchName, form.TemplatePathOrUrl, form.TemplateBranch, properties);
                         AddProjectsUnderPathToSolution(solution, projectFolder, "*.*proj");
                     }
                     else {

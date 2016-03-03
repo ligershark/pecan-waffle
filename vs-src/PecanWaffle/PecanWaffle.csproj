@@ -104,6 +104,7 @@
     <Compile Include="PocWindow.xaml.cs">
       <DependentUpon>PocWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="PowerShellInvoker.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

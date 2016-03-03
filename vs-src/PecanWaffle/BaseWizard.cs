@@ -2,10 +2,14 @@
     using EnvDTE;
     using EnvDTE100;
     using EnvDTE80;
+    using Microsoft.VisualStudio;
+    using Microsoft.VisualStudio.Shell;
+    using Microsoft.VisualStudio.Shell.Interop;
     using Microsoft.VisualStudio.TemplateWizard;
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.IO;
     using System.IO.Compression;
     using System.Linq;
@@ -22,16 +26,11 @@
         private string _pecanWaffleBranchName;
         private string _templateSource;
         private string _templateSourceBranch;
+        private object psinstancelock = new object();
 
-        ~BaseWizard() {
-            // TODO: to be improved?
-            if(PowerShellInstance != null) {
-                PowerShellInstance.Dispose();
-                PowerShellInstance = null;
-            }
-        }
+        // TODO: How to dispose of the PowerShellInstance?
 
-        internal PowerShell PowerShellInstance
+        internal static PowerShell PowerShellInstance
         {
             get;
             private set;
@@ -80,7 +79,6 @@
         }
         
         public virtual void RunStarted(object automationObject, Dictionary<string, string> replacementsDictionary, WizardRunKind runKind, object[] customParams) {
-            PowerShellInstance = PowerShell.Create();
             _dte2 = automationObject as DTE2;
 
             string projName;
@@ -107,64 +105,35 @@
             if (replacementsDictionary.TryGetValue("TemplateSourceBranch", out tbranch)) {
                 _templateSourceBranch = tbranch;
             }
+
+            PowerShellInvoker.Instance.EnsureInstallPwScriptInvoked(PecanWaffleBranchName);
         }
 
         public bool ShouldAddProjectItem(string filePath) {
             return false;
         }
 
-        internal void CreateProjectWithPecanWaffle(string projectName, string destPath, string templateName, string pwBranchName, string templateSource, string templateSourceBranch, Hashtable properties) {
-            bool hadErrors = false;
-            string errorString = "";
-            // here is where we want to call pecan-waffle
-            try {
-                using (PowerShell instance = PowerShell.Create()) {
-                    instance.AddScript(_psNewProjectScript);
 
-                    instance.AddParameter("templatename", templateName);
-                    instance.AddParameter("projectName", projectName);
-                    instance.AddParameter("destpath", destPath);
-                    if (!string.IsNullOrWhiteSpace(pwBranchName)) {
-                        instance.AddParameter("pwInstallBranch", pwBranchName);
-                    }
-                    if (!string.IsNullOrWhiteSpace(templateSource)) {
-                        instance.AddParameter("TemplateSource", templateSource);
-                    }
-                    if (!string.IsNullOrWhiteSpace(templateSourceBranch)) {
-                        instance.AddParameter("TemplateSourceBranch", templateSourceBranch);
-                    }
-
-                    if(properties != null) {
-                        instance.AddParameter("Properties", properties);
-                    }
-
-                    var result = instance.Invoke();
-
-                    var errorsb = new StringBuilder();
-                    if (instance.HadErrors && instance.Streams.Error.Count > 0) {
-                        var error = instance.Streams.Error.ReadAll();
-                        if (error != null) {
-                            foreach (var er in error) {
-                                hadErrors = true;
-                                errorsb.AppendLine(er.Exception.ToString());
-                            }
-                        }
-
-                        if (hadErrors) {
-                            errorString = errorsb.ToString();
-                        }
-                    }
-                }
+        internal string GetStringFrom(Collection<PSObject> invokeResult) {
+            if (invokeResult == null) { throw new ArgumentNullException(nameof(invokeResult)); }
+            StringBuilder sb = new StringBuilder();
+            foreach(var result in invokeResult) {
+                sb.AppendLine(result.ToString());
             }
-            catch (Exception ex) {
-                // TODO: Improve
-                throw ex;
-            }
+            return sb.ToString();
+        }
+        internal void WriteToOutputWindow(string message) {
+            IVsOutputWindow outWindow = Package.GetGlobalService(typeof(SVsOutputWindow)) as IVsOutputWindow;
 
-            if (hadErrors) {
-                // TODO: Improve
-                throw new ApplicationException(errorString);
-            }
+            Guid customGuid = new Guid("5e2e5362-86e1-466e-956b-391841275c59");
+            string customTitle = "pecan-waffle";
+            outWindow.CreatePane(ref customGuid, customTitle, 1, 1);
+
+            IVsOutputWindowPane customPane;
+            outWindow.GetPane(ref customGuid, out customPane);
+
+            customPane.OutputString(message);
+            customPane.Activate();
         }
         // http://blogs.msdn.com/b/kebab/archive/2014/04/28/executing-powershell-scripts-from-c.aspx
         /// <summary>
@@ -276,69 +245,5 @@
 
             return projectFolder;
         }
-
-        private string _psNewProjectScript = @"
-param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch,$properties)
-
-if([string]::IsNullOrWhiteSpace($templateName)){ throw ('$templateName is null') }
-if([string]::IsNullOrWhiteSpace($projectname)){ throw ('$projectname is null') }
-if([string]::IsNullOrWhiteSpace($destpath)){ throw ('$destpath is null') }
-
-if([string]::IsNullOrWhiteSpace($pwInstallBranch)){ $pwInstallBranch = 'master' }
-if([string]::IsNullOrWhiteSpace($templateSourceBranch)){ $templateSourceBranch = 'master' }
-
-$destpath = ([System.IO.DirectoryInfo]$destpath)
-$env:EnableAddLocalSourceOnLoad =$false
-
-# parameters declared here
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
-
-[System.Version]$minPwVersion = (New-Object -TypeName 'system.version' -ArgumentList '0.0.1.0')
-$pwNeedsInstall = $true
-
-# see if pw is already installed and has a high enough version
-[System.Version]$installedVersion = $null
-try{
-    Import-Module pecan-waffle -ErrorAction SilentlyContinue | out-null
-    $installedVersion = Get-PecanWaffleVersion
-}
-catch{
-    $installedVersion = $null
-}
-
-if( ($installedVersion -ne $null) -and ($installedVersion.CompareTo($minPwVersion) -ge 0)){
-    $pwNeedsInstall = $false
-}
-
-$localPath = $env:PWLocalPath
-
-if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
-    $pwNeedsInstall = $true
-}
-
-if($pwNeedsInstall){
-    Remove-Module pecan-waffle -ErrorAction SilentlyContinue | Out-Null
-    
-    [System.IO.DirectoryInfo]$localInstallFolder = ""$env:USERPROFILE\Documents\WindowsPowerShell\Modules\pecan-waffle""
-    if(test-path $localInstallFolder.FullName){
-        Remove-Item $localInstallFolder.FullName -Recurse
-    }
-    
-    if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
-        Import-Module ""$localPath\pecan-waffle.psm1"" -Global -DisableNameChecking
-    }
-    else{
-        $installUrl = ('https://raw.githubusercontent.com/ligershark/pecan-waffle/{0}/install.ps1' -f $pwInstallBranch)
-        &{set-variable -name pwbranch -value $pwInstallBranch;$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString($installUrl))}
-    }
-}
-
-if(-not [string]::IsNullOrWhiteSpace($templateSource)){
-    Add-PWTemplateSource -path $templateSource -branch $templateSourceBranch
-    # TODO: Update to just update this specific template
-    Update-RemoteTemplates
-}
-
-New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -noNewFolder -properties $properties";
     }
 }
