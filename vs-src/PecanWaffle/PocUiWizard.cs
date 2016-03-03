@@ -34,8 +34,10 @@
                             properties.Add("SolutionFile", new FileInfo(solution.FileName).FullName);
                             properties.Add("SolutionRoot", new FileInfo(solution.FileName).DirectoryName);
                         }
-                        PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, projectFolder, form.TemplateName, PecanWaffleBranchName, form.TemplatePathOrUrl, form.TemplateBranch, properties);
-                        AddProjectsUnderPathToSolution(solution, projectFolder, "*.*proj");
+                        string newFolder = new DirectoryInfo(projectFolder).Parent.FullName;
+                        Directory.Delete(projectFolder, true);
+                        PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, newFolder, form.TemplateName, PecanWaffleBranchName, form.TemplatePathOrUrl, form.TemplateBranch, properties);
+                        AddProjectsUnderPathToSolution(solution, newFolder, "*.*proj");
                     }
                     else {
                         // TODO: Improve

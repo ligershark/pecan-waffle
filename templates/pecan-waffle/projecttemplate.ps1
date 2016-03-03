@@ -6,11 +6,16 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     Type = 'ProjectTemplate'
     Description = 'Template description'
     DefaultProjectName = 'MyProject'
+    AfterInstall = {
+        <# un comment for vs projects
+        Update-PWPackagesPathInProjectFiles -slnRoot ($SolutionRoot)
+        Update-PWArtifactsPathInProjectFiles -slnRoot ($SolutionRoot)
+        #>
+    }
 }
 
 $templateInfo | replace (
     ('MyProjectName', {"$ProjectName"}, {"$DefaultProjectName"}),
-    ('..\..\artifacts', {"$ArtifactsDir"}, {'..\..\artifacts'}),
     ('97b148d4-829e-4de3-840b-9c6600caa117', {"$ProjectId"}, {[System.Guid]::NewGuid()})
 )
 

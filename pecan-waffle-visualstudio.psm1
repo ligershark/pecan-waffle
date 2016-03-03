@@ -69,7 +69,7 @@ function Update-PWArtifactsPathInProjectFiles{
         [string]$slnRoot = (Get-SolutionDirPath),
 
         [Parameter(Position=1)]
-        [string]$filePattern = '*.*proj'
+        [string]$filePattern = '*.xproj'
     )
     process{
         if(-not ([string]::IsNullOrWhiteSpace($slnRoot))){
