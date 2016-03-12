@@ -170,6 +170,25 @@ function RestoreNuGetPackages(){
         }
     }
 }
+function PublishNuGetPackage{
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true,ValueFromPipeline=$true)]
+        [string]$nugetPackages,
+
+        [Parameter(Mandatory=$true)]
+        $nugetApiKey
+    )
+    process{
+        foreach($nugetPackage in $nugetPackages){
+            $pkgPath = (get-item $nugetPackage).FullName
+            $cmdArgs = @('push',$pkgPath,$nugetApiKey,'-NonInteractive')
+
+            'Publishing nuget package with the following args: [nuget.exe {0}]' -f ($cmdArgs -join ' ') | Write-Verbose
+            &(Get-Nuget) $cmdArgs
+        }
+    }
+}
 function CopyStaticFilesToOutputDir{
     [cmdletbinding()]
     param()
