@@ -22,6 +22,19 @@ function Get-SolutionDirPath{
     }
 }
 
+function Update-VisualStuidoProjects{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNull()]
+        [System.IO.DirectoryInfo]$solutionRoot
+    )
+    process{
+        Update-PWPackagesPathInProjectFiles -slnRoot $SolutionRoot
+        Update-PWArtifactsPathInProjectFiles -slnRoot $SolutionRoot
+    }
+}
+
 function Update-PWArtifactsPath{
     [cmdletbinding()]
     param(

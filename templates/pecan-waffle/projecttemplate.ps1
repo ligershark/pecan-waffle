@@ -7,10 +7,9 @@ $templateInfo = New-Object -TypeName psobject -Property @{
     Description = 'Template description'
     DefaultProjectName = 'MyProject'
     AfterInstall = {
-        <# un comment for vs projects
-        Update-PWPackagesPathInProjectFiles -slnRoot ($SolutionRoot)
-        Update-PWArtifactsPathInProjectFiles -slnRoot ($SolutionRoot)
-        #>
+    <# un comment for vs projects
+        Update-VisualStuidoProjects -slnRoot ($SolutionRoot)
+    #>
     }
 }
 
