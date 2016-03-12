@@ -221,6 +221,76 @@ Describe 'add project tests'{
         ([System.IO.FileInfo](Join-Path $dest.FullName 'MyRealProjectName.xproj')).FullName | should exist
         ([System.IO.FileInfo](Join-Path $dest.FullName 'MyNewApiProj.xproj')).FullName | should not exist
     }
+
+    It 'template can specify CreateNewFolder'{
+        [System.IO.DirectoryInfo]$templateSource = (Join-Path $TestDrive 'createnewfolder01\src')
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'createnewfolder01\dest')
+        Ensure-PathExists -path $templateSource.FullName
+        Ensure-PathExists -path $dest.FullName
+
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'appsettings.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'project.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'Startup.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'WebApiProject.xproj')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'otherfile.json')
+
+        # remove all templates
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'createnewfolder01'
+            Type = 'ProjectTemplate'
+            CreateNewFolder = $false
+        }
+
+        $templateInfo | exclude-file 'otherfile.json'
+
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $templateSource.FullName
+
+        { New-PWProject -templateName 'createnewfolder01' -destPath $dest.FullName -projectName 'MyNewApiProj'} |should not throw
+
+        $destFull = $dest.FullName
+        "$destFull\appsettings.json" | should exist
+        "$destFull\project.json" | should exist
+        "$destFull\Startup.cs" | should exist
+        "$destFull\WebApiProject.xproj" | should exist
+        "$destFull\otherfile.json" | should not exist
+    }
+
+    It 'noNewFolder in new project will override CreateNewFolder'{
+        [System.IO.DirectoryInfo]$templateSource = (Join-Path $TestDrive 'createnewfolder02\src')
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'createnewfolder02\dest')
+        Ensure-PathExists -path $templateSource.FullName
+        Ensure-PathExists -path $dest.FullName
+
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'appsettings.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'project.json')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'Startup.cs')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'WebApiProject.xproj')
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'otherfile.json')
+
+        # remove all templates
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'createnewfolder02'
+            Type = 'ProjectTemplate'
+            CreateNewFolder=$true
+        }
+
+        $templateInfo | exclude-file 'otherfile.json'
+
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $templateSource.FullName
+
+        { New-PWProject -templateName 'createnewfolder02' -destPath $dest.FullName -projectName 'MyNewApiProj' -noNewFolder} |should not throw
+
+        $destFull = $dest.FullName
+        "$destFull\appsettings.json" | should exist
+        "$destFull\project.json" | should exist
+        "$destFull\Startup.cs" | should exist
+        "$destFull\WebApiProject.xproj" | should exist
+        "$destFull\otherfile.json" | should not exist
+    }
 }
 
 Describe 'add item tests'{

@@ -991,6 +991,10 @@ function New-PWProject{
             throw ('Did not find a project template with the name [{0}]' -f $templateName)
         }
 
+        if( (-not ($PSBoundParameters.ContainsKey(‘noNewFolder’))) -and ($template.CreateNewFolder -ne $null) ){
+                $noNewFolder = (-not [bool]($template.CreateNewFolder))
+        }
+
         if(-not $noNewFolder){
             $destPath = (Join-Path $destPath.FullName $projectName)
         }
