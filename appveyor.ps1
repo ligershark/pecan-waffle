@@ -14,7 +14,13 @@ try{
     $env:PesterEnableCodeCoverage = $true
     $env:ExitOnPesterFail = $true
 
-    . $buildFile.FullName
+    if($env:APPVEYOR_REPO_BRANCH -eq 'release' -and ([string]::IsNullOrWhiteSpace($env:APPVEYOR_PULL_REQUEST_NUMBER) )) {
+        . $buildFile.FullName -publishToNuget
+    }
+    else{
+        . $buildFile.FullName
+    }
+    
 }
 catch{
     throw ( 'Build error {0} {1}' -f $_.Exception, (Get-PSCallStack|Out-String) )

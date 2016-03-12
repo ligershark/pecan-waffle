@@ -1,7 +1,16 @@
 [cmdletbinding()]
 param(
     [Parameter(Position=0)]
-    [string]$configuration = 'Release'
+    [string]$configuration = 'Release',
+
+    [Parameter(Position=1)]
+    [switch]$noTests,
+
+    [Parameter(Position=2)]
+    [switch]$publishToNuget,
+
+    [Parameter(Position=3)]
+    [string]$nugetApiKey = ($env:NuGetApiKey)
 )
 
 function Get-ScriptDirectory
@@ -11,6 +20,11 @@ function Get-ScriptDirectory
 }
 
 $scriptDir = ((Get-ScriptDirectory) + "\")
+
+[System.IO.FileInfo]$slnfile = (join-path $scriptDir 'vs-src\PecanWaffleVs.sln')
+[System.IO.DirectoryInfo]$outputroot=(join-path $scriptDir 'OutputRoot')
+[System.IO.DirectoryInfo]$outputPathNuget = (Join-Path $outputroot '_nuget-pkg')
+
 <#
 .SYNOPSIS
     You can add this to you build script to ensure that psbuild is available before calling
@@ -33,6 +47,25 @@ function EnsurePsbuildInstlled{
         # make sure it's loaded and throw if not
         if(-not (Get-Command "Invoke-MsBuild" -errorAction SilentlyContinue)){
             throw ('Unable to install/load psbuild from [{0}]' -f $psbuildInstallUri)
+        }
+    }
+}
+function EnsureFileReplacerInstlled{
+    [cmdletbinding()]
+    param()
+    begin{
+        Import-NuGetPowershell
+    }
+    process{
+        if(-not (Get-Command -Module file-replacer -Name Replace-TextInFolder -errorAction SilentlyContinue)){
+            $fpinstallpath = (Get-NuGetPackage -name file-replacer -version '0.4.0-beta' -binpath)
+            if(-not (Test-Path $fpinstallpath)){ throw ('file-replacer folder not found at [{0}]' -f $fpinstallpath) }
+            Import-Module (Join-Path $fpinstallpath 'file-replacer.psm1') -DisableNameChecking
+        }
+
+        # make sure it's loaded and throw if not
+        if(-not (Get-Command -Module file-replacer -Name Replace-TextInFolder -errorAction SilentlyContinue)){
+            throw ('Unable to install/load file-replacer')
         }
     }
 }
@@ -137,6 +170,44 @@ function RestoreNuGetPackages(){
         }
     }
 }
+function CopyStaticFilesToOutputDir{
+    [cmdletbinding()]
+    param()
+    process{
+        Get-ChildItem $scriptDir pecan-*.ps*1 | Copy-Item -Destination $outputroot
+        Get-ChildItem $scriptDir *.nuspec | Copy-Item -Destination $outputroot
+    }
+}
+function Build-NuGetPackage{
+    [cmdletbinding()]
+    param()
+    process{
+        if(-not (Test-Path $outputPathNuget)){
+            New-Item -Path $outputPathNuget -ItemType Directory
+        }
+
+        Push-Location
+        try{
+            [System.IO.FileInfo[]]$nuspecFilesToBuild = @()
+            $nuspecFilesToBuild += ([System.IO.FileInfo](Get-ChildItem $outputRoot '*.nuspec' -Recurse -File))
+
+            foreach($nufile in $nuspecFilesToBuild){
+                Push-Location
+                try{
+                    Set-Location -Path ($nufile.Directory.FullName)
+                    'Building nuget package for [{0}]' -f ($nufile.FullName) | Write-Verbose
+                    Invoke-CommandString -command (Get-Nuget) -commandArgs @('pack',($nufile.Name),'-NoPackageAnalysis','-OutputDirectory',($outputPathNuget.FullName))
+                }
+                finally{
+                    Pop-Location
+                }
+            }
+        }
+        finally{
+            Pop-Location
+        }
+    }
+}
 function BuildSolution{
     [cmdletbinding()]
     param()
@@ -155,22 +226,73 @@ function BuildSolution{
         Invoke-MSBuild -projectsToBuild $slnfile.FullName -visualStudioVersion 14.0 -configuration $configuration -outputpath $vsoutputpath.FullName
     }
 }
+function Update-FilesWithCommitId{
+    [cmdletbinding()]
+    param(
+        [string]$commitId = ($env:APPVEYOR_REPO_COMMIT),
+
+        [System.IO.DirectoryInfo]$dirToUpdate = ($outputroot),
+
+        [Parameter(Position=2)]
+        [string]$filereplacerVersion = '0.4.0-beta'
+    )
+    begin{
+        EnsureFileReplacerInstlled
+    }
+    process{
+        if([string]::IsNullOrEmpty($commitId)){
+            try{
+                $commitstr = (& git log --format="%H" -n 1)
+                if($commitstr -match '\b[0-9a-f]{5,40}\b'){
+                    $commitId = $commitstr
+                }
+            }
+            catch{
+                # do nothing
+            }
+        }
+
+        if(![string]::IsNullOrWhiteSpace($commitId)){
+            'Updating commitId from [{0}] to [{1}]' -f '$(COMMIT_ID)',$commitId | Write-Verbose
+
+            $folder = $dirToUpdate
+            $include = '*.nuspec'
+            # In case the script is in the same folder as the files you are replacing add it to the exclude list
+            $exclude = "$($MyInvocation.MyCommand.Name);"
+            $replacements = @{
+                '$(COMMIT_ID)'="$commitId"
+            }
+            Replace-TextInFolder -folder $folder -include $include -exclude $exclude -replacements $replacements | Write-Verbose
+            'Replacement complete' | Write-Verbose
+        }
+    }
+}
 
 # begin script
 
-[System.IO.FileInfo]$slnfile = "$scriptDir\vs-src\PecanWaffleVs.sln"
-[System.IO.DirectoryInfo]$outputroot="$scriptDir\OutputRoot"
 try{
     $env:IsDeveloperMachine=$true
     Remove-LocalInstall
     EnsurePsbuildInstlled
 
     CleanOutputFolder
+    InternalEnsure-DirectoryExists -path $outputroot
     Import-NuGetPowershell
     RestoreNuGetPackages
-    BuildSolution
 
-    Run-Tests -testDirectory (Join-Path $scriptDir 'tests')
+    CopyStaticFilesToOutputDir
+
+    BuildSolution
+    Update-FilesWithCommitId
+    Build-NuGetPackage
+
+    if(-not $noTests){
+        Run-Tests -testDirectory (Join-Path $scriptDir 'tests')
+    }
+
+    if($publishToNuget){
+        (Get-ChildItem -Path ($outputPathNuget) 'pecan-*.nupkg').FullName | PublishNuGetPackage -nugetApiKey $nugetApiKey
+    }
 }
 catch{
     throw ( 'Build error {0} {1}' -f $_.Exception, (Get-PSCallStack|Out-String) )
