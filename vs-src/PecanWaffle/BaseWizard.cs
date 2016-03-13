@@ -30,12 +30,12 @@
 
         // TODO: How to dispose of the PowerShellInstance?
 
-        internal static PowerShell PowerShellInstance
+        protected internal static PowerShell PowerShellInstance
         {
             get;
             private set;
         }
-        internal Solution4 GetSolution() {
+        protected internal Solution4 GetSolution() {
             Solution4 result = null;
             if (_dte2 != null) {
                 result = ((Solution4)_dte2.Solution);
@@ -43,25 +43,40 @@
 
             return result;
         }
-        internal string TemplateName
+        protected internal string TemplateName
         {
             get { return _templateName; }
         }
-        internal string ProjectName
+        protected internal string ProjectName
         {
             get { return _projectName; }
         }
-        internal string PecanWaffleBranchName
+        protected internal string PecanWaffleBranchName
         {
-            get { return _pecanWaffleBranchName; }
+            get {
+                string result = "master";
+                if (!string.IsNullOrWhiteSpace(_pecanWaffleBranchName)) {
+                    result = _pecanWaffleBranchName;
+                }
+
+                return result;
+            }
         }
-        internal string TemplateSource
+        protected internal string TemplateSource
         {
             get { return _templateSource; }
         }
-        internal string TemplateSourceBranch
+        protected internal string TemplateSourceBranch
         {
             get { return _templateSourceBranch; }
+        }
+
+        protected internal string ExtensionInstallDir
+        {
+            get
+            {
+                return (new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)).FullName);
+            }
         }
 
         public virtual void BeforeOpeningFile(ProjectItem projectItem) { }
@@ -114,7 +129,7 @@
         }
 
 
-        internal string GetStringFrom(Collection<PSObject> invokeResult) {
+        protected internal string GetStringFrom(Collection<PSObject> invokeResult) {
             if (invokeResult == null) { throw new ArgumentNullException(nameof(invokeResult)); }
             StringBuilder sb = new StringBuilder();
             foreach(var result in invokeResult) {
@@ -122,7 +137,7 @@
             }
             return sb.ToString();
         }
-        internal void WriteToOutputWindow(string message) {
+        protected internal void WriteToOutputWindow(string message) {
             IVsOutputWindow outWindow = Package.GetGlobalService(typeof(SVsOutputWindow)) as IVsOutputWindow;
 
             Guid customGuid = new Guid("5e2e5362-86e1-466e-956b-391841275c59");
@@ -140,7 +155,7 @@
         /// Gets the projects in a solution recursively.
         /// </summary>
         /// <returns></returns>
-        internal IList<Project> GetProjects() {
+        protected internal IList<Project> GetProjects() {
             var projects = _solution.Projects;
             var list = new List<Project>();
             var item = projects.GetEnumerator();
@@ -166,7 +181,7 @@
         /// </summary>
         /// <param name="solutionFolder">The solution folder.</param>
         /// <returns></returns>
-        internal static IEnumerable<Project> GetSolutionFolderProjects(Project solutionFolder) {
+        protected internal static IEnumerable<Project> GetSolutionFolderProjects(Project solutionFolder) {
             var list = new List<Project>();
             for (var i = 1; i <= solutionFolder.ProjectItems.Count; i++) {
                 var subProject = solutionFolder.ProjectItems.Item(i).SubProject;
@@ -185,7 +200,7 @@
             return list;
         }
 
-        internal string GetPathToModuleFile() {
+        protected internal string GetPathToModuleFile() {
             string path = Path.Combine(GetPecanWaffleExtensionInstallDir(), "pecan-waffle.psm1");
             path = new FileInfo(path).FullName;
             if (!File.Exists(path)) {
@@ -196,10 +211,10 @@
             return path;
         }
 
-        internal string GetPecanWaffleExtensionInstallDir() {
+        protected internal string GetPecanWaffleExtensionInstallDir() {
             return (new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)).FullName);
         }
-        internal void AddProjectsUnderPathToSolution(Solution4 solution, string folderPath,string pattern=@"*.*proj") {
+        protected internal void AddProjectsUnderPathToSolution(Solution4 solution, string folderPath,string pattern=@"*.*proj") {
             string[] projFiles = Directory.GetFiles(folderPath, pattern, SearchOption.AllDirectories);
 
             bool hadErrors = false;
@@ -219,7 +234,7 @@
                 MessageBox.Show(errorsb.ToString());
             }
         }
-        internal string RemovePlaceholderProjectCreatedByVs(string projectName) {
+        protected internal string RemovePlaceholderProjectCreatedByVs(string projectName) {
             bool foundProjToRemove = false;
             var projects = GetProjects();
             Project removedProject = null;
