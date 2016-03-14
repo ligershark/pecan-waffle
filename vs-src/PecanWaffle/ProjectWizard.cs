@@ -16,6 +16,12 @@
     using System.Collections;
 
     public class ProjectWizard : BaseWizard {
+        protected internal Hashtable Properties { get; set; }
+
+        public ProjectWizard() : base() {
+            Properties = new Hashtable();
+        }
+
         public static string Name
         {
             get { return "ProjectWizard"; }

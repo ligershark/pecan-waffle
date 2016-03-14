@@ -37,10 +37,11 @@
             }
         }
 
-        public void EnsureInstallPwScriptInvoked(string pwInstallBranch) {
+        public void EnsureInstallPwScriptInvoked(string pwInstallBranch, string extensionInstallDir) {
             PsInstance = PowerShell.Create();
             PsInstance.AddScript(_psInstallPecanWaffleScript);
             PsInstance.AddParameter("pwInstallBranch", pwInstallBranch);
+            PsInstance.AddParameter("extensionInstallDir",extensionInstallDir);
             var result = PsInstance.Invoke();
             // WriteToOutputWindow(GetStringFrom(result));
 
@@ -121,6 +122,7 @@
 
         private string _psNewProjectScript = @"
 param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch,$properties)
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
 $destpath = ([System.IO.DirectoryInfo]$destpath)
 
 if(-not [string]::IsNullOrWhiteSpace($templateSource)){
@@ -133,52 +135,85 @@ if(-not [string]::IsNullOrWhiteSpace($templateSource)){
 New-PWProject -templateName $templatename -destPath $destpath.FullName -noNewFolder -projectName $projectname -properties $properties";
 
         private string _psInstallPecanWaffleScript = @"
-param($pwInstallBranch)
-
-if([string]::IsNullOrWhiteSpace($pwInstallBranch)){ $pwInstallBranch = 'master' }
-
-$env:EnableAddLocalSourceOnLoad =$false
-
-# parameters declared here
+param($pwInstallBranch, $extensionInstallDir)
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
 
-[System.Version]$minPwVersion = (New-Object -TypeName 'system.version' -ArgumentList '0.0.2.0')
-$pwNeedsInstall = $true
-
-# see if pw is already installed and has a high enough version
-[System.Version]$installedVersion = $null
-try{
-    Import-Module pecan-waffle -ErrorAction SilentlyContinue | out-null
-    $installedVersion = Get-PecanWaffleVersion
-}
-catch{
-    $installedVersion = $null
-}
-
-if( ($installedVersion -ne $null) -and ($installedVersion.CompareTo($minPwVersion) -ge 0)){
-    $pwNeedsInstall = $false
-}
-
+$modLoaded = $false
 $localPath = $env:PWLocalPath
-
 if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
-    $pwNeedsInstall = $true
+    Import-Module ""$localPath\pecan-waffle.psm1"" -Global -DisableNameChecking
+    $modLoaded = $true
+}
+else{
+    # try and load locally if possible from extension installdir    
+    if( ($extensionInstallDir -ne $null) -and (Test-Path $extensionInstallDir)){
+        $foundFileReplacer = $false
+        $foundPecanWaffle = $false
+        # look for pecan-waffle and file-replacer modules
+        [System.IO.FileInfo]$pwLocalModFile = ((Get-ChildItem $extensionInstallDir 'pecan-waffle.psm1' -Recurse -File)|Select-Object -First 1)
+        [System.IO.FileInfo]$frLocalModFile = ((Get-ChildItem $extensionInstallDir 'file-replacer.psm1' -Recurse -File)|Select-Object -First 1)
+
+        if( ($frLocalModFile -ne $null) -and (Test-Path $frLocalModFile.FullName)){
+            Import-Module $frLocalModFile.FullName -Global -DisableNameChecking
+            $foundFileReplacer = $true
+        }
+        if( ($pwLocalModFile -ne $null) -and (Test-Path $pwLocalModFile.FullName)){
+            Import-Module $pwLocalModFile.FullName -Global -DisableNameChecking
+            $foundPecanWaffle = $true
+        }
+
+        if( ($foundFileReplacer -eq $true) -and ($foundPecanWaffle -eq $true)){
+            $modLoaded = $true
+        }
+    }
 }
 
-if($pwNeedsInstall){
-    Remove-Module pecan-waffle -ErrorAction SilentlyContinue | Out-Null
-    
-    [System.IO.DirectoryInfo]$localInstallFolder = ""$env:USERPROFILE\Documents\WindowsPowerShell\Modules\pecan-waffle""
-    if(test-path $localInstallFolder.FullName){
-        Remove-Item $localInstallFolder.FullName -Recurse
+if(-not $modLoaded){
+    if([string]::IsNullOrWhiteSpace($pwInstallBranch)){ $pwInstallBranch = 'master' }
+
+    $env:EnableAddLocalSourceOnLoad =$false
+
+    # parameters declared here
+    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
+
+    [System.Version]$minPwVersion = (New-Object -TypeName 'system.version' -ArgumentList '0.0.2.0')
+    $pwNeedsInstall = $true
+
+    # see if pw is already installed and has a high enough version
+    [System.Version]$installedVersion = $null
+    try{
+        Import-Module pecan-waffle -ErrorAction SilentlyContinue | out-null
+        $installedVersion = Get-PecanWaffleVersion
     }
-    
+    catch{
+        $installedVersion = $null
+    }
+
+    if( ($installedVersion -ne $null) -and ($installedVersion.CompareTo($minPwVersion) -ge 0)){
+        $pwNeedsInstall = $false
+    }
+
+    $localPath = $env:PWLocalPath
+
     if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
-        Import-Module ""$localPath\pecan-waffle.psm1"" -Global -DisableNameChecking
+        $pwNeedsInstall = $true
     }
-    else{
-        $installUrl = ('https://raw.githubusercontent.com/ligershark/pecan-waffle/{0}/install.ps1' -f $pwInstallBranch)
-        &{set-variable -name pwbranch -value $pwInstallBranch;$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString($installUrl))}
+
+    if($pwNeedsInstall){
+        Remove-Module pecan-waffle -ErrorAction SilentlyContinue | Out-Null
+    
+        [System.IO.DirectoryInfo]$localInstallFolder = ""$env:USERPROFILE\Documents\WindowsPowerShell\Modules\pecan-waffle""
+        if(test-path $localInstallFolder.FullName){
+            Remove-Item $localInstallFolder.FullName -Recurse
+        }
+    
+        if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
+            Import-Module ""$localPath\pecan-waffle.psm1"" -Global -DisableNameChecking
+        }
+        else{
+            $installUrl = ('https://raw.githubusercontent.com/ligershark/pecan-waffle/{0}/install.ps1' -f $pwInstallBranch)
+            &{set-variable -name pwbranch -value $pwInstallBranch;$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString($installUrl))}
+        }
     }
 }";
     }
