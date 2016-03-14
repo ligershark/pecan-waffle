@@ -13,10 +13,10 @@ param(
     [string]$nugetApiKey = ($env:NuGetApiKey),
 
     # version parameters
-    [Parameter(ParameterSetName='setversion',Position=0)]
+    [Parameter(ParameterSetName='setversion',Position=10)]
     [switch]$setversion,
 
-    [Parameter(ParameterSetName='setversion',Position=1,Mandatory=$true)]
+    [Parameter(ParameterSetName='setversion',Position=11,Mandatory=$true)]
     [string]$newversion,
 
     [Parameter(ParameterSetName='getversion',Position=0)]
@@ -107,15 +107,15 @@ function GetExistingVersion{
 function SetVersion{
     [cmdletbinding()]
     param(
-        [Parameter(Position=0,Mandatory=$true)]
+        [Parameter(Position=1,Mandatory=$true)]
         [ValidateNotNullOrEmpty()]
         [string]$newversion,
 
-        [Parameter(Position=1)]
+        [Parameter(Position=2)]
         [ValidateNotNullOrEmpty()]
         [string]$oldversion = (GetExistingVersion),
 
-        [Parameter(Position=2)]
+        [Parameter(Position=3)]
         [string]$filereplacerVersion = '0.4.0-beta'
     )
     begin{
