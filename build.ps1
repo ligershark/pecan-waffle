@@ -1,15 +1,15 @@
-[cmdletbinding()]
+[cmdletbinding(DefaultParameterSetName='build')]
 param(
-    [Parameter(Position=0)]
+    [Parameter(ParameterSetName='build',Position=0)]
     [string]$configuration = 'Release',
 
-    [Parameter(Position=1)]
+    [Parameter(ParameterSetName='build',Position=1)]
     [switch]$noTests,
 
-    [Parameter(Position=2)]
+    [Parameter(ParameterSetName='build',Position=2)]
     [switch]$publishToNuget,
 
-    [Parameter(Position=3)]
+    [Parameter(ParameterSetName='build',Position=3)]
     [string]$nugetApiKey = ($env:NuGetApiKey),
 
     # version parameters
