@@ -23,7 +23,7 @@
         public override void RunFinished() {
             try {
                 base.RunFinished();
-        
+
                 // check required properties
                 var errorSb = new StringBuilder();
                 if (string.IsNullOrWhiteSpace(ProjectName)) {
@@ -39,12 +39,12 @@
                     errorSb.AppendLine("TemplateSource is null");
                 }
 
-                if (!string.IsNullOrWhiteSpace(errorSb.ToString())){
+                if (!string.IsNullOrWhiteSpace(errorSb.ToString())) {
                     throw new ApplicationException(errorSb.ToString());
                 }
 
                 Solution4 solution = GetSolution();
-                if(solution != null) {
+                if (solution != null) {
                     string projectFolder = RemovePlaceholderProjectCreatedByVs(ProjectName);
                     var properties = new Hashtable();
 
@@ -52,29 +52,28 @@
                     if (!string.IsNullOrEmpty(SolutionDirectory)) {
                         slnRoot = SolutionDirectory;
                     }
-
-                    if(string.IsNullOrEmpty(slnRoot) && !string.IsNullOrWhiteSpace(solution.FileName)) {
-                        // properties.Add("SolutionFile", new FileInfo(solution.FileName).FullName);
+                    if (string.IsNullOrEmpty(slnRoot) && !string.IsNullOrWhiteSpace(solution.FileName)) {
                         slnRoot = new FileInfo(solution.FileName).DirectoryName;
                     }
-
-                    if (string.IsNullOrEmpty(slnRoot)) {
-                        MessageBox.Show("Solution root is empty");
+                    if (string.IsNullOrWhiteSpace(slnRoot)) {
+                        throw new ApplicationException("solution is null");
                     }
 
+                    DirectoryInfo projFolderInfo = new DirectoryInfo(projectFolder);
                     properties.Add("SolutionRoot", slnRoot);
                     string newFolder = new DirectoryInfo(projectFolder).Parent.FullName;
                     Directory.Delete(projectFolder, true);
 
-                    PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, newFolder, TemplateName, PecanWaffleBranchName, TemplateSource, TemplateSourceBranch, properties);
-                    AddProjectsUnderPathToSolution(solution, slnRoot, "*.*proj");
+                    PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, projFolderInfo.FullName, TemplateName, PecanWaffleBranchName, TemplateSource, TemplateSourceBranch, properties);
+                    // TODO: allow override of pattern via custom parameter
+                    AddProjectsUnderPathToSolution(solution, projFolderInfo.FullName, "*.*proj");
                 }
                 else {
                     throw new ApplicationException("Soluiton is null");
                 }
 
             }
-            catch (Exception ex) { 
+            catch (Exception ex) {
                 // TODO: Improve this
                 MessageBox.Show(ex.ToString());
             }

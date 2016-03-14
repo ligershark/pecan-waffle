@@ -64,7 +64,7 @@ function Update-PWArtifactsPath{
                 # calculate the rel path to the solution and get packages path based on that
                 $projDir = (Split-Path $file.FullName -Parent)
                 $relArtsDir = (InternalGet-RelativePath -fromPath $projDir -toPath $slnpath)
-                $newArtStr = '{0}packages' -f $relArtsDir
+                $newArtStr = '{0}artifacts' -f $relArtsDir
                 $replacements = @{}
                 foreach($artStr in $artifactsStrings){
                     $replacements[$artStr]=$newArtStr

@@ -119,7 +119,6 @@
             }
         }
 
-
         private string _psNewProjectScript = @"
 param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch,$properties)
 $destpath = ([System.IO.DirectoryInfo]$destpath)
@@ -131,7 +130,7 @@ if(-not [string]::IsNullOrWhiteSpace($templateSource)){
     Update-RemoteTemplates
 }
 
-New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -properties $properties";
+New-PWProject -templateName $templatename -destPath $destpath.FullName -noNewFolder -projectName $projectname -properties $properties";
 
         private string _psInstallPecanWaffleScript = @"
 param($pwInstallBranch)
