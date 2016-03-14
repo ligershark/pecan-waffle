@@ -24,7 +24,6 @@
         private string _templateName;
         private string _projectName;
         private string _pecanWaffleBranchName;
-        private string _templateSource;
         private string _templateSourceBranch;
         private object psinstancelock = new object();
 
@@ -62,21 +61,18 @@
                 return result;
             }
         }
-        protected internal string TemplateSource
+        public string TemplateSource
         {
-            get { return _templateSource; }
+            get; set;
         }
         protected internal string TemplateSourceBranch
         {
             get { return _templateSourceBranch; }
         }
 
-        protected internal string ExtensionInstallDir
+        protected internal string SolutionDirectory
         {
-            get
-            {
-                return (new DirectoryInfo(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)).FullName);
-            }
+            get; private set;
         }
 
         public virtual void BeforeOpeningFile(ProjectItem projectItem) { }
@@ -113,12 +109,17 @@
 
             string tsource;
             if (replacementsDictionary.TryGetValue("TemplateSource", out tsource)) {
-                _templateSource = tsource;
+                TemplateSource = tsource;
             }
 
             string tbranch;
             if (replacementsDictionary.TryGetValue("TemplateSourceBranch", out tbranch)) {
                 _templateSourceBranch = tbranch;
+            }
+
+            string slndir;
+            if (replacementsDictionary.TryGetValue("$solutiondirectory$", out slndir)) {
+                SolutionDirectory = slndir;
             }
 
             PowerShellInvoker.Instance.EnsureInstallPwScriptInvoked(PecanWaffleBranchName);

@@ -64,7 +64,7 @@
             }
         }
         public void RunPwCreateProjectScript(string projectName, string destPath, string templateName, string pwBranchName, string templateSource, string templateSourceBranch, Hashtable properties) {
-            EnsureInstallPwScriptInvoked(pwBranchName);
+            // EnsureInstallPwScriptInvoked(pwBranchName);
 
             bool hadErrors = false;
             string errorString = "";
@@ -131,7 +131,7 @@ if(-not [string]::IsNullOrWhiteSpace($templateSource)){
     Update-RemoteTemplates
 }
 
-New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -noNewFolder -properties $properties";
+New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -properties $properties";
 
         private string _psInstallPecanWaffleScript = @"
 param($pwInstallBranch)

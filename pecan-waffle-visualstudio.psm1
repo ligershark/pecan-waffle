@@ -27,6 +27,7 @@ function Update-VisualStuidoProjects{
     param(
         [Parameter(Position=0,Mandatory=$true)]
         [ValidateNotNull()]
+        [Alias("slnRoot")]
         [System.IO.DirectoryInfo]$solutionRoot
     )
     process{
