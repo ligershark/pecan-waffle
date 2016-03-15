@@ -30,5 +30,8 @@
       <file src="vs\PecanWaffle.pdb" target="lib" />
       <file src="pecan-waffle.psm1" target="tools" />
       <file src="pecan-waffle-visualstudio.psm1" target="tools" />
+      
+      <file src="vs-template-zip\sw-file-icon.png" target="tools\vs-template-zip\sw-file-icon.png" />
+      <file src="vs-template-zip\VsTemplateProj.csproj" target="tools\vs-template-zip\VsTemplateProj.csproj" />      
   </files>
 </package>

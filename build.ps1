@@ -257,6 +257,10 @@ function CopyStaticFilesToOutputDir{
     process{
         Get-ChildItem $scriptDir pecan-*.ps*1 | Copy-Item -Destination $outputroot
         Get-ChildItem $scriptDir *.nuspec | Copy-Item -Destination $outputroot
+        [System.IO.DirectoryInfo]$vstemplateDest =(Join-Path $outputroot vs-template-zip) 
+        if(-not (Test-Path $vstemplateDest.FullName)) {
+            Copy-Item (Join-Path $scriptDir 'vs-template-zip') -Destination $vstemplateDest.FullName -Recurse
+        }
     }
 }
 function Build-NuGetPackage{
