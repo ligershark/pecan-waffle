@@ -169,7 +169,7 @@ else{
             $foundPecanWaffle = $true
         }
 
-        if( ($foundNugetPs -eq $true) - and ($foundFileReplacer -eq $true) -and ($foundPecanWaffle -eq $true)){
+        if( ($foundNugetPs -eq $true) -and ($foundFileReplacer -eq $true) -and ($foundPecanWaffle -eq $true)){
             $modLoaded = $true
         }
     }
