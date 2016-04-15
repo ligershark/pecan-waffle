@@ -1,26 +1,42 @@
 ﻿[cmdletbinding()]
 param(    
-    [Parameter(Position=0)]
+    #[Parameter(Position=0)]
     [string]$pwInstallBranch = 'dev',
 
-    [Parameter(Position=1,Mandatory=$true)]
+    #[Parameter(Position=1,Mandatory=$true)]
     [ValidateNotNullOrEmpty()]
     [string]$templateName,
 
-    [Parameter(Position=1,Mandatory=$true)]
+    #[Parameter(Position=1,Mandatory=$true)]
     [ValidateNotNullOrEmpty()]
-    [ValidateScript({test-path $_ -PathType Leaf})]
+    #[ValidateScript({test-path $_ -PathType Leaf})]
     [string]$templateFilePath,
     
-    [Parameter(Position=3)]
+    #[Parameter(Position=3)]
     [ValidateNotNullOrEmpty()]
-    [ValidateScript({test-path $_ -PathType Leaf})]
+    #[ValidateScript({test-path $_ -PathType Leaf})]
     [string]$vsixFilePath,
 
-    [Parameter(Position=3)]
+    #[Parameter(Position=3)]
     [string]$relativePathInVsix = ('.\')
 
 )
+@'
+ [pwInstallBranch={0}]
+ [templateName={1}]
+ [templateFilePath={2}]
+ [vsixFilePath={3}]
+ [relativePathInVsix={4}]
+'@ -f $pwInstallBranch,$templateName,$templateFilePath,$vsixFilePath,$relativePathInVsix | Write-Verbose
+
+if(-not (Test-Path $vsixFilePath -PathType Leaf)){
+    throw ('Did not find vsix file at [{0}]' -f $vsixFilePath)
+}
+
+if(-not (Test-Path $templateFilePath -PathType Leaf)){
+    throw ('Did not find vsix file at [{0}]' -f $templateFilePath)
+}
+
 #&{set-variable -name pwbranch -value 'master';$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString('https://raw.githubusercontent.com/ligershark/pecan-waffle/master/install.ps1'))}
 if([string]::IsNullOrWhiteSpace($templateName)){ throw ('$templateName is null') }
 if([string]::IsNullOrWhiteSpace($pwInstallBranch)){ $pwInstallBranch = 'master' }
@@ -55,6 +71,7 @@ if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath))
 
 if($pwNeedsInstall){
     Remove-Module pecan-waffle -ErrorAction SilentlyContinue | Out-Null
+    Remove-Module pecan-waffle-visualstudio -ErrorAction SilentlyContinue | Out-Null
     
     [System.IO.DirectoryInfo]$localInstallFolder = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\pecan-waffle"
     if(test-path $localInstallFolder.FullName){

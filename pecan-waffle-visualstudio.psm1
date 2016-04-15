@@ -295,11 +295,16 @@ function InternalAdd-FolderToOpcPackage{
         [Parameter(Position=2)]
         [string]$relpathtofolderinopc = ('.\')
     )
+    begin{
+        [System.Reflection.Assembly]::Load("WindowsBase,Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35")
+    }
     process{
         try{
             $zipPkg = [System.IO.Packaging.ZipPackage]::Open($pkgpath,[System.IO.FileMode]::Open,[System.IO.FileAccess]::ReadWrite)
+            'Updating zip package [{0}]' -f $pkgPath | Write-Verbose
             $files = (Get-ChildItem -Path $folderToAdd -Recurse -File)
             foreach($file in $files){
+                'adding file [{0}]' -f $file.FullName | Write-Verbose
                 $relpath = InternalGet-RelativePath -fromPath $folderToAdd -toPath $file.FullName
                 $destFilename = $relpathtofolderinopc + $relpath
 
