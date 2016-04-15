@@ -149,10 +149,17 @@ else{
     if( ($extensionInstallDir -ne $null) -and (Test-Path $extensionInstallDir)){
         $foundFileReplacer = $false
         $foundPecanWaffle = $false
+        $foundNugetPs = $false
         # look for pecan-waffle and file-replacer modules
-        [System.IO.FileInfo]$pwLocalModFile = ((Get-ChildItem $extensionInstallDir 'pecan-waffle.psm1' -Recurse -File)|Select-Object -First 1)
+        
+        [System.IO.FileInfo]$npLocalModFile = ((Get-ChildItem $extensionInstallDir 'nuget-powershell.psm1' -Recurse -File)|Select-Object -First 1)
         [System.IO.FileInfo]$frLocalModFile = ((Get-ChildItem $extensionInstallDir 'file-replacer.psm1' -Recurse -File)|Select-Object -First 1)
+        [System.IO.FileInfo]$pwLocalModFile = ((Get-ChildItem $extensionInstallDir 'pecan-waffle.psm1' -Recurse -File)|Select-Object -First 1)
 
+       if( ($npLocalModFile -ne $null) -and (Test-Path $npLocalModFile.FullName)){
+            Import-Module $npLocalModFile.FullName -Global -DisableNameChecking
+            $foundNugetPs = $true
+        }
         if( ($frLocalModFile -ne $null) -and (Test-Path $frLocalModFile.FullName)){
             Import-Module $frLocalModFile.FullName -Global -DisableNameChecking
             $foundFileReplacer = $true
@@ -162,13 +169,13 @@ else{
             $foundPecanWaffle = $true
         }
 
-        if( ($foundFileReplacer -eq $true) -and ($foundPecanWaffle -eq $true)){
+        if( ($foundNugetPs -eq $true) -and ($foundFileReplacer -eq $true) -and ($foundPecanWaffle -eq $true)){
             $modLoaded = $true
         }
     }
 }
 
-if(-not $modLoaded){
+if(-not $modLoaded) {
     if([string]::IsNullOrWhiteSpace($pwInstallBranch)){ $pwInstallBranch = 'master' }
 
     $env:EnableAddLocalSourceOnLoad =$false
