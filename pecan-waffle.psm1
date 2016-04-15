@@ -337,7 +337,7 @@ function Internal-AddProperty{
     }
 }
 
-function InternalGet-NewTempDir{
+function Get-NewTempDir{
     [cmdletbinding()]
     param()
     process{
@@ -1109,7 +1109,7 @@ function InternalNew-PWTemplate{
         [hashtable]$properties
     )
     process{
-        [System.IO.DirectoryInfo]$tempWorkDir = InternalGet-NewTempDir
+        [System.IO.DirectoryInfo]$tempWorkDir = Get-NewTempDir
         [string]$sourcePath = $template.TemplatePath
         
         [string[]]$drivesCreated = @()
@@ -1289,10 +1289,72 @@ function InternalNew-PWTemplate{
     }
 }
 
+function Copy-TemplateSourceFiles{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNull()]
+        [object]$template,
+        
+        [ValidateNotNullOrEmpty()]
+        [Parameter(Position=1,Mandatory=$true)]
+        [string]$destFolderPath
+    )
+    process{
+        if( ($template.SourceFiles -eq $null) -or ($template.SourceFiles.Count -le 0)){
+            $excludeFiles = @()
+            foreach($exclude in $excludeFiles){
+                if(-not ([string]::Equals('pw-*.*',$exclude,[System.StringComparison]::OrdinalIgnoreCase)==0)){
+                    $excludeFiles += $exclude
+                }
+            }
+   
+            [string]$sourcePath = $template.TemplatePath
+            'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath, $destFolderPath | Write-Verbose
+            Copy-ItemRobocopy -sourcePath $sourcePath -destPath $destFolderPath -filesToSkip ($excludeFiles) -foldersToSkip ($template.ExcludeFolder) -recurse -ignoreErrors
+        }
+        else{
+            throw ('sourceFiles not supported for vsix yet')
+        <#
+            foreach($sf in  $template.SourceFiles){
+                $source = $sf.SourceFile;
+               
+                                    
+                # [System.IO.FileInfo]$sourceFile = (Join-Path $mappedSourcePath $source)
+                $sourceItem = Get-Item (Join-Path $mappedSourcePath $source)
+                [hashtable]$extraProps = @{
+                    'ThisItemName' = ($sourceItem|Select-Object -ExpandProperty BaseName)
+                    'ThisItemFileName' = ($sourceItem|Select-Object -ExpandProperty Name)
+                }
+
+                $dest = (InternalGet-EvaluatedProperty -expression ($sf.DestFile) -properties $evaluatedProps -extraProperties $extraProps)
+                    
+                if([string]::IsNullOrWhiteSpace($dest)){
+                    throw ('Dest is null or empty for source [{0}]' -f $source)
+                }
+
+                $destItem = (Join-Path $tempWorkDir.FullName $dest)
+                $destFolder = (Split-Path -Path $destItem -Parent)
+                $destName = (Split-Path -Path $destItem -Leaf)
+                Copy-ItemRobocopy -sourcePath ($sourceItem.DirectoryName) -destPath $destFolder -fileNames $sourceItem.Name -ignoreErrors
+                if(-not [string]::Equals($sourceItem.Name,$destName,[System.StringComparison]::OrdinalIgnoreCase)){
+                    # move the file to the new file name
+                    $oldloc = Get-Location
+                    try{
+                        Set-Location $destFolder
+                        Move-Item -Path $sourceItem.Name -Destination $destName
+                    }
+                    finally{
+                        Set-Location -Path $oldloc
+                    }
+                }
+            }
+            #>
+        }
+    }
+}
+
 # Helpers for externals
-
-
-
 <#
 .SYNOPSIS
     This will download and import the given version of file-replacer (https://github.com/ligershark/template-builder/blob/master/file-replacer.psm1),
@@ -1331,6 +1393,7 @@ if($global:pecanwafflesettings.EnableAddLocalSourceOnLoad -eq $true){
     
 }
 
+Remove-Module pecan-waffle-visualstudio -Force -ErrorAction SilentlyContinue | out-null
 Import-Module (Join-Path (InternalGet-ScriptDirectory) 'pecan-waffle-visualstudio.psm1') -Global -DisableNameChecking
 
 
@@ -1341,5 +1404,5 @@ if( ($env:IsDeveloperMachine -eq $true) ){
     Export-ModuleMember -function * -Alias *
 }
 else{
-    Export-ModuleMember -function Get-*,Set-*,Invoke-*,Save-*,Test-*,Find-*,Add-*,Remove-*,Test-*,Open-*,New-*,Import-*,Clear-*,Update-* -Alias *
+    Export-ModuleMember -function Get-*,Set-*,Invoke-*,Save-*,Test-*,Find-*,Add-*,Remove-*,Test-*,Open-*,New-*,Import-*,Clear-*,Update-*,Copy-* -Alias *
 }

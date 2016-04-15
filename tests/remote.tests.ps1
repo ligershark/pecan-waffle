@@ -1,5 +1,5 @@
 ﻿[cmdletbinding()]
- param()
+param()
 
 function Get-ScriptDirectory
 {
@@ -7,6 +7,11 @@ function Get-ScriptDirectory
     Split-Path $Invocation.MyCommand.Path
 }
 $scriptDir = ((Get-ScriptDirectory) + "\")
+
+$importPecanWaffle = (Join-Path -Path $scriptDir -ChildPath 'import-pw.ps1')
+
+# import the module
+. $importPecanWaffle
 
 function Ensure-PathExists{
     param([Parameter(Position=0)][System.IO.DirectoryInfo]$path)
@@ -18,11 +23,6 @@ function Ensure-PathExists{
         }
     }
 }
-
-$importPecanWaffle = (Join-Path -Path $scriptDir -ChildPath 'import-pw.ps1')
-
-# import the module
-. $importPecanWaffle
 
 Describe 'git tests'{
     It 'can clone from github w/o repo name'{
