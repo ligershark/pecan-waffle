@@ -30,7 +30,7 @@ $env:EnableAddLocalSourceOnLoad =$false
 # parameters declared here
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
 
-[System.Version]$minPwVersion = (New-Object -TypeName 'system.version' -ArgumentList '0.0.2.0')
+[System.Version]$minPwVersion = (New-Object -TypeName 'system.version' -ArgumentList '0.0.6.0')
 $pwNeedsInstall = $true
 
 # see if pw is already installed and has a high enough version
