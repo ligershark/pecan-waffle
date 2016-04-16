@@ -287,7 +287,7 @@ function Add-TemplateToVsix{
         Add-PWTemplateSource -path (Split-Path $templateFilePath -Parent)
         $relpath = $relativePathInVsix.TrimEnd('\') + '\'
 
-        $projTemplates = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate'}|Select-Object -Unique)
+        $projTemplates = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate'})
         foreach($pt in $projTemplates){
             'Adding template [{0}] to vsix [{1}]' -f $pt.Name,$vsixFilePath | Write-Verbose
             $templateName = $pt.Name

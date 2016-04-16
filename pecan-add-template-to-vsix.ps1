@@ -6,7 +6,7 @@ param(
     #[Parameter(Position=1,Mandatory=$true)]
     [ValidateNotNullOrEmpty()]
     #[ValidateScript({test-path $_ -PathType Leaf})]
-    [string]$templateFilePath,
+    [string]$templateRootDir,
     
     #[Parameter(Position=3)]
     [ValidateNotNullOrEmpty()]
@@ -20,17 +20,17 @@ param(
 )
 @'
  [pwInstallBranch={0}]
- [templateFilePath={1}]
+ [templateRootDir={1}]
  [vsixFilePath={2}]
  [relativePathInVsix={3}]
-'@ -f $pwInstallBranch,$templateFilePath,$vsixFilePath,$relativePathInVsix | Write-Verbose
+'@ -f $pwInstallBranch,$templateRootDir,$vsixFilePath,$relativePathInVsix | Write-Verbose
 
 if(-not (Test-Path $vsixFilePath -PathType Leaf)){
     throw ('Did not find vsix file at [{0}]' -f $vsixFilePath)
 }
 
-if(-not (Test-Path $templateFilePath -PathType Leaf)){
-    throw ('Did not find vsix file at [{0}]' -f $templateFilePath)
+if(-not (Test-Path $templateRootDir -PathType Container)){
+    throw ('Did not find vsix file at [{0}]' -f $templateRootDir)
 }
 
 if([string]::IsNullOrWhiteSpace($pwInstallBranch)){ $pwInstallBranch = 'master' }
@@ -81,13 +81,16 @@ if($pwNeedsInstall){
     }
 }
 
-Add-TemplateToVsix -vsixFilePath $vsixFilePath -templateFilePath $templateFilePath -relativePathInVsix $relativePathInVsix
-$vstemplatefileinfo = ([System.IO.FileInfo]$vstemplatefile)
-# process all _project.vstemplate files
-$vstemplateFiles = (Get-ChildItem -Path ((get-item $templateFilePath).Directory.FullName) '_project.vstemplate' -Recurse -File).FullName
-if( ($vstemplateFiles -ne $null)){
-    foreach($vstempfile in $vstemplateFiles){
-        'Creating a .zip file for [{0}] and adding to [{1}]' -f $vstempfile,$vsixFilePath | Write-Verbose
-        Add-VsTemplateToVsix -vsixFilePath $vsixFilePath -vsTemplateFilePath $vstempfile -relPathInVsix $relPathForTemplatezip
+$templatefiles = (Get-ChildItem $templateRootDir 'pw-templateinfo*.ps1' -Recurse -File).FullName
+foreach($templateFilePath in $templatefiles){
+    Add-TemplateToVsix -vsixFilePath $vsixFilePath -templateFilePath $templateFilePath -relativePathInVsix $relativePathInVsix
+    $vstemplatefileinfo = ([System.IO.FileInfo]$vstemplatefile)
+    # process all _project.vstemplate files
+    $vstemplateFiles = (Get-ChildItem -Path ((get-item $templateFilePath).Directory.FullName) '_project.vstemplate' -Recurse -File).FullName
+    if( ($vstemplateFiles -ne $null)){
+        foreach($vstempfile in $vstemplateFiles){
+            'Creating a .zip file for [{0}] and adding to [{1}]' -f $vstempfile,$vsixFilePath | Write-Verbose
+            Add-VsTemplateToVsix -vsixFilePath $vsixFilePath -vsTemplateFilePath $vstempfile -relPathInVsix $relPathForTemplatezip
+        }
     }
 }
