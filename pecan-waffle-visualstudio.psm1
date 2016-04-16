@@ -271,10 +271,6 @@ function Add-TemplateToVsix{
         [ValidateNotNullOrEmpty()]
         [string]$templateFilePath,
 
-        [Parameter(Position=2,Mandatory=$true)]
-        [ValidateNotNullOrEmpty()]
-        [string]$templateName,
-
         [Parameter(Position=3)]
         [string]$relativePathInVsix = ('.\')
     )
@@ -289,7 +285,25 @@ function Add-TemplateToVsix{
         # clear templates
         Clear-PWTemplates
         Add-PWTemplateSource -path (Split-Path $templateFilePath -Parent)
+        $relpath = $relativePathInVsix.TrimEnd('\') + '\'
 
+        $projTemplates = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate'}|Select-Object -Unique)
+        foreach($pt in $projTemplates){
+            'Adding template [{0}] to vsix [{1}]' -f $pt.Name,$vsixFilePath | Write-Verbose
+            $templateName = $pt.Name
+            $tempdir = Get-NewTempDir
+            try{
+                Copy-TemplateSourceFiles -template $pt -destFolderPath $tempdir                
+                InternalAdd-FolderToOpcPackage -pkgPath $vsixFilePath -folderToAdd $tempdir -relpathtofolderinopc ($relpath + $templateName + '\')
+            }
+            catch{
+                if( -not ([string]::IsNullOrWhiteSpace($tempdir)) -and (Test-Path $tempdir)){
+                    Remove-Item -Path $tempdir -Recurse | Write-Verbose
+                }
+            }            
+        }
+
+        <#
         $template = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate' -and $_.Name -eq $templateName}|Select-Object -First 1)
 
         if($template -eq $null){
@@ -307,6 +321,7 @@ function Add-TemplateToVsix{
                 Remove-Item -Path $tempdir -Recurse | Write-Verbose
             }
         }
+        #>
     }
 }
 
