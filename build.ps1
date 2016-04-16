@@ -123,7 +123,7 @@ function SetVersion{
     }
     process{
         $folder = $scriptDir
-        $include = '*.nuspec;*.ps*1'
+        $include = '*.nuspec;*.ps*1;*.ps1'
         # In case the script is in the same folder as the files you are replacing add it to the exclude list
         $exclude = "$($MyInvocation.MyCommand.Name);"
         $exclude += ';build.ps1'
