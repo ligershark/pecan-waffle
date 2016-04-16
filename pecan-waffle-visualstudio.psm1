@@ -36,8 +36,7 @@ function Get-SolutionDirPath{
 function Update-VisualStuidoProjects{
     [cmdletbinding()]
     param(
-        [Parameter(Position=0,Mandatory=$true)]
-        [ValidateNotNull()]
+        [Parameter(Position=0)]
         [Alias("slnRoot")]
         [System.IO.DirectoryInfo]$solutionRoot
     )
@@ -219,9 +218,48 @@ function InternalGet-RelativePath{
         $relPath
     }
 }
-
+$global:pwvstemplateindex = 0
 # Items related to creating a VS template .zip file
+function Add-VsTemplateToVsix{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$vsixFilePath,
 
+        [Parameter(Position=1,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$vsTemplateFilePath,
+        
+        [Parameter(Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$relPathInVsix = ('Output\ProjectTemplates\CSharp\pecan-waffle\')
+    )
+    process{
+        $relpath = $relPathInVsix.TrimEnd('\') + '\'
+
+        # create a .zip file for the .vstemplate file and add it to the .zip
+        $tempdir = (Get-NewTempDir)
+        $filename = ('VsTemplateProj{0}.project.zip' -f (++$global:pwvstemplateindex))      
+
+        $ziptempfile = (InternalNew-VsTemplateZip -vstemplateFilePath $vsTemplateFilePath)
+        $newtempdir = (Get-NewTempDir)
+        try{
+            $renamedzipfilepath = (Join-Path $newtempdir $filename)
+            Move-Item -Path $ziptempfile -Destination $renamedzipfilepath | Write-Verbose
+
+            # add the .vstemplate file to the .zip file
+            'vsTemplateFilePath: [{0}]' -f $vsTemplateFilePath | Write-Verbose
+            # add the .zip to the .vsix file
+            InternalAdd-FolderToOpcPackage -pkgPath $vsixFilePath -folderToAdd (([System.IO.FileInfo]$renamedzipfilepath).Directory.FullName) -relpathtofolderinopc $relpath
+        }
+        finally{
+            if(-not ([string]::IsNullOrEmpty($newtempdir)) -and (Test-Path $newtempdir)){
+                Remove-Item -Path $newtempdir -Recurse | Write-Verbose
+            }
+        }
+    }
+}
 function Add-TemplateToVsix{
     [cmdletbinding()]
     param(
@@ -263,14 +301,6 @@ function Add-TemplateToVsix{
             Copy-TemplateSourceFiles -template $template -destFolderPath $tempdir
             $relpath = $relativePathInVsix.TrimEnd('\') + '\'
             InternalAdd-FolderToOpcPackage -pkgPath $vsixFilePath -folderToAdd $tempdir -relpathtofolderinopc $relpath
-            <#
-            $folderstoadd = (Get-ChildItem $tempdir -Directory).FullName
-            foreach($folder in $folderstoadd){
-                'Adding folder at [{0}] to opc package at [{1}]' -f $folder,$vsixFilePath | Write-Verbose
-                $relpath = $relativePathInVsix.TrimEnd('\') + '\' + ((Get-Item $folder).Name) + '\'
-                InternalAdd-FolderToOpcPackage -pkgPath $vsixFilePath -folderToAdd $folder -relpathtofolderinopc $relpath
-            } 
-            #>
         }
         catch{
             if( -not ([string]::IsNullOrWhiteSpace($tempdir)) -and (Test-Path $tempdir)){
@@ -389,51 +419,72 @@ function InternalGet-TemplateVsTemplateZipFile{
         if(-not (Test-Path $templatefilepath)){
             # create a .zip file from the source folder
             $templateFileDir = (Split-Path $templatefilepath -Parent)
-            InternalEnsure-DirectoryExists -path $templateFileDir | Out-Null
+            Ensure-DirectoryExists -path $templateFileDir | Out-Null
             $zipitems = (Get-ChildItem -Path $templateSourceFolder -Recurse -File)
             InternalNew-ZipFile -ZipFilePath $templatefilepath -rootFolder $templateSourceFolder -InputObject $zipitems.FullName | Out-Null
         }
 
+        # copy it to a temp dir
+        $tempdir = Get-NewTempDir
+        $temppath = ([System.IO.FileInfo](Join-Path (Get-NewTempDir) (Split-Path $templatefilepath -Leaf))).FullName
+        Copy-Item (([System.IO.FileInfo]$templatefilepath).FullName) -Destination $temppath
         # return the path to the caller
-        $templatefilepath
+        $temppath
     }
 }
 
 function InternalNew-VsTemplateZip{
     [cmdletbinding()]
     param(
-        [Parameter(Position=0,Mandatory=$true)]
+        [Parameter(Position=0)]
         [ValidateNotNullOrEmpty()]
         [string]$destpath,
 
         [Parameter(Position=1)]
-        [string]$vstemplateFilePath
+        [string]$vstemplateFilePath,
+
+        [Parameter(Position=2)]
+        [string]$templateZipPath
     )
     process{
-        if([string]::IsNullOrEmpty($vstemplateFilePath)){
+        if([string]::IsNullOrEmpty($templateZipPath)){
             $templateZipPath = (InternalGet-TemplateVsTemplateZipFile)
         }
         
+        # copy to temp dir
+
         # copy zip file to temp
         $tempdir = Get-NewTempDir
-        try{
-            $newtempfilepath = (Join-Path (Get-NewTempDir) 'vstemplate.zip')
+
+        $newtempfilepath = (Join-Path (Get-NewTempDir) 'vstemplate.zip')
         
-            if( (-not ([string]::IsNullOrWhiteSpace($destpath))) -and (test-path $destpath) ){
-                Remove-Item $destpath | Write-Verbose
-            }
-        
+        if( (-not ([string]::IsNullOrWhiteSpace($destpath))) -and (test-path $destpath) ){
+            Remove-Item $destpath | Write-Verbose
+        }
+
+        if(-not ([string]::IsNullOrWhiteSpace($templateZipPath)) -and (Test-Path $vstemplateFilePath)){
+            # add the .vstemplate file to the .zip
+            InternalNew-ZipFile -ZipFilePath $templateZipPath -InputObject $vstemplateFilePath -rootFolder (([System.IO.FileInfo]$vstemplateFilePath).Directory.FullName) -Append | Out-Null
+        }
+
+        if(-not ([string]::IsNullOrWhiteSpace($destpath))){
             $parentdir = (Split-Path $destpath -Parent)
             if(-not (Test-Path $parentdir)){
                 New-Item -Path $parentdir -ItemType Directory | Write-Verbose
             }
 
-            Copy-Item $templateZipPath $destpath
-        }
-        finally{
+            Copy-Item $templateZipPath $destpath | Write-Verbose
+
             if( -not ([string]::IsNullOrWhiteSpace($tempdir)) -and (Test-Path $tempdir)){
                 Remove-Item -Path $tempdir -Recurse | Write-Verbose
             }
+
+            # return original path to caller
+            $destpath
+        }
+        else{
+            # return the path to the caller
+            $templateZipPath
         }
     }
 }
@@ -541,7 +592,7 @@ function InternalGet-ArtifactsStringsFromFile{
         [System.IO.FileInfo[]]$files
     )
     process{
-        InternalGet-MatchingStringsFromFile -files $files -pattern '[\.\\/]+artifacts'
+        InternalGet-MatchingStringsFromFile -files $files -pattern '[\.\\/a-zA-Z0-9]+artifacts'
     }
 }
 

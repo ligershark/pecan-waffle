@@ -18,8 +18,9 @@ param(
     [string]$vsixFilePath,
 
     #[Parameter(Position=3)]
-    [string]$relativePathInVsix = ('.\')
+    [string]$relativePathInVsix = ('.\'),
 
+    [string]$relPathForTemplatezip = ('Output\ProjectTemplates\CSharp\pecan-waffle\')
 )
 @'
  [pwInstallBranch={0}]
@@ -88,3 +89,15 @@ if($pwNeedsInstall){
 }
 
 Add-TemplateToVsix -vsixFilePath $vsixFilePath -templateFilePath $templateFilePath -templateName $templateName -relativePathInVsix $relativePathInVsix
+$vstemplatefileinfo = ([System.IO.FileInfo]$vstemplatefile)
+# process all _project.vstemplate files
+$vstemplateFiles = (Get-ChildItem -Path ((get-item $templateFilePath).Directory.FullName) '_project.vstemplate' -Recurse -File).FullName
+if( ($vstemplateFiles -ne $null)){
+    foreach($vstempfile in $vstemplateFiles){
+        'Creating a .zip file for [{0}] and adding to [{1}]' -f $vstempfile,$vsixFilePath | Write-Verbose
+        # Add-VsTemplateToVsix -vsixFilePath $vsixFilePath -vsTemplateFilePath $vstempfile -relPathInVsix $relPathForTemplatezip
+        Add-VsTemplateToVsix -vsixFilePath $vsixFilePath -vsTemplateFilePath $vstempfile -relPathInVsix $relPathForTemplatezip
+    }
+}
+
+# .\pecan-add-template-to-vsix.ps1 -pwInstallBranch dev -templateName $templatename -templateFilePath $templatefilepath -vsixFilePath $vsixfilepath -relativePathInVsix 'templates' -relPathForTemplatezip 'Output\ProjectTemplates\CSharp\JumpStreet' -Verbose

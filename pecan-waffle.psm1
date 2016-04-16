@@ -275,7 +275,7 @@ function InternalImport-NuGetPowershell{
     }
 }
 
-function InternalEnsure-DirectoryExists{
+function Ensure-DirectoryExists{
     param([Parameter(Position=0)][System.IO.DirectoryInfo]$path)
     process{
         if($path -ne $null){
@@ -341,7 +341,7 @@ function Get-NewTempDir{
     [cmdletbinding()]
     param()
     process{
-        InternalEnsure-DirectoryExists -path $global:pecanwafflesettings.TempDir | Out-Null
+        Ensure-DirectoryExists -path $global:pecanwafflesettings.TempDir | Out-Null
 
         [System.IO.DirectoryInfo]$newpath = (Join-Path ($global:pecanwafflesettings.TempDir) ([datetime]::UtcNow.Ticks))
         New-Item -ItemType Directory -Path ($newpath.FullName) | out-null
@@ -400,7 +400,7 @@ function Add-PWTemplateSource{
             }
         }
 
-        InternalEnsure-DirectoryExists -path $localfolder.FullName
+        Ensure-DirectoryExists -path $localfolder.FullName
 
         if($isGit){
             if([string]::IsNullOrWhiteSpace($repoName)){
@@ -478,7 +478,7 @@ function InternalAdd-GitFolder{
         [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
         $path =([System.IO.DirectoryInfo]$repoFolder).FullName
         try{
-            InternalEnsure-DirectoryExists -path $localfolder.FullName
+            Ensure-DirectoryExists -path $localfolder.FullName
             Set-Location $localfolder
 
             if(-not (Test-Path $repoFolder.FullName)){
@@ -1266,7 +1266,7 @@ function InternalNew-PWTemplate{
             }
 
             # copy the final result to the destination
-            InternalEnsure-DirectoryExists -path $destPath.FullName
+            Ensure-DirectoryExists -path $destPath.FullName
             [string]$tpath = $mappedTempWorkDir
             
             # Copy-Item $tpath\* -Destination $destPath.FullName -Recurse -Include *
@@ -1404,5 +1404,5 @@ if( ($env:IsDeveloperMachine -eq $true) ){
     Export-ModuleMember -function * -Alias *
 }
 else{
-    Export-ModuleMember -function Get-*,Set-*,Invoke-*,Save-*,Test-*,Find-*,Add-*,Remove-*,Test-*,Open-*,New-*,Import-*,Clear-*,Update-*,Copy-* -Alias *
+    Export-ModuleMember -function Get-*,Set-*,Invoke-*,Save-*,Test-*,Find-*,Add-*,Remove-*,Test-*,Open-*,New-*,Import-*,Clear-*,Update-*,Copy-*,Ensure-* -Alias *
 }
