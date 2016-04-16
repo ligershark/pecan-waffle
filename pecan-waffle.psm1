@@ -11,6 +11,7 @@ $global:pecanwafflesettings = New-Object -TypeName psobject -Property @{
     EnableAddLocalSourceOnLoad = $true
     RobocopySystemPath = ('{0}\robocopy.exe' -f [System.Environment]::SystemDirectory)
     RobocopyDownloadUrl = 'https://dl.dropboxusercontent.com/u/40134810/SideWaffle/tools/robocopy.exe'
+    LastTempDir = ''
 }
 
 function InternalOverrideSettingsFromEnv{
@@ -60,7 +61,7 @@ function InternalGet-ScriptDirectory{
 function Get-PecanWaffleVersion{
     param()
     process{
-        New-Object -TypeName 'system.version' -ArgumentList '0.0.8.0'
+        New-Object -TypeName 'system.version' -ArgumentList '0.0.9.0'
     }
 }
 
@@ -344,6 +345,11 @@ function Get-NewTempDir{
         Ensure-DirectoryExists -path $global:pecanwafflesettings.TempDir | Out-Null
 
         [System.IO.DirectoryInfo]$newpath = (Join-Path ($global:pecanwafflesettings.TempDir) ([datetime]::UtcNow.Ticks))
+        if([string]::Equals($newpath,$global:pecanwafflesettings.LastTempDir,[System.StringComparison]::OrdinalIgnoreCase)){
+            Start-Sleep -Milliseconds 1
+            $newpath = (Join-Path ($global:pecanwafflesettings.TempDir) ([datetime]::UtcNow.Ticks))
+        }
+        $global:pecanwafflesettings.LastTempDir = $newpath
         New-Item -ItemType Directory -Path ($newpath.FullName) | out-null
         # return the fullpath
         $newpath.FullName
