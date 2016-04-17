@@ -25,6 +25,230 @@ $importPecanWaffle = (Join-Path -Path $scriptDir -ChildPath 'import-pw.ps1')
 
 [System.IO.DirectoryInfo]$sourceRoot = (Join-Path $scriptDir '..\')
 
+Describe 'replace tests'{
+    . $importPecanWaffle
+    It 'basic replace test'{
+        $testname = 'replace01'
+        [System.IO.DirectoryInfo]$templateSource = (Join-Path $TestDrive "$testname\src")
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive "$testname\dest")
+        Ensure-PathExists -path $templateSource.FullName
+        Ensure-PathExists -path $dest.FullName
+
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'WebApiProject.xproj') -content '* WebApiProject.xproj *'
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'otherfile.json')
+
+        # remove all templates
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = $testname
+            Type = 'ProjectTemplate'
+            CreateNewFolder = $false        
+        }
+
+        $templateInfo | replace (
+            ,('WebApiProject', {"$ProjectName"}, {"$DefaultProjectName"})
+        )
+
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $templateSource.FullName
+
+        { New-PWProject -templateName $testname -destPath $dest.FullName -projectName 'MyNewApiProj'} |should not throw
+
+        $destFull = $dest.FullName
+        "$destFull\WebApiProject.xproj" | should exist
+        "$destFull\WebApiProject.xproj" | should not contain 'WebApiProject.xproj'
+        "$destFull\WebApiProject.xproj" | should contain 'MyNewApiProj.xproj'
+    }
+    It 'replace can pass include'{
+        $testname = 'replace-include01'
+        [System.IO.DirectoryInfo]$templateSource = (Join-Path $TestDrive "$testname\src")
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive "$testname\dest")
+        Ensure-PathExists -path $templateSource.FullName
+        Ensure-PathExists -path $dest.FullName
+
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'WebApiProject.xproj') -content '* WebApiProject.xproj *'
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'otherfile.json')
+
+        # remove all templates
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = $testname
+            Type = 'ProjectTemplate'
+            CreateNewFolder = $false        
+        }
+
+        $templateInfo | replace (
+            ,('WebApiProject', {"$ProjectName"}, {"$DefaultProjectName"},@('WebApiProject*'))
+        )
+
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $templateSource.FullName
+
+        { New-PWProject -templateName $testname -destPath $dest.FullName -projectName 'MyNewApiProj'} |should not throw
+
+        $destFull = $dest.FullName
+        "$destFull\WebApiProject.xproj" | should exist
+        "$destFull\WebApiProject.xproj" | should not contain 'WebApiProject.xproj'
+        "$destFull\WebApiProject.xproj" | should contain 'MyNewApiProj.xproj'
+    }
+
+    It 'replace can pass include and will prevent replacing'{
+        $testname = 'replace-include02'
+        [System.IO.DirectoryInfo]$templateSource = (Join-Path $TestDrive "$testname\src")
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive "$testname\dest")
+        Ensure-PathExists -path $templateSource.FullName
+        Ensure-PathExists -path $dest.FullName
+
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'WebApiProject.xproj') -content '* WebApiProject.xproj *'
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'otherfile.json')
+
+        # remove all templates
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = $testname
+            Type = 'ProjectTemplate'
+            CreateNewFolder = $false        
+        }
+
+        $templateInfo | replace (
+            ,('WebApiProject', {"$ProjectName"}, {"$DefaultProjectName"},@('WebApiProjectNOTHERE*'))
+        )
+
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $templateSource.FullName
+
+        { New-PWProject -templateName $testname -destPath $dest.FullName -projectName 'MyNewApiProj'} |should not throw
+
+        $destFull = $dest.FullName
+        "$destFull\WebApiProject.xproj" | should exist
+        "$destFull\WebApiProject.xproj" | should contain 'WebApiProject.xproj'
+        "$destFull\WebApiProject.xproj" | should not contain 'MyNewApiProj.xproj'
+    }
+
+    It 'replace can pass include and exclude'{
+        $testname = 'replace-inclexc01'
+        [System.IO.DirectoryInfo]$templateSource = (Join-Path $TestDrive "$testname\src")
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive "$testname\dest")
+        Ensure-PathExists -path $templateSource.FullName
+        Ensure-PathExists -path $dest.FullName
+
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'WebApiProject.xproj') -content '* WebApiProject.xproj *'
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'otherfile.json')
+
+        # remove all templates
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = $testname
+            Type = 'ProjectTemplate'
+            CreateNewFolder = $false        
+        }
+
+        $templateInfo | replace (
+            ,('WebApiProject', {"$ProjectName"}, {"$DefaultProjectName"},@('WebApiProject*'),@('NoMatchForExclude'))
+        )
+
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $templateSource.FullName
+
+        { New-PWProject -templateName $testname -destPath $dest.FullName -projectName 'MyNewApiProj'} |should not throw
+
+        $destFull = $dest.FullName
+        "$destFull\WebApiProject.xproj" | should exist
+        "$destFull\WebApiProject.xproj" | should not contain 'WebApiProject.xproj'
+        "$destFull\WebApiProject.xproj" | should contain 'MyNewApiProj.xproj'
+    }
+
+    It 'replace can pass include and exclude'{
+        $testname = 'replace-inclexc02'
+        [System.IO.DirectoryInfo]$templateSource = (Join-Path $TestDrive "$testname\src")
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive "$testname\dest")
+        Ensure-PathExists -path $templateSource.FullName
+        Ensure-PathExists -path $dest.FullName
+
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'WebApiProject.xproj') -content '* WebApiProject.xproj *'
+        Create-TestFileAt -path (Join-Path $templateSource.FullName 'otherfile.json')
+
+        # remove all templates
+        Clear-PWTemplates
+
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = $testname
+            Type = 'ProjectTemplate'
+            CreateNewFolder = $false        
+        }
+
+        $templateInfo | replace (
+            ,('WebApiProject', {"$ProjectName"}, {"$DefaultProjectName"},@('WebApiProject*'),@('WebApiProject*'))
+        )
+
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $templateSource.FullName
+
+        { New-PWProject -templateName $testname -destPath $dest.FullName -projectName 'MyNewApiProj'} |should not throw
+
+        $destFull = $dest.FullName
+        "$destFull\WebApiProject.xproj" | should exist
+        "$destFull\WebApiProject.xproj" | should contain 'WebApiProject.xproj'
+        "$destFull\WebApiProject.xproj" | should not contain 'MyNewApiProj.xproj'
+    }
+}
+
+Describe 'update-filename tests'{
+    It 'can call update-filename and pass include value'{
+        . $importPecanWaffle
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'demo01'
+            Type = 'ProjectTemplate'
+            DefaultProjectName = 'DefaultProject'
+        }
+
+        $templateInfo | replace (
+            ,('EmptyProject', {"$ProjectName"}, {"$DefaultProjectName"})
+        )
+
+        $templateInfo | update-filename (
+            ,('EmptyProject', {"$ProjectName"},$null,'EmptyProject.xproj')
+        )
+
+        [System.IO.DirectoryInfo]$emptyTemplatePath =(Join-Path $sourceRoot 'templates\aspnet5\EmptyProject')
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $emptyTemplatePath.FullName
+
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'update-filename-include01')
+        Ensure-PathExists -path $dest.FullName
+
+        { New-PWProject -templateName 'demo01' -destPath $dest.FullName -properties @{'projectName'='MyNewApiProj'} -projectName 'MyNewApiProj' -noNewFolder} |should not throw
+
+        ([System.IO.FileInfo](Join-Path $dest.FullName 'MyNewApiProj.xproj')).FullName | should exist
+    }
+    
+    It 'can call update-filename and pass include and exclude value'{
+        . $importPecanWaffle
+        $templateInfo = New-Object -TypeName psobject -Property @{
+            Name = 'demo01'
+            Type = 'ProjectTemplate'
+            DefaultProjectName = 'DefaultProject'
+        }
+
+        $templateInfo | replace (
+            ,('EmptyProject', {"$ProjectName"}, {"$DefaultProjectName"})
+        )
+
+        $templateInfo | update-filename (
+            ,('EmptyProject', {"$ProjectName"},$null,@('EmptyProject.xproj'),@('EmptyProject.xproj'))
+        )
+
+        [System.IO.DirectoryInfo]$emptyTemplatePath =(Join-Path $sourceRoot 'templates\aspnet5\EmptyProject')
+        Set-TemplateInfo -templateInfo $templateInfo -templateRoot $emptyTemplatePath.FullName
+
+        [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'update-filename-include02')
+        Ensure-PathExists -path $dest.FullName
+
+        { New-PWProject -templateName 'demo01' -destPath $dest.FullName -properties @{'projectName'='MyNewApiProj'} -projectName 'MyNewApiProj' -noNewFolder} |should not throw
+
+        ([System.IO.FileInfo](Join-Path $dest.FullName 'MyNewApiProj.xproj')).FullName | should not exist
+        ([System.IO.FileInfo](Join-Path $dest.FullName 'EmptyProject.xproj')).FullName | should exist
+    }
+}
+
 Describe 'add project tests'{
     It 'can run aspnet5-empty project'{
         [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'empty01')
@@ -192,6 +416,10 @@ Describe 'add project tests'{
 
         ([System.IO.FileInfo](Join-Path $dest.FullName 'MyNewApiProj.xproj')).FullName | should exist
     }
+
+    ##################################################
+
+    
 
     It 'project name will override properties'{
         Clear-PWTemplates

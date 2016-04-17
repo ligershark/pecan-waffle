@@ -658,6 +658,15 @@ function TemplateAdd-ReplacementObject{
                 $defaultValue = $repobj[2]
             }
 
+            # see if include/exclude is passed in via replacementObject first
+            if( ($repobj.Length -ge 3) -and ($repobj[3] -ne $null)){                
+                $include = $repobj[3]
+            }
+
+            if( ($repobj.Length -ge 4) -and ($repobj[4] -ne $null)){
+               $exclude = $repobj[4]
+            }
+
             $addargs = @{
                 TemplateInfo = $templateInfo
                 ReplaceKey = $repKey
@@ -690,7 +699,14 @@ function TemplateUpdate-FileName{
         [ScriptBlock]$replaceValue,
 
         [Parameter(Position=4)]
-        [ScriptBlock]$defaultValue
+        [ScriptBlock]$defaultValue,
+
+        [Parameter(Position=5)]
+        [string[]]$include,
+
+        [Parameter(Position=6)]
+        [string[]]$exclude
+
     )
     process{
         if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'UpdateFilenames')){
@@ -701,6 +717,8 @@ function TemplateUpdate-FileName{
             ReplaceKey = $replaceKey
             ReplaceValue = $replaceValue
             DefaultValue = $defaultValue
+            Include = $include
+            Exclude = $exclude
         }
     }
 }
@@ -724,7 +742,23 @@ function TemplateUpdate-FilenameObject{
                 if($upObj.length -ge 3){
                     $defaultValue = $upObj[2]
                 }
-                TemplateUpdate-FileName -templateInfo $templateInfo -replaceKey ($upObj[0]) -replaceValue ($upObj[1]) -defaultValue $defaultValue
+
+                $updateArgs = @{
+                    templateInfo = $templateInfo
+                    replaceKey = ($upObj[0])
+                    replaceValue = ($upObj[1])
+                    defaultValue = $defaultValue
+                }
+
+                if( ($upObj.Length -ge 3) -and ($upObj[3] -ne $null)){
+                    $updateArgs['include'] = $upObj[3]
+                }
+
+                if( ($upObj.Length -ge 4) -and ($upObj[4] -ne $null)){
+                    $updateArgs['exclude'] = $upObj[4]
+                }
+
+                TemplateUpdate-FileName @updateArgs
             }
         }
     }
@@ -1178,6 +1212,10 @@ function InternalNew-PWTemplate{
                 }
             }
 
+            <# 
+            *****TODO*****: Disabled this for now, revisit this later
+            **************: Instead of the below user robocopy to move the file to a temp dir and then delete the temp dir
+            #>
             # remove excluded files (in some cases excluded files can still be copied to temp
             #   for example if you specify sourcefile/destfile and include a file that should be excluded
             $excludeStr = '';
@@ -1191,7 +1229,7 @@ function InternalNew-PWTemplate{
             if(-not [string]::IsNullOrWhiteSpace($excludeStr) ){
                 (Get-ChildItem $mappedTempWorkDir $excludeStr -Recurse -File) | Remove-Item 
             }
-
+            <# ****************************************** #>
 
             # replace file names
             if($template.UpdateFilenames -ne $null){
@@ -1203,7 +1241,27 @@ function InternalNew-PWTemplate{
                         $repvalue = InternalGet-EvaluatedProperty -expression $current.DefaultValue -properties $evaluatedProps
                     }
 
-                    (Get-ChildItem $tempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory) |
+                    # update directory names
+                    $gciparams = @{
+                        Path = $tempWorkDir.FullName + '\*'
+                        Include=('*{0}*' -f $current.ReplaceKey)
+                        Recurse = $true
+                        Directory=$true
+                    }
+
+                    if( ($current.Include -ne $null) -and ($current.Include.Length -gt 0) ){
+                        # 'Overriding include with [{0}]' -f ($current.Include -join ';') | Write-Host -ForegroundColor Cyan
+                        $gciparams.Include = $current.Include
+                    }
+
+                    if( ($current.Exclude -ne $null) -and ($current.Exclude.Length -gt 0) ){
+                        #'Overriding Exclude with [{0}]' -f ($current.Exclude -join ';') | Write-Host -ForegroundColor Cyan
+                        $gciparams.Exclude = $current.Exclude
+                        # $gciparams | Out-String | Write-Host -ForegroundColor Cyan
+                    }
+
+                    # (Get-ChildItem $tempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory) |
+                    (Get-ChildItem @gciparams) |
                         Select-Object -Property FullName,Name,Parent | ForEach-Object {
                             $folderPath = $_.FullName
                             $folderName = $_.Name
@@ -1216,19 +1274,15 @@ function InternalNew-PWTemplate{
                                 # Rename-Item -Path $folderPath -NewName $newPath
                             }
                         }
-                    # TODO: Before switching to this make sure there is no issues with long paths
-                    <#
-                    foreach($item in (Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory)){
-                        $newname = $item.Name.Replace($current.ReplaceKey, $repvalue)
-                        $newpath = (Join-Path $item.Parent.FullName $newname)
-                        if(Test-Path $item.FullName){
-                            Copy-ItemRobocopy -sourcePath $item.FullName -destPath $newpath -move -recurse -ignoreErrors
-                        }
-                    }
-                    #>
-
-                    $files = ([System.IO.FileInfo[]](Get-ChildItem $mappedTempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -File))
+                                          
+                    # update filenames
+                    $gciparams['Directory']=$false
+                    $gciparams['File']=$true
+                    # $gciparams | Out-String | Write-Host -ForegroundColor Cyan
+                    $global:lastgciparms = $gciparams
+                    $files = ([System.IO.FileInfo[]](Get-ChildItem @gciparams))
                     foreach($file in ($files)){
+                        #'** {0}' -f $file|Write-Host -ForegroundColor Cyan
                         $file = [System.IO.FileInfo]$file
 
                         if([string]::IsNullOrWhiteSpace($repvalue) -and ($current.DefaultValue -ne $null)){
