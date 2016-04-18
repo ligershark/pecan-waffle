@@ -1,7 +1,10 @@
 ﻿namespace PecanWaffle {
+    using Microsoft.VisualStudio.Shell;
+    using Microsoft.VisualStudio.Shell.Interop;
     using System;
     using System.Collections;
     using System.Collections.Generic;
+    using System.Collections.ObjectModel;
     using System.Linq;
     using System.Management.Automation;
     using System.Text;
@@ -37,13 +40,49 @@
             }
         }
 
+        protected bool WriteOutput
+        {
+            get
+            {
+                var pwverbosestr = Environment.GetEnvironmentVariable("PecanWaffleVerbose");
+                if (!string.IsNullOrWhiteSpace(pwverbosestr) &&
+                    string.Equals("true", pwverbosestr, StringComparison.OrdinalIgnoreCase)){
+                    return true;
+                }
+                return false;
+            }
+        }
+        public string GetStringFrom(Collection<PSObject> invokeResult) {
+            if (invokeResult == null) { throw new ArgumentNullException(nameof(invokeResult)); }
+            StringBuilder sb = new StringBuilder();
+            foreach (var result in invokeResult) {
+                sb.AppendLine(result.ToString());
+            }
+            return sb.ToString();
+        }
+        public void WriteToOutputWindow(string message) {
+            IVsOutputWindow outWindow = Package.GetGlobalService(typeof(SVsOutputWindow)) as IVsOutputWindow;
+
+            Guid customGuid = new Guid("5e2e5362-86e1-466e-956b-391841275c59");
+            string customTitle = "pecan-waffle";
+            outWindow.CreatePane(ref customGuid, customTitle, 1, 1);
+
+            IVsOutputWindowPane customPane;
+            outWindow.GetPane(ref customGuid, out customPane);
+
+            customPane.OutputString(message);
+            customPane.Activate();
+        }
         public void EnsureInstallPwScriptInvoked(string pwInstallBranch, string extensionInstallDir) {
             PsInstance = PowerShell.Create();
             PsInstance.AddScript(_psInstallPecanWaffleScript);
             PsInstance.AddParameter("pwInstallBranch", pwInstallBranch);
             PsInstance.AddParameter("extensionInstallDir",extensionInstallDir);
             var result = PsInstance.Invoke();
-            // WriteToOutputWindow(GetStringFrom(result));
+
+            if (WriteOutput) {
+                WriteToOutputWindow(GetStringFrom(result));
+            }
 
             bool hadErrors = false;
             string errorString = null;
@@ -59,6 +98,9 @@
 
                 if (hadErrors) {
                     errorString = errorsb.ToString();
+                    if (WriteOutput) {
+                        WriteToOutputWindow(errorString);
+                    }
                     // TODO: Improve this
                     MessageBox.Show(errorString.ToString());
                 }
@@ -67,7 +109,7 @@
         public void RunPwCreateProjectScript(string projectName, string destPath, string templateName, string pwBranchName, string templateSource, string templateSourceBranch, Hashtable properties) {
             // EnsureInstallPwScriptInvoked(pwBranchName);
 
-            bool hadErrors = false;
+            bool hadErrors;
             string errorString = "";
             // here is where we want to call pecan-waffle
             try {
@@ -92,22 +134,40 @@
                     PsInstance.AddParameter("Properties", properties);
                 }
 
-                var result = PsInstance.Invoke();
-                // WriteToOutputWindow(GetStringFrom(result));
-                var errorsb = new StringBuilder();
-                if (PsInstance.HadErrors && PsInstance.Streams.Error.Count > 0) {
-                    var error = PsInstance.Streams.Error.ReadAll();
-                    if (error != null) {
-                        foreach (var er in error) {
-                            hadErrors = true;
-                            errorsb.AppendLine(er.Exception.ToString());
-                        }
-                    }
-
-                    if (hadErrors) {
-                        errorString = errorsb.ToString();
-                    }
+                try {
+                    var result = PsInstance.Invoke();
                 }
+                catch(Exception ex) {
+                    string msg = WriteOutput ? 
+                                    $"An error occurred, see output window for more details {ex.ToString()}" : 
+                                    $"An error occurred. {ex.ToString()}";
+                    MessageBox.Show(msg);
+                }
+
+                errorString = GetErrorStringFrom(PsInstance, out hadErrors);
+
+                if (hadErrors && WriteOutput) {
+                    WriteToOutputWindow(errorString);
+                }
+
+                // WriteToOutputWindow(GetStringFrom(result));
+                //var errorsb = new StringBuilder();
+                //if (PsInstance.HadErrors && PsInstance.Streams.Error.Count > 0) {
+                //    var error = PsInstance.Streams.Error.ReadAll();
+                //    if (error != null) {
+                //        foreach (var er in error) {
+                //            hadErrors = true;
+                //            errorsb.AppendLine(er.Exception.ToString());
+                //        }
+                //    }
+
+                //    if (hadErrors) {
+                //        errorString = errorsb.ToString();
+                //        if (WriteOutput) {
+                //            WriteToOutputWindow(errorString);
+                //        }
+                //    }
+                //}
             }
             catch (Exception ex) {
                 // TODO: Improve
@@ -118,6 +178,22 @@
                 // TODO: Improve
                 throw new ApplicationException(errorString);
             }
+        }
+        private string GetErrorStringFrom(PowerShell instance) {
+            bool notused;
+            return GetErrorStringFrom(instance, out notused);
+        }
+        private string GetErrorStringFrom(PowerShell PsInstance, out bool hadErrors) {
+            hadErrors = false;
+            var errorsb = new StringBuilder();
+            var error = PsInstance.Streams.Error.ReadAll();
+            if (error != null) {
+                foreach (var er in error) {
+                    hadErrors = true;
+                    errorsb.AppendLine(er.Exception.ToString());
+                }
+            }
+            return errorsb.ToString();
         }
 
         private string _psNewProjectScript = @"

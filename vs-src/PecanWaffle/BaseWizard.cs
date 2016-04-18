@@ -134,27 +134,7 @@
         }
 
 
-        public string GetStringFrom(Collection<PSObject> invokeResult) {
-            if (invokeResult == null) { throw new ArgumentNullException(nameof(invokeResult)); }
-            StringBuilder sb = new StringBuilder();
-            foreach(var result in invokeResult) {
-                sb.AppendLine(result.ToString());
-            }
-            return sb.ToString();
-        }
-        public void WriteToOutputWindow(string message) {
-            IVsOutputWindow outWindow = Package.GetGlobalService(typeof(SVsOutputWindow)) as IVsOutputWindow;
 
-            Guid customGuid = new Guid("5e2e5362-86e1-466e-956b-391841275c59");
-            string customTitle = "pecan-waffle";
-            outWindow.CreatePane(ref customGuid, customTitle, 1, 1);
-
-            IVsOutputWindowPane customPane;
-            outWindow.GetPane(ref customGuid, out customPane);
-
-            customPane.OutputString(message);
-            customPane.Activate();
-        }
         // http://blogs.msdn.com/b/kebab/archive/2014/04/28/executing-powershell-scripts-from-c.aspx
         /// <summary>
         /// Gets the projects in a solution recursively.
