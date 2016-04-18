@@ -589,6 +589,26 @@ function InternalGet-MatchingStringsFromFile{
     }
 }
 
+function Get-7zipExe{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0)]
+        [string]$packageName='7Zip.Sfx',
+
+        [Parameter(Position=1)]
+        [string]$packageVersion='1.0.1'
+    )
+    process{
+        $pkgpath = (Get-NuGetPackage -name $packageName -version $packageVersion -binpath)
+        $exepath = (join-path $pkgpath '7za.exe')
+        if(-not (Test-Path $exepath)){
+            throw ('Did not find 7za.exe at [{0}]' -f $exepath)
+        }
+
+        $exepath
+    }
+}
+
 function InternalGet-PackageStringsFromFile{
     [cmdletbinding()]
     param(
