@@ -1167,6 +1167,8 @@ function InternalNew-PWTemplate{
             # eval properties here
             $evaluatedProps =  InternalGet-EvaluatedPropertiesFrom -template $template -properties $properties -templateWorkDir $mappedTempWorkDir
 
+            $evaluatedProps['FinalDestPath'] = $destPath
+
             if($template.BeforeInstall -ne $null){
                 InternalGet-EvaluatedProperty -expression $template.BeforeInstall -properties $evaluatedProps
             }
