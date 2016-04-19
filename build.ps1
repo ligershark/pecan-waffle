@@ -38,31 +38,41 @@ $localNugetFolder = 'c:\temp\nuget\local'
 [System.IO.DirectoryInfo]$outputroot=(join-path $scriptDir 'OutputRoot')
 [System.IO.DirectoryInfo]$outputPathNuget = (Join-Path $outputroot '_nuget-pkg')
 
-<#
-.SYNOPSIS
-    You can add this to you build script to ensure that psbuild is available before calling
-    Invoke-MSBuild. If psbuild is not available locally it will be downloaded automatically.
-#>
 function EnsurePsbuildInstlled{
     [cmdletbinding()]
     param(
-        [string]$psbuildInstallUri = 'https://raw.githubusercontent.com/ligershark/psbuild/master/src/GetPSBuild.ps1'
+        # TODO: Change to master when 1.1.9 gets there
+        [string]$psbuildInstallUri = 'https://raw.githubusercontent.com/ligershark/psbuild/dev/src/GetPSBuild.ps1',
+
+        [System.Version]$minVersion = (New-Object -TypeName 'system.version' -ArgumentList '1.1.9.1')
     )
     process{
-        if(-not (Get-Command "Invoke-MsBuild" -errorAction SilentlyContinue)){
-            'Installing psbuild from [{0}]' -f $psbuildInstallUri | Write-Verbose
-            (new-object Net.WebClient).DownloadString($psbuildInstallUri) | iex
+        # see if there is already a version loaded
+        $psbuildNeedsInstall = $true
+        [System.Version]$installedVersion = $null
+        try{
+            Import-Module psbuild -ErrorAction SilentlyContinue | Out-Null
+            $installedVersion = Get-PSBuildVersion
         }
-        else{
-            'psbuild already loaded, skipping download' | Write-Verbose
+        catch{
+            $installedVersion = $null
         }
 
-        # make sure it's loaded and throw if not
-        if(-not (Get-Command "Invoke-MsBuild" -errorAction SilentlyContinue)){
-            throw ('Unable to install/load psbuild from [{0}]' -f $psbuildInstallUri)
+        if( ($installedVersion -ne $null) -and ($installedVersion.CompareTo($minVersion) -ge 0) ){
+            'Skipping psbuild install because version [{0}] detected' -f $installedVersion.ToString() | Write-Verbose
+        }
+        else{
+            'Installing psbuild from [{0}]' -f $psbuildInstallUri | Write-Verbose
+            (new-object Net.WebClient).DownloadString($psbuildInstallUri) | iex
+
+            # make sure it's loaded and throw if not
+            if(-not (Get-Command "Invoke-MsBuild" -errorAction SilentlyContinue)){
+                throw ('Unable to install/load psbuild from [{0}]' -f $psbuildInstallUri)
+            }
         }
     }
 }
+
 function EnsureFileReplacerInstlled{
     [cmdletbinding()]
     param()
