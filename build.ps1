@@ -20,7 +20,10 @@ param(
     [string]$newversion,
 
     [Parameter(ParameterSetName='getversion',Position=0)]
-    [switch]$getversion
+    [switch]$getversion,
+
+    [Parameter(ParameterSetName='delfolders',Position=0)]
+    [switch]$deleteTempFolders
 )
 
 function Get-ScriptDirectory
@@ -366,6 +369,26 @@ function Update-FilesWithCommitId{
     }
 }
 
+function DeleteAllTempFolders{
+    [cmdletbinding()]
+    param()
+    process{
+        $foldersToDelete =@(
+            "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\nuget-powershell",
+            "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\pecan-waffle",
+            "$env:LOCALAPPDATA\LigerShark\nuget-ps",
+            "$env:LOCALAPPDATA\pecan-waffle"
+
+        )
+
+        foreach($folder in $foldersToDelete){
+            if( -not ([string]::IsNullOrWhiteSpace($folder)) -and (Test-Path $folder)){
+                Remove-Item -Path $folder -Recurse
+            }
+        }
+    }
+}
+
 function FullBuild{
     [cmdletbinding()]
     param()
@@ -400,7 +423,7 @@ try{
 
     $doBuild=$true
 
-    if( ($getversion -eq $true) -or ($setversion -eq $true)){
+    if( ($getversion -eq $true) -or ($setversion -eq $true) -or ($deleteTempFolders -eq $true) ){
         $doBuild = $false
     }
 
@@ -413,6 +436,9 @@ try{
     }
     elseif($setversion -eq $true){
         SetVersion -newversion $newversion
+    }
+    elseif($deleteTempFolders){
+        DeleteAllTempFolders
     }
 }
 catch{

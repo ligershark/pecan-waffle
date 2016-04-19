@@ -44,6 +44,7 @@
         {
             get
             {
+                return true;
                 var pwverbosestr = Environment.GetEnvironmentVariable("PecanWaffleVerbose");
                 if (!string.IsNullOrWhiteSpace(pwverbosestr) &&
                     string.Equals("true", pwverbosestr, StringComparison.OrdinalIgnoreCase)){
@@ -72,6 +73,8 @@
 
             customPane.OutputString(message);
             customPane.Activate();
+
+            // System.IO.File.AppendAllText(@"c:\temp\pean-waffle\log.txt", $"{message}{Environment.NewLine}");
         }
         public void EnsureInstallPwScriptInvoked(string pwInstallBranch, string extensionInstallDir) {
             PsInstance = PowerShell.Create();
