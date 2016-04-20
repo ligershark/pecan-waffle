@@ -74,7 +74,11 @@
             customPane.OutputString(message);
             customPane.Activate();
 
-            // System.IO.File.AppendAllText(@"c:\temp\pean-waffle\log.txt", $"{message}{Environment.NewLine}");
+            var logFilePath = Environment.GetEnvironmentVariable("PecanWaffleLogFilePath");
+            if (!string.IsNullOrWhiteSpace(logFilePath)) {
+                System.IO.File.AppendAllText(logFilePath, $"{message}{Environment.NewLine}");
+            }
+
         }
         public void EnsureInstallPwScriptInvoked(string pwInstallBranch, string extensionInstallDir) {
             PsInstance = PowerShell.Create();
@@ -87,31 +91,13 @@
                 WriteToOutputWindow(GetStringFrom(result));
             }
 
-            bool hadErrors = false;
-            string errorString = null;
-            var errorsb = new StringBuilder();
-            if (PsInstance.HadErrors && PsInstance.Streams.Error.Count > 0) {
-                var error = PsInstance.Streams.Error.ReadAll();
-                if (error != null) {
-                    foreach (var er in error) {
-                        hadErrors = true;
-                        errorsb.AppendLine(er.Exception.ToString());
-                    }
-                }
-
-                if (hadErrors) {
-                    errorString = errorsb.ToString();
-                    if (WriteOutput) {
-                        WriteToOutputWindow(errorString);
-                    }
-                    // TODO: Improve this
-                    MessageBox.Show(errorString.ToString());
-                }
+            bool hadErrors;
+            string errorString = GetErrorStringFrom(PsInstance, out hadErrors);
+            if(WriteOutput) {
+                WriteToOutputWindow(errorString);
             }
         }
         public void RunPwCreateProjectScript(string projectName, string destPath, string templateName, string pwBranchName, string templateSource, string templateSourceBranch, Hashtable properties) {
-            // EnsureInstallPwScriptInvoked(pwBranchName);
-
             bool hadErrors;
             string errorString = "";
             // here is where we want to call pecan-waffle
@@ -146,31 +132,12 @@
                                     $"An error occurred. {ex.ToString()}";
                     MessageBox.Show(msg);
                 }
-
+                
                 errorString = GetErrorStringFrom(PsInstance, out hadErrors);
 
                 if (hadErrors && WriteOutput) {
                     WriteToOutputWindow(errorString);
                 }
-
-                // WriteToOutputWindow(GetStringFrom(result));
-                //var errorsb = new StringBuilder();
-                //if (PsInstance.HadErrors && PsInstance.Streams.Error.Count > 0) {
-                //    var error = PsInstance.Streams.Error.ReadAll();
-                //    if (error != null) {
-                //        foreach (var er in error) {
-                //            hadErrors = true;
-                //            errorsb.AppendLine(er.Exception.ToString());
-                //        }
-                //    }
-
-                //    if (hadErrors) {
-                //        errorString = errorsb.ToString();
-                //        if (WriteOutput) {
-                //            WriteToOutputWindow(errorString);
-                //        }
-                //    }
-                //}
             }
             catch (Exception ex) {
                 // TODO: Improve
@@ -196,6 +163,7 @@
                     errorsb.AppendLine(er.Exception.ToString());
                 }
             }
+
             return errorsb.ToString();
         }
 
@@ -217,89 +185,42 @@ New-PWProject -templateName $templatename -destPath $destpath.FullName -noNewFol
 param($pwInstallBranch, $extensionInstallDir)
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
 
-$modLoaded = $false
 $localPath = $env:PWLocalPath
 if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
     Import-Module ""$localPath\pecan-waffle.psm1"" -Global -DisableNameChecking
-    $modLoaded = $true
 }
 else{
     # try and load locally if possible from extension installdir    
     if( ($extensionInstallDir -ne $null) -and (Test-Path $extensionInstallDir)){
-        $foundFileReplacer = $false
-        $foundPecanWaffle = $false
-        $foundNugetPs = $false
-        # look for pecan-waffle and file-replacer modules
-        
-        [System.IO.FileInfo]$npLocalModFile = ((Get-ChildItem $extensionInstallDir 'nuget-powershell.psm1' -Recurse -File)|Select-Object -First 1)
+        # look for pecan-waffle and file-replacer modules and load them
+        [System.IO.FileInfo]$npLocalModFile = ((Get-ChildItem $extensionInstallDir 'nuget-powershell.psd1' -Recurse -File)|Select-Object -First 1)
         [System.IO.FileInfo]$frLocalModFile = ((Get-ChildItem $extensionInstallDir 'file-replacer.psm1' -Recurse -File)|Select-Object -First 1)
         [System.IO.FileInfo]$pwLocalModFile = ((Get-ChildItem $extensionInstallDir 'pecan-waffle.psm1' -Recurse -File)|Select-Object -First 1)
 
-       if( ($npLocalModFile -ne $null) -and (Test-Path $npLocalModFile.FullName)){
+        if( ($npLocalModFile -ne $null) -and (Test-Path $npLocalModFile.FullName)){
             Import-Module $npLocalModFile.FullName -Global -DisableNameChecking
-            $foundNugetPs = $true
         }
+        else{
+            throw ('nuget-powershell module not found at [{0}]' -f $npLocalModFile)
+        }
+
         if( ($frLocalModFile -ne $null) -and (Test-Path $frLocalModFile.FullName)){
             Import-Module $frLocalModFile.FullName -Global -DisableNameChecking
             $foundFileReplacer = $true
         }
+        else{
+            throw ('file-replacer module not found at [{0}]' -f $frLocalModFile)
+        }
+
         if( ($pwLocalModFile -ne $null) -and (Test-Path $pwLocalModFile.FullName)){
             Import-Module $pwLocalModFile.FullName -Global -DisableNameChecking
-            $foundPecanWaffle = $true
-        }
-
-        if( ($foundNugetPs -eq $true) -and ($foundFileReplacer -eq $true) -and ($foundPecanWaffle -eq $true)){
-            $modLoaded = $true
-        }
-    }
-}
-
-if(-not $modLoaded) {
-    if([string]::IsNullOrWhiteSpace($pwInstallBranch)){ $pwInstallBranch = 'master' }
-
-    $env:EnableAddLocalSourceOnLoad =$false
-
-    # parameters declared here
-    Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
-
-    [System.Version]$minPwVersion = (New-Object -TypeName 'system.version' -ArgumentList '0.0.13.0')
-    $pwNeedsInstall = $true
-
-    # see if pw is already installed and has a high enough version
-    [System.Version]$installedVersion = $null
-    try{
-        Import-Module pecan-waffle -ErrorAction SilentlyContinue | out-null
-        $installedVersion = Get-PecanWaffleVersion
-    }
-    catch{
-        $installedVersion = $null
-    }
-
-    if( ($installedVersion -ne $null) -and ($installedVersion.CompareTo($minPwVersion) -ge 0)){
-        $pwNeedsInstall = $false
-    }
-
-    $localPath = $env:PWLocalPath
-
-    if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
-        $pwNeedsInstall = $true
-    }
-
-    if($pwNeedsInstall){
-        Remove-Module pecan-waffle -ErrorAction SilentlyContinue | Out-Null
-    
-        [System.IO.DirectoryInfo]$localInstallFolder = ""$env:USERPROFILE\Documents\WindowsPowerShell\Modules\pecan-waffle""
-        if(test-path $localInstallFolder.FullName){
-            Remove-Item $localInstallFolder.FullName -Recurse
-        }
-    
-        if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
-            Import-Module ""$localPath\pecan-waffle.psm1"" -Global -DisableNameChecking
         }
         else{
-            $installUrl = ('https://raw.githubusercontent.com/ligershark/pecan-waffle/{0}/install.ps1' -f $pwInstallBranch)
-            &{set-variable -name pwbranch -value $pwInstallBranch;$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString($installUrl))}
+            throw ('pecan-waffle module not found at [{0}]' -f $frLocalModFile)
         }
+    }
+    else{
+        throw ('Unable to load pecan-waffle modules because extensionInstallDir is empty')
     }
 }";
     }
