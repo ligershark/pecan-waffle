@@ -219,6 +219,31 @@ function InternalGet-RelativePath{
     }
 }
 $global:pwvstemplateindex = 0
+
+function New-VsTemplateZipFile{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$vsTemplateFilePath,
+        
+        [Parameter(Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [string]$outputDirectory
+    )
+    process{
+        if(-not (Test-Path $outputDirectory)){
+            throw ('output directory not found at [{0}]' -f $outputDirectory)
+        }
+
+        # create a .zip file for the .vstemplate file and add it to the .zip
+        $filename = ('VsTemplateProj{0}.project.zip' -f (++$global:pwvstemplateindex))      
+
+        $ziptempfile = (InternalNew-VsTemplateZip -vstemplateFilePath $vsTemplateFilePath)
+        Move-Item $ziptempfile (Join-Path $outputDirectory $filename) -Force
+    }
+}
+
 # Items related to creating a VS template .zip file
 function Add-VsTemplateToVsix{
     [cmdletbinding()]
@@ -262,6 +287,42 @@ function Add-VsTemplateToVsix{
         }
     }
 }
+
+function Copy-TemplatesTo{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({test-path $_ -PathType Leaf})]
+        [string]$templateFilePath,
+
+        [Parameter(Position=1)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({test-path $_ -PathType Container})]
+        [string]$outputDirectry
+    )
+    process{
+        # clear templates
+        Clear-PWTemplates
+        Add-PWTemplateSource -path (Split-Path $templateFilePath -Parent)
+
+        $projTemplates = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate'})
+        foreach($pt in $projTemplates){
+            'Adding template [{0}] to vsix [{1}]' -f $pt.Name,$vsixFilePath | Write-Verbose
+            $templateName = $pt.Name
+
+            $destDir = (Join-Path $outputDirectry $templateName)
+            if( (Test-Path $destDir)){
+                Remove-Item -Path $destDir -Recurse | Write-Verbose
+            }
+
+            Ensure-DirectoryExists -path $destDir | Write-Verbose
+
+            Copy-TemplateSourceFiles -template $pt -destFolderPath $destDir
+        }
+    }
+}
+
 function Add-TemplateToVsix{
     [cmdletbinding()]
     param(
