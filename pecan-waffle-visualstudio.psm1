@@ -245,13 +245,15 @@ function Add-VsTemplateToVsix{
         $ziptempfile = (InternalNew-VsTemplateZip -vstemplateFilePath $vsTemplateFilePath)
         $newtempdir = (Get-NewTempDir)
         try{
-            $renamedzipfilepath = (Join-Path $newtempdir $filename)
+            $destdir = (Join-Path $newtempdir $relpath)
+            New-Item -Path $destdir -ItemType Directory | Write-verbose
+            $renamedzipfilepath = (Join-Path $destdir $filename)
             Move-Item -Path $ziptempfile -Destination $renamedzipfilepath | Write-Verbose
 
             # add the .vstemplate file to the .zip file
             'vsTemplateFilePath: [{0}]' -f $vsTemplateFilePath | Write-Verbose
             # add the .zip to the .vsix file
-            InternalAdd-FolderToOpcPackage -pkgPath $vsixFilePath -folderToAdd (([System.IO.FileInfo]$renamedzipfilepath).Directory.FullName) -relpathtofolderinopc $relpath
+            InternalAdd-FolderToOpcPackage -pkgPath $vsixFilePath -folderToAdd $newtempdir
         }
         finally{
             if(-not ([string]::IsNullOrEmpty($newtempdir)) -and (Test-Path $newtempdir)){
@@ -291,14 +293,17 @@ function Add-TemplateToVsix{
         foreach($pt in $projTemplates){
             'Adding template [{0}] to vsix [{1}]' -f $pt.Name,$vsixFilePath | Write-Verbose
             $templateName = $pt.Name
-            $tempdir = Get-NewTempDir
+
+            $tempDir = (Get-NewTempDir)
+            $destDir = (Join-Path $tempDir ($relpath + $templateName))
+            New-Item -Path $destDir -ItemType Directory | Write-Verbose
             try{
-                Copy-TemplateSourceFiles -template $pt -destFolderPath $tempdir                
-                InternalAdd-FolderToOpcPackage -pkgPath $vsixFilePath -folderToAdd $tempdir -relpathtofolderinopc ($relpath + $templateName + '\')
+                Copy-TemplateSourceFiles -template $pt -destFolderPath $destDir
+                InternalAdd-FolderToOpcPackage -pkgPath $vsixFilePath -folderToAdd $tempDir # -relpathtofolderinopc ($relpath + $templateName + '\')
             }
             catch{
-                if( -not ([string]::IsNullOrWhiteSpace($tempdir)) -and (Test-Path $tempdir)){
-                    Remove-Item -Path $tempdir -Recurse | Write-Verbose
+                if( -not ([string]::IsNullOrWhiteSpace($tempDir)) -and (Test-Path $tempDir)){
+                    Remove-Item -Path $tempDir -Recurse | Write-Verbose
                 }
             }            
         }
@@ -325,7 +330,9 @@ function Add-TemplateToVsix{
     }
 }
 
-function InternalAdd-FolderToOpcPackage{
+#InternalNew-ZipFile -ZipFilePath $templateZipPath -InputObject $vstemplateFilePath -rootFolder (([System.IO.FileInfo]$vstemplateFilePath).Directory.FullName) -Append | Out-Null
+# relpathinzip
+function InternalAdd-FolderToOpcPackageNoGood2{
     [cmdletbinding()]
     param(
         [Parameter(Position=0,Mandatory=$true)]
@@ -338,7 +345,105 @@ function InternalAdd-FolderToOpcPackage{
         [string]$folderToAdd,
 
         [Parameter(Position=2)]
-        [string]$relpathtofolderinopc = ('.\')
+        [string]$relpathtofolderinopc = ('')
+    )
+    process{
+        InternalNew-ZipFile -ZipFilePath $pkgPath -InputObject $folderToAdd -rootFolder $folderToAdd -relpathinzip $relpathtofolderinopc -Append | Write-Verbose
+    }
+}
+function InternalAdd-FolderToOpcPackage7zip{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$pkgPath,
+
+        [Parameter(Position=1,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({test-path $_})]
+        [string]$folderToAdd,
+
+        [Parameter(Position=2)]
+        [string]$relpathtofolderinopc = ('')
+    )
+    process{        
+        # InternalNew-ZipFile -ZipFilePath $pkgPath -InputObject $folderToAdd -rootFolder (([System.IO.FileInfo]$vstemplateFilePath).Directory.FullName) -Append | Write-Verbose
+        try{
+            Push-Location
+            Set-Location $folderToAdd
+
+            $relpathtouse = $relpathtofolderinopc.TrimEnd('\').TrimEnd('/') + '\'
+            # TODO: Relpath doesn't work like this with 7za.exe
+#            $7zipargs = @('a', $pkgPath, $relpathtouse,'-tzip')
+            $7zipargs = @('a', $pkgPath, '.\*','-tzip')
+            # 7za a ..\vstemplate\NodeServices\bin\Debug\NodeServices.vsix AureliaES2016vNext1\ -x!AureliaES2016vNext1\node_modules
+            'Calling 7zip: {0} {1}' -f (Get-7zipExe),($7zipargs -join ' ') | Write-Output
+            Invoke-CommandString -command (Get-7zipExe) -commandArgs $7zipargs -ignoreErrors $true -ErrorAction Continue
+        }
+        finally{
+            Pop-Location
+        }
+    }
+}
+
+function InternalAdd-FolderToOpcPackageNoGood4{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$pkgPath,
+
+        [Parameter(Position=1,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({test-path $_})]
+        [string]$folderToAdd,
+
+        [Parameter(Position=2)]
+        [string]$relpathtofolderinopc
+    )
+    begin{
+        LoadSharpZipLib
+    }
+    process{
+        $filestoadd = ((Get-ChildItem $folderToAdd -Recurse -File).FullName)
+        if( ($filestoadd -ne $null) -and ($filestoadd.Length -gt 0)){
+            # $zip = [ICSharpCode.SharpZipLib.Zip.ZipFile]::Create($zipname)
+            [ICSharpCode.SharpZipLib.Zip.ZipFile]$zip = $null
+            try{
+                $zip = New-Object -TypeName ICSharpCode.SharpZipLib.Zip.ZipFile -ArgumentList $pkgPath
+                $zip.BeginUpdate()
+                foreach($file in $filestoadd){
+                    $filerelpath = InternalGet-RelativePath -fromPath $folderToAdd -toPath $file
+                    $relpathinzip = $filerelpath
+
+                    if(-not [string]::IsNullOrWhiteSpace($relpathtofolderinopc)){
+                        $filerelpath = $relpathtofolderinopc.TrimEnd('\').TrimEnd('/') + '\' + $filerelpath.TrimEnd('\').TrimEnd('/')
+                    }
+
+                    $zip.Add($file,$filerelpath)
+                }
+                $zip.CommitUpdate()
+            }
+            finally{
+                if($zip -ne $null){
+                    $zip.Dispose()
+                    $zip = $null
+                }
+            }
+        }
+    }
+}
+function InternalAdd-FolderToOpcPackage{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string]$pkgPath,
+
+        [Parameter(Position=1,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [ValidateScript({test-path $_})]
+        [string]$folderToAdd
     )
     begin{
         [System.Reflection.Assembly]::Load("WindowsBase,Version=3.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35")
@@ -351,7 +456,7 @@ function InternalAdd-FolderToOpcPackage{
             foreach($file in $files){
                 'adding file [{0}]' -f $file.FullName | Write-Verbose
                 $relpath = InternalGet-RelativePath -fromPath $folderToAdd -toPath $file.FullName
-                $destFilename = $relpathtofolderinopc + $relpath
+                $destFilename = '.\' + $relpath
 
                 [System.Uri]$uri = [System.IO.Packaging.PackUriHelper]::CreatePartUri( (new-object System.Uri($destFilename,[System.UriKind]::Relative)) )
                 if($zipPkg.PartExists($uri)){
@@ -365,25 +470,35 @@ function InternalAdd-FolderToOpcPackage{
                     InternalCopy-Stream -inputStream $fstream -outputStream $dest
                 }
                 finally{
-                    if($fstream -ne $null){
-                        $fstream.Dispose()
-                        $fstream = $null
-                    }
                     if($dest -ne $null){
+                        $dest.Flush()
+                        $dest.Close()
                         $dest.Dispose()
                         $dest = $null
+                        # Start-Sleep -Seconds 1
+                    }
+                    if($fstream -ne $null){
+                        $fstream.Flush()
+                        $fstream.Close()
+                        $fstream.Dispose()
+                        $fstream = $null
+                        # Start-Sleep -Seconds 1
                     }
                 }
 
             }
         }
         catch{
+            #& C:\Data\Dropbox\Tools\SysinternalsSuite\handle.exe .vsix
             throw $_.exception
         }
         finally{
             if($zipPkg -ne $null){
+                $zipPkg.Flush()
+                $zipPkg.Close()
                 $zipPkg.Dispose()
                 $zipPkg = $null
+                # Start-Sleep -Seconds 1
             }
         }        
     }
@@ -401,20 +516,30 @@ function InternalCopy-Stream{
         [System.IO.Stream]$outputStream,
 
         [Parameter(Position=2)]
-        [long]$bufferSize = 4096
+        [long]$bufferSize = 15539716
     )
     process{
         if($inputStream.Length -le $bufferSize){
             $bufferSize = $inputStream.Length
         }
+        else{
+            '****************buffer size in else: buffersize=[{0}] length=[{1}]' -f $bufferSize,$inputStream.Length | Write-Output
+        }
 
         $buffer = New-Object byte[] $bufferSize
         [int]$bytesRead = 0
         [long]$bytesWritten = 0
-        while( $bytesRead = $inputStream.Read($buffer,0,$buffer.Length)){
+        [long]$totalBytesRead = 0
+        
+        do{
+            $bytesRead = $inputStream.Read($buffer,0,$buffer.Length)
             $outputStream.Write($buffer,0,$bytesRead)
+            # 'bytesread:[{0}]' -f $bytesRead | Write-Output
+            Start-Sleep -Milliseconds 1
             $bytesWritten += $bufferSize
-        }
+            $totalBytesRead += $bytesRead
+        
+        } while ($bytesRead -gt 0)
     }
 }
 
@@ -522,6 +647,8 @@ function InternalNew-ZipFile {
  
         [string]$rootFolder = $pwd,
 
+        [string]$relpathinzip,
+
 		# Append to an existing zip file, instead of overwriting it
 		[Switch]$Append,
  
@@ -550,6 +677,10 @@ function InternalNew-ZipFile {
 				foreach($file in Get-ChildItem $item -Recurse -File -Force | % FullName) {
 					# Calculate the relative file path
                     $relative = InternalGet-RelativePath -fromPath $rootFolder -toPath $file
+                    if(-not [string]::IsNullOrWhiteSpace($relpathinzip)){
+                        $relative = $relpathinzip.TrimEnd('\').TrimEnd('/') + '\' + $relative.TrimEnd('\').TrimEnd('/') + '\'
+                    }
+
 					# Add the file to the zip
 					$null = [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($Archive, $file, $relative, $Compression)
 				}
@@ -589,6 +720,27 @@ function InternalGet-MatchingStringsFromFile{
     }
 }
 
+$global:sharpziplibloaded = $false
+function LoadSharpZipLib{
+    [cmdletbinding()]
+    param(
+        [string]$packageName = 'SharpZipLib',
+        [string]$packageVersion = '0.86.0'
+    )
+    process{
+        if($global:sharpziplibloaded -ne $true){
+            $pkgpath = (Get-NuGetPackage -name $packageName -version $packageVersion)
+            $dllpath = (Join-Path $pkgpath "SharpZipLib.$packageVersion\lib\20\ICSharpCode.SharpZipLib.dll")
+            if(-not (Test-Path $dllpath)){
+                throw ('SharpZipLib not found at [{0}]' -f $dllpath)
+            }
+
+            [System.Reflection.Assembly]::LoadFrom($dllpath)
+            $global:sharpziplibloaded = $true
+        }
+    }
+}
+
 function Get-7zipExe{
     [cmdletbinding()]
     param(
@@ -598,6 +750,9 @@ function Get-7zipExe{
         [Parameter(Position=1)]
         [string]$packageVersion='1.0.1'
     )
+    begin{
+        InternalImport-NuGetPowershell2
+    }
     process{
         $pkgpath = (Get-NuGetPackage -name $packageName -version $packageVersion -binpath)
         $exepath = (join-path $pkgpath '7za.exe')
@@ -628,6 +783,39 @@ function InternalGet-ArtifactsStringsFromFile{
     )
     process{
         InternalGet-MatchingStringsFromFile -files $files -pattern '[\.\\/a-zA-Z0-9]+artifacts'
+    }
+}
+
+# TODO: Remove this when sharing is figured out
+function InternalImport-NuGetPowershell2{
+    [cmdletbinding()]
+    param(
+        $nugetPsMinModVersion = '0.2.1.1'
+    )
+    process{
+        # see if nuget-powershell is available and load if not
+        $nugetpsloaded = $false
+        if((get-command Get-NuGetPackage -ErrorAction SilentlyContinue)){
+            # check the module to ensure we have the correct version
+
+            $currentversion = (Get-Module -Name nuget-powershell).Version
+            if( ($currentversion -ne $null) -and ($currentversion.CompareTo([version]::Parse($nugetPsMinModVersion)) -ge 0 )){
+                $nugetpsloaded = $true
+            }
+        }
+
+        if(!$nugetpsloaded){
+            (new-object Net.WebClient).DownloadString("https://raw.githubusercontent.com/ligershark/nuget-powershell/master/get-nugetps.ps1") | iex
+        }
+
+        # check to see that it was loaded
+        if((get-command Get-NuGetPackage -ErrorAction SilentlyContinue)){
+            $nugetpsloaded = $true
+        }
+
+        if(-not $nugetpsloaded){
+            throw ('Unable to load nuget-powershell, unknown error')
+        }
     }
 }
 
