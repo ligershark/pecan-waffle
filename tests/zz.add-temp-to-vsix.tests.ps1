@@ -6,7 +6,7 @@ function Get-ScriptDirectory
 $scriptDir = ((Get-ScriptDirectory) + "\")
 
 $originalPwLocalPath = $env:PWLocalPath
-$env:PWLocalPath = $originalPwLocalPath
+$env:PWLocalPath = ([System.IO.DirectoryInfo](Join-Path $scriptDir ..\)).FullName
 
 $pwAddTemplateScript = ([System.IO.FileInfo](Join-Path $scriptDir '..\pecan-add-template-to-vsix.ps1')).FullName
 
