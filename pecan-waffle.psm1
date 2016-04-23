@@ -150,6 +150,10 @@ function Copy-ItemRobocopy{
         $sb.AppendFormat('"{0}" ',$sourcePath.Trim('"').Trim("'").TrimEnd("\")) | out-null
         $sb.AppendFormat('"{0}" ',$destPath.Trim('"').Trim("'").TrimEnd("\")) | out-null
 
+        if($fileNames -eq $null){
+            $fileNames = ,'*.*'
+        }
+
         if( ($fileNames -ne $null) -and ($fileNames.Count -gt 0)){
             foreach($file in $fileNames){
                 $sb.AppendFormat('"{0}" ',$file)
@@ -193,11 +197,10 @@ function Copy-ItemRobocopy{
             'commandArgs'=$sb.ToString()
         }
 
-        if($ignoreErrors){
-            $copyArgs['ignoreErrors']=$true
-        }
+        # TODO: Not sure how to properly handle errors, always ignore
+        $copyArgs['ignoreErrors']=$true
 
-        Invoke-CommandString @copyArgs        
+        Invoke-CommandString @copyArgs
     }
 }
 
