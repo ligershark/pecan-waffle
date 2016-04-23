@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+  For more info on this file format visit http://docs.nuget.org/docs/reference/nuspec-reference.
+-->
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">  
+  <metadata>
+    <id>pecan-waffle</id>
+    <version>0.0.14-beta</version>
+    <authors>Sayed Ibrahim Hashimi</authors>
+    <description>
+      Package containing pecan-waffle
+      
+      For more info see https://github.com/ligershark/pecan-waffle.
+
+      Commit: https://github.com/ligershark/pecan-waffle/commit/$(COMMIT_ID)
+    </description>    
+    <language>en-US</language>
+    <projectUrl>https://github.com/ligershark/pecan-waffle/</projectUrl>
+    <licenseUrl>https://github.com/ligershark/pecan-waffle/blob/master/LICENSE</licenseUrl>
+    <!-- <iconUrl>https://raw.githubusercontent.com/geoffrey-ps/geoffrey/master/geoffrey-120x120.png</iconUrl> -->
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <copyright>Copyright 2016 Sayed Ibrahim Hashimi</copyright>   
+    <!-- This is hack to avoid having content in the package 
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="System"  />
+    </frameworkAssemblies> -->
+  </metadata>
+  <files>
+      <file src="vs\PecanWaffle.dll" target="lib" />
+      <file src="vs\PecanWaffle.pdb" target="lib" />
+      <file src="pecan-waffle.psm1" target="tools" />
+      <file src="pecan-add-template-to-vsix.ps1" target="tools" />
+      <file src="pecan-waffle-visualstudio.psm1" target="tools" />
+      
+      <file src="vs-template-zip\sw-file-icon.png" target="tools\vs-template-zip\sw-file-icon.png" />
+      <file src="vs-template-zip\VsTemplateProj.csproj" target="tools\vs-template-zip\VsTemplateProj.csproj" />      
+  </files>
+</package>

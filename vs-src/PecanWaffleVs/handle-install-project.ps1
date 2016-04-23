@@ -1,50 +1,56 @@
-﻿param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch)
+﻿param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch,$properties)
 
-if([string]::IsNullOrWhiteSpace($templateName)){
-    throw ('$templateName is null')
-}
-if([string]::IsNullOrWhiteSpace($projectname)){
-    throw ('$projectname is null')
-}
-if([string]::IsNullOrWhiteSpace($destpath)){
-    throw ('$destpath is null')
-}
+if([string]::IsNullOrWhiteSpace($templateName)){ throw ('$templateName is null') }
+if([string]::IsNullOrWhiteSpace($projectname)){ throw ('$projectname is null') }
+if([string]::IsNullOrWhiteSpace($destpath)){ throw ('$destpath is null') }
 
-if([string]::IsNullOrWhiteSpace($pwInstallBranch)){
-    $pwInstallBranch = 'master'
-}
-if([string]::IsNullOrWhiteSpace($templateSourceBranch)){
-    $templateSourceBranch = 'master'
-}
+if([string]::IsNullOrWhiteSpace($pwInstallBranch)){ $pwInstallBranch = 'master' }
+if([string]::IsNullOrWhiteSpace($templateSourceBranch)){ $templateSourceBranch = 'master' }
 
 $destpath = ([System.IO.DirectoryInfo]$destpath)
+$env:EnableAddLocalSourceOnLoad =$false
 
 # parameters declared here
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned | out-null
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
 
-# TODO: Remove this later and detect version to see if upgrade is needed
+[System.Version]$minPwVersion = (New-Object -TypeName 'system.version' -ArgumentList '0.0.6.0')
 $pwNeedsInstall = $true
-[System.IO.DirectoryInfo]$localInstallFolder = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\pecan-waffle"
-if(test-path $localInstallFolder.FullName){
-    Remove-Item $localInstallFolder.FullName -Recurse
-}
 
+# see if pw is already installed and has a high enough version
+[System.Version]$installedVersion = $null
 try{
     Import-Module pecan-waffle -ErrorAction SilentlyContinue | out-null
-
-    if(-not (Get-Command "New-PWProject" -Module pecan-waffle  -errorAction SilentlyContinue)){
-        $pwNeedsInstall = $true
-    }
+    $installedVersion = Get-PecanWaffleVersion
 }
 catch{
-    # do nothing
+    $installedVersion = $null
+}
+
+if( ($installedVersion -ne $null) -and ($installedVersion.CompareTo($minPwVersion) -ge 0)){
+    $pwNeedsInstall = $false
+}
+
+$localPath = $env:PWLocalPath
+
+if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
+    $pwNeedsInstall = $true
 }
 
 if($pwNeedsInstall){
     Remove-Module pecan-waffle -ErrorAction SilentlyContinue | Out-Null
-    # TODO: Update branch to master or via parameter
-    $installUrl = ('https://raw.githubusercontent.com/ligershark/pecan-waffle/{0}/install.ps1' -f $pwInstallBranch)
-    &{set-variable -name pwbranch -value $pwInstallBranch;$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString($installUrl))}
+    
+    [System.IO.DirectoryInfo]$localInstallFolder = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\pecan-waffle"
+    if(test-path $localInstallFolder.FullName){
+        Remove-Item $localInstallFolder.FullName -Recurse
+    }
+    
+    if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
+        Import-Module "$localPath\pecan-waffle.psm1" -Global -DisableNameChecking
+    }
+    else{
+        $installUrl = ('https://raw.githubusercontent.com/ligershark/pecan-waffle/{0}/install.ps1' -f $pwInstallBranch)
+        &{set-variable -name pwbranch -value $pwInstallBranch;$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString($installUrl))}
+    }
 }
 
 if(-not [string]::IsNullOrWhiteSpace($templateSource)){
@@ -53,4 +59,4 @@ if(-not [string]::IsNullOrWhiteSpace($templateSource)){
     Update-RemoteTemplates
 }
 
-New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -noNewFolder
+New-PWProject -templateName $templatename -destPath $destpath.FullName -projectName $projectname -noNewFolder -properties $properties

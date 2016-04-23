@@ -13,8 +13,7 @@
     using System.Text;
     using System.Threading.Tasks;
     using System.Windows.Forms;
-    using NuGet;
-
+    using System.Collections;
     public class PocUiWizard : BaseWizard {
         public override void RunFinished() {
             try {
@@ -30,8 +29,15 @@
 
                     if (solution != null) {
                         string projectFolder = RemovePlaceholderProjectCreatedByVs(ProjectName);
-                        CreateProjectWithPecanWaffle(ProjectName, projectFolder, form.TemplateName, PecanWaffleBranchName, form.TemplatePathOrUrl, form.TemplateBranch);
-                        AddProjectsUnderPathToSolution(solution, projectFolder, "*.*proj");
+                        var properties = new Hashtable();
+                        if (!string.IsNullOrWhiteSpace(solution.FileName)) {
+                            properties.Add("SolutionFile", new FileInfo(solution.FileName).FullName);
+                            properties.Add("SolutionRoot", new FileInfo(solution.FileName).DirectoryName);
+                        }
+                        string newFolder = new DirectoryInfo(projectFolder).Parent.FullName;
+                        Directory.Delete(projectFolder, true);
+                        PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, newFolder, form.TemplateName, PecanWaffleBranchName, form.TemplatePathOrUrl, form.TemplateBranch, properties);
+                        AddProjectsUnderPathToSolution(solution, newFolder, "*.*proj");
                     }
                     else {
                         // TODO: Improve

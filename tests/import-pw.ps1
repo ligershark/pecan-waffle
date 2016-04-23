@@ -32,12 +32,12 @@ function global:Create-TestFileAt{
         [System.IO.FileInfo]$path,
 
         [Parameter(Position=1)]
-        [string]$contents = ('test file created at {0}' -f [DateTime]::Now)
+        [string]$content = ('test file created at {0}' -f [DateTime]::Now)
     )
     process{
         if(-not (Test-Path $path.FullName)){
             Ensure-PathExists $path.DirectoryName
-            New-Item -Path $path.FullName -ItemType File -Value $contents
+            New-Item -Path $path.FullName -ItemType File -Value $content
         }
 
     }
