@@ -49,7 +49,6 @@ Describe 'can call add-template-to-vsix'{
 
         [string]$outdir = ([System.IO.DirectoryInfo](Join-Path $TestDrive "$testname\dest")).FullName        
         Ensure-PathExists -path $dest
-        $outdir ='M:\temp\from-unit-test'
         # shouldn't be used
         [string]$installBranch = 'doesnt-exist'
         [string]$templateDir = $templateSource
