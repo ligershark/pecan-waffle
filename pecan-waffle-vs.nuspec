@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 
+  For more info on this file format visit http://docs.nuget.org/docs/reference/nuspec-reference.
+-->
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">  
+  <metadata>
+    <id>pecan-waffle-vs</id>
+    <version>0.0.13-beta</version>
+    <authors>Sayed Ibrahim Hashimi</authors>
+    <description>
+      Package containing pecan-waffle for Visual Studio templates
+      
+      For more info see https://github.com/ligershark/pecan-waffle.
+
+      Commit: https://github.com/ligershark/pecan-waffle/commit/$(COMMIT_ID)
+    </description>    
+    <language>en-US</language>
+    <projectUrl>https://github.com/ligershark/pecan-waffle/</projectUrl>
+    <licenseUrl>https://github.com/ligershark/pecan-waffle/blob/master/LICENSE</licenseUrl>
+    <!-- <iconUrl>https://raw.githubusercontent.com/geoffrey-ps/geoffrey/master/geoffrey-120x120.png</iconUrl> -->
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <copyright>Copyright 2016 Sayed Ibrahim Hashimi</copyright>   
+    <!-- This is hack to avoid having content in the package, not sure if it's needed here --> 
+    <frameworkAssemblies>
+      <frameworkAssembly assemblyName="System"  />
+    </frameworkAssemblies>
+      <dependencies>
+    <dependency id="pecan-waffle" version="0.0.13-beta" />
+      <dependency id="file-replacer" version="0.4.5-beta" />
+      <dependency id="nuget-powershell" version="0.2.5-beta" />
+    </dependencies>
+  </metadata>
+  <files>
+      <file src="pecan-waffle-vs.props" target="build" />
+      <file src="pecan-waffle-vs.targets" target="build" />      
+  </files>
+</package>

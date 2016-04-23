@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Target Name="IncludePecanWaffleInVsix" BeforeTargets="CoreCompile" Condition=" '$(IncludePecanWaffleNuGetPkgInVsix)'=='true' ">  
+    <ItemGroup>
+      <pwNuGetPackage Include="$(PackagesDir)pecan-waffle.*\pecan-waffle.*.nupkg"/>
+      <frNuGetPackage Include="$(PackagesDir)file-replacer*\file-replacer*.nupkg"/>
+      <npNugetPackage Include="$(PackagesDir)nuget-powershell*\nuget-powershell*.nupkg"/>
+      
+      <_pkgsToIncludeInVsix Include="@(pwNuGetPackage)" />
+      <_pkgsToIncludeInVsix Include="@(frNuGetPackage)" />
+      <_pkgsToIncludeInVsix Include="@(npNugetPackage)" />
+    </ItemGroup>
+    
+    <Error Condition="!Exists('@(pwNuGetPackage)')" Text="Did not find pecan-waffle nuget package at [@(pwNuGetPackage)]" />
+    <Error Condition="!Exists('@(frNuGetPackage)')" Text="Did not find file-replacer nuget package at [@(frNuGetPackage)]" />
+    <Error Condition="!Exists('@(npNugetPackage)')" Text="Did not find nuget-powershell nuget package at [@(npNugetPackage)]" />
+    
+    <Message Text="Adding nuget packages to vsix [@(_pkgsToIncludeInVsix)]" />
+    <!-- add the packages to -->
+    <ItemGroup>
+      <VSIXSourceItem Include="@(_pkgsToIncludeInVsix)" />
+    </ItemGroup>
+  </Target>
+  <Target Name="AddPecanFilesToVsix" BeforeTargets="Build;CreateVsixContainer">
+    <!--
+    powershell.exe –command "& { C:\Data\mycode\pecan-waffle\pecan-add-template-to-vsix.ps1 'dev' 'aspnet5-webapi' 
+    'C:\Data\mycode\JumpStreetMobile\JumpStreetMobileVs\templates\pw-templateinfo.ps1' 
+    'C:\Data\mycode\JumpStreetMobile\JumpStreetMobileVs\bin\Debug\JumpStreetMobile.vsix' 'templates' -Verbose }"
+    -->
+    <ItemGroup>
+      <pwScript Include="$(MSBuildProjectDirectory)\..\packages\pecan-waffle.*\**\pecan-add-template-to-vsix.ps1" />
+    </ItemGroup>
+    <PropertyGroup>
+      <PowerShellExe Condition=" '$(PowerShellExe)'=='' ">$(WINDIR)\System32\WindowsPowerShell\v1.0\powershell.exe</PowerShellExe>
+      <pwScriptPath Condition=" '$(pwScriptPath)'=='' ">@(pwScript->'%(FullPath)')</pwScriptPath>
+      <pwInstallBranch Condition=" '$(pwInstallBranch)'=='' ">dev</pwInstallBranch>
+      <pwTemplateZipRelDir Condition=" '$(pwTemplateZipRelDir)'=='' ">Output\ProjectTemplates\CSharp\Web\SideWaffle\</pwTemplateZipRelDir>
+      <pwVerbose>true</pwVerbose>
+      <pwTemplateExtraArgs Condition=" '$(PWVerbose)'=='true' ">$(pwTemplateExtraArgs) -verbose</pwTemplateExtraArgs>
+      <pwTemplateRoot Condition=" '$(pwTemplateRoot)'==''">$(MSBuildProjectDirectory)\..\..\templates\</pwTemplateRoot>
+      <pwOutputDirectory Condition=" '$(pwOutputDirectory)'=='' " >$(IntermediateOutputPath)templatesTemp</pwOutputDirectory>
+    </PropertyGroup>
+    <Error Text="pwScriptPath not found at [$(pwScriptPath)]" Condition=" !Exists( '$(pwScriptPath)' ) " />
+    <PropertyGroup>
+      <psCommand>$(PowerShellExe) -noprofile -NonInteractive -executionpolicy Unrestricted -command "&amp; { $(pwScriptPath) '$(pwInstallBranch)' '$(pwTemplateRoot)' '$(pwOutputDirectory)' '$(pwTemplateZipRelDir)' $(pwTemplateExtraArgs)} "</psCommand>
+    </PropertyGroup>
+    <Message Text="Adding template files to vsix with command:$(psCommand)" Importance="low" />
+
+    <Exec Command="$(psCommand)" />
+    <ItemGroup>
+      <_pwTemplateFilesForVsix Include="$(pwOutputDirectory)\**\*">
+        <VSIXSubPath>%(RecursiveDir)</VSIXSubPath>
+      </_pwTemplateFilesForVsix>
+      
+      <VSIXSourceItem Include="@(_pwTemplateFilesForVsix)">
+        <VSIXSubPath>%(_pwTemplateFilesForVsix.RecursiveDir)</VSIXSubPath>
+      </VSIXSourceItem>
+    </ItemGroup>
+    
+    <Message Text="VSIXSourceItem:%0a%0d@(VSIXSourceItem,'%0a%0d')" Importance="low" />
+  </Target>
+</Project>

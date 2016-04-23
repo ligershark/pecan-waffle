@@ -270,6 +270,8 @@ function CopyStaticFilesToOutputDir{
     process{
         Get-ChildItem $scriptDir pecan-*.ps*1 | Copy-Item -Destination $outputroot
         Get-ChildItem $scriptDir *.nuspec | Copy-Item -Destination $outputroot
+        Get-ChildItem $scriptDir *.targets | Copy-Item -Destination $outputroot
+        Get-ChildItem $scriptDir *.props | Copy-Item -Destination $outputroot
         [System.IO.DirectoryInfo]$vstemplateDest =(Join-Path $outputroot vs-template-zip) 
         if(-not (Test-Path $vstemplateDest.FullName)) {
             Copy-Item (Join-Path $scriptDir 'vs-template-zip') -Destination $vstemplateDest.FullName -Recurse
@@ -286,10 +288,11 @@ function Build-NuGetPackage{
 
         Push-Location
         try{
-            [System.IO.FileInfo[]]$nuspecFilesToBuild = @()
-            $nuspecFilesToBuild += ([System.IO.FileInfo](Get-ChildItem $outputRoot '*.nuspec' -Recurse -File))
+            [string[]]$nuspecFilesToBuild = @()
+            $nuspecFilesToBuild += ((Get-ChildItem $outputRoot '*.nuspec' -Recurse -File).FullName)
 
             foreach($nufile in $nuspecFilesToBuild){
+                $nufile = [System.IO.FileInfo]$nufile
                 Push-Location
                 try{
                     Set-Location -Path ($nufile.Directory.FullName)
@@ -334,7 +337,7 @@ function BuildSolution{
         InternalEnsure-DirectoryExists -path $vsoutputpath.FullName
 
         'Building soution at [{0}]' -f $slnfile.FullName | Write-Output
-        Invoke-MSBuild -projectsToBuild $slnfile.FullName -visualStudioVersion 14.0 -configuration $configuration -outputpath $vsoutputpath.FullName
+        Invoke-MSBuild -projectsToBuild $slnfile.FullName -visualStudioVersion 14.0 -configuration $configuration -outputpath $vsoutputpath.FullName -properties @{'DeployExtension'=$false}
     }
 }
 function Update-FilesWithCommitId{
@@ -417,6 +420,7 @@ function FullBuild{
         if(-not $noTests){
             Run-Tests -testDirectory (Join-Path $scriptDir 'tests')
         }
+
 
         if($publishToNuget){
             (Get-ChildItem -Path ($outputPathNuget) 'pecan-*.nupkg').FullName | PublishNuGetPackage -nugetApiKey $nugetApiKey
