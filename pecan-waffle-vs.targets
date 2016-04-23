@@ -22,9 +22,9 @@
     </ItemGroup>
   </Target>
 
-    <PropertyGroup>
-      
-    </PropertyGroup>
+  <PropertyGroup>
+    <pwOutputDirectory Condition=" '$(pwOutputDirectory)'=='' " >$(IntermediateOutputPath)templatesTemp</pwOutputDirectory>
+  </PropertyGroup>
 
   <Target Name="AddPecanFilesToVsix" BeforeTargets="Build;CreateVsixContainer">
     <!--

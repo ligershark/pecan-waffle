@@ -18,6 +18,5 @@
     <pwVerbose Condition=" '$(pwVerbose)'=='' ">false</pwVerbose>
     <pwTemplateExtraArgs Condition=" '$(PWVerbose)'=='true' ">$(pwTemplateExtraArgs) -verbose</pwTemplateExtraArgs>
     <pwTemplateRoot Condition=" '$(pwTemplateRoot)'==''">$(MSBuildProjectDirectory)\..\..\templates\</pwTemplateRoot>
-    <pwOutputDirectory Condition=" '$(pwOutputDirectory)'=='' " >$(IntermediateOutputPath)templatesTemp</pwOutputDirectory>
   </PropertyGroup>
 </Project>
