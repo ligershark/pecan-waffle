@@ -32,6 +32,7 @@
   </metadata>
   <files>
       <file src="pecan-waffle-vs.props" target="build" />
-      <file src="pecan-waffle-vs.targets" target="build" />      
+      <file src="pecan-waffle-vs.targets" target="build" />   
+      <file src="pecan-waffle-settings.props" target="content\Properties" />   
   </files>
 </package>

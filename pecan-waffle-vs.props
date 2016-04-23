@@ -1,8 +1,23 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  
+  <PropertyGroup>
+    <PwUserPropsFilePath Condition=" '$(PwUserPropsFilePath)'=='' ">$(MSBuildProjectDirectory)\Properties\pecan-waffle-settings.props</PwUserPropsFilePath>
+  </PropertyGroup>
+  
+  <Import Project="$(PwUserPropsFilePath)" Condition="Exists('$(PwUserPropsFilePath)')" />
+  
   <PropertyGroup>
     <IncludePecanWaffleNuGetPkgInVsix Condition=" '$(IncludePecanWaffleNuGetPkgInVsix)'=='' ">true</IncludePecanWaffleNuGetPkgInVsix>
     <!-- TODO: How to get this value? -->
-    <PackagesDir Condition=" '$(PackagesDir)'=='' ">..\packages\</PackagesDir>
+    <pwPackagesDir Condition=" '$(pwPackagesDir)'=='' ">..\packages\</pwPackagesDir>
+    
+    <PowerShellExe Condition=" '$(PowerShellExe)'=='' ">$(WINDIR)\System32\WindowsPowerShell\v1.0\powershell.exe</PowerShellExe>
+    <pwInstallBranch Condition=" '$(pwInstallBranch)'=='' ">dev</pwInstallBranch>
+    <pwTemplateZipRelDir Condition=" '$(pwTemplateZipRelDir)'=='' ">Output\ProjectTemplates\CSharp\Web\SideWaffle\</pwTemplateZipRelDir>
+    <pwVerbose Condition=" '$(pwVerbose)'=='' ">false</pwVerbose>
+    <pwTemplateExtraArgs Condition=" '$(PWVerbose)'=='true' ">$(pwTemplateExtraArgs) -verbose</pwTemplateExtraArgs>
+    <pwTemplateRoot Condition=" '$(pwTemplateRoot)'==''">$(MSBuildProjectDirectory)\..\..\templates\</pwTemplateRoot>
+    <pwOutputDirectory Condition=" '$(pwOutputDirectory)'=='' " >$(IntermediateOutputPath)templatesTemp</pwOutputDirectory>
   </PropertyGroup>
 </Project>
