@@ -194,7 +194,7 @@ function Run-Tests{
             $pesterArgs.Add('-EnableExit',$true)
         }
         if( $env:PesterEnableCodeCoverage -eq $true){
-            $pesterArgs.Add('-CodeCoverage',('..\pecan-waffle.psm1','..\pecan-waffle-visualstudio.psm1'))
+            $pesterArgs.Add('-CodeCoverage',('..\pecan-waffle.psm1','..\pecan-waffle-visualstudio.psm1','..\pecan-add-template-to-vsix.ps1'))
         }
 
         $pesterResult = Invoke-Pester @pesterArgs

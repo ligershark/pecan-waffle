@@ -42,3 +42,14 @@ function global:Create-TestFileAt{
 
     }
 }
+
+function global:Ensure-PathExists{
+    param([Parameter(Position=0)][System.IO.DirectoryInfo]$path)
+    process{
+        if($path -ne $null){
+            if(-not (Test-Path $path.FullName)){
+                New-Item -Path $path.FullName -ItemType Directory
+            }
+        }
+    }
+}
