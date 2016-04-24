@@ -1110,16 +1110,16 @@ function Remove-PWTemplate{
     )
     process{
         
-        <# Store copy of old array #>
+		<# Make a copy of the old template array #>
         $templates = $Global:pecanwafflesettings.Templates
+		
+		<# Create new template array #>
+        $Global:pecanwafflesettings.Templates = @()
 
-        <# Clear the old template array #>
-        $Global:pecanwafflesettings.Templates = New-Object System.Collections.ArrayList
-
-        <# Filter the temp list #>
+		<# Filter out templates #>
         foreach($template in $templates){       
-            if(!$TemplateNames.Contains($template.Name)){
-                $Global:pecanwafflesettings.Templates.Add(($template))
+            if($TemplateNames -notcontains $template.Name){
+                $Global:pecanwafflesettings.Templates += $template
             }
         } 
     }
