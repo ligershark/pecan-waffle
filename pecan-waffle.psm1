@@ -1101,6 +1101,31 @@ function New-PWItem{
 }
 Set-Alias Add-Item New-PWItem -Description 'obsolete: This was added for back compat and will be removed soon'
 
+function Remove-PWTemplate{   
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=1,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string[]]$TemplateNames
+    )
+    process{
+        
+        <# Store copy of old array #>
+        $templates = $Global:pecanwafflesettings.Templates
+
+        <# Clear the old template array #>
+        $Global:pecanwafflesettings.Templates = New-Object System.Collections.ArrayList
+
+        <# Filter the temp list #>
+        foreach($template in $templates){       
+            if(!$TemplateNames.Contains($template.Name)){
+                $Global:pecanwafflesettings.Templates.Add(($template))
+            }
+        } 
+    }
+}
+Set-Alias Remove-Template Remove-PWTemplate 
+
 function InternalGet-EvaluatedPropertiesFrom{
     [cmdletbinding()]
     param(
