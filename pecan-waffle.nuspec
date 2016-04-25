@@ -29,6 +29,7 @@
       <file src="vs\PecanWaffle.dll" target="lib" />
       <file src="vs\PecanWaffle.pdb" target="lib" />
       <file src="pecan-waffle.psm1" target="tools" />
+      <file src="AlphaFS.dll" target="tools" />
       <file src="pecan-add-template-to-vsix.ps1" target="tools" />
       <file src="pecan-waffle-visualstudio.psm1" target="tools" />
       

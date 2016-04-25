@@ -57,6 +57,25 @@ InternalOverrideSettingsFromEnv -settings $global:pecanwafflesettings -prefix 'P
 function InternalGet-ScriptDirectory{
     split-path (((Get-Variable MyInvocation -Scope 1).Value).MyCommand.Path)
 }
+$scriptDir = (InternalGet-ScriptDirectory)
+
+function LoadAlphaFS(){
+    [cmdletbinding()]
+    param(
+        [string]$alphafsdllpath = (Join-Path $scriptDir 'AlphaFS.dll')
+    )
+    process{
+        $alphafsdllpath = (Join-Path $scriptDir 'AlphaFS.dll')
+
+        if(-not(Test-Path $alphafsdllpath)){
+            throw ('alphafs.dll not found at [{0}]' -f $alphafsdllpath)
+        }
+
+        Import-Module -Name $alphafsdllpath
+        [Reflection.Assembly]::LoadFile($alphafsdllpath)
+    }
+}
+LoadAlphaFS
 
 function Get-PecanWaffleVersion{
     param()
@@ -83,8 +102,8 @@ function Invoke-CommandString{
             'Executing command [{0}]' -f $cmdToExec | Write-Verbose
             
             # write it to a .cmd file
-            $destPath = "$([System.IO.Path]::GetTempFileName()).cmd"
-            if(Test-Path $destPath){Remove-Item $destPath|Out-Null}
+            $destPath = "$([Alphaleonis.Win32.Filesystem.Path]::GetTempFileName()).cmd"
+            if(InternalTest-File $destPath){InternalRemove-File -filePath $destPath |Out-Null}
             
             try{
                 $commandstr = $cmdToExec
@@ -104,7 +123,7 @@ function Invoke-CommandString{
                 }
             }
             finally{
-                if(Test-Path $destPath){Remove-Item $destPath -ErrorAction SilentlyContinue |Out-Null}
+                if(InternalTest-File $destPath){InternalRemove-File $destPath -ErrorAction SilentlyContinue |Out-Null}
             }
         }
     }
@@ -219,7 +238,7 @@ function Get-Robocopy{
         }
         else{
             # download it to temp if it's not already there
-            $roboCopyTemp = (Join-Path $global:pecanwafflesettings.TempDir 'robocopy.exe')
+            $roboCopyTemp = (InternalJoin-Path $global:pecanwafflesettings.TempDir 'robocopy.exe')
             if(-not (Test-Path $roboCopyTemp)){
                 # download it now
                 'Downloading robocopy.exe from [{0}] to [{1}]' -f $roboCopyDownloadUrl,$roboCopyTemp | Write-Verbose
@@ -279,11 +298,15 @@ function InternalImport-NuGetPowershell{
 }
 
 function Ensure-DirectoryExists{
-    param([Parameter(Position=0)][System.IO.DirectoryInfo]$path)
+    param(
+        [Parameter(Position=0)]
+        [string]$path
+    )
     process{
-        if($path -ne $null){
-            if(-not (Test-Path $path.FullName)){
-                New-Item -Path $path.FullName -ItemType Directory
+        if( ($path -ne $null) -and -not ([string]::IsNullOrWhiteSpace($path))) {
+            $fullpath = (Get-Fullpath $path)
+            if(-not ([Alphaleonis.Win32.Filesystem.Directory]::Exists($fullpath))){
+                [Alphaleonis.Win32.Filesystem.Directory]::CreateDirectory($fullpath) | Write-Verbose                
             }
         }
     }
@@ -346,10 +369,10 @@ function Get-NewTempDir{
     process{
         Ensure-DirectoryExists -path $global:pecanwafflesettings.TempDir | Out-Null
 
-        [System.IO.DirectoryInfo]$newpath = (Join-Path ($global:pecanwafflesettings.TempDir) ([datetime]::UtcNow.Ticks))
+        [Alphaleonis.Win32.Filesystem.DirectoryInfo]$newpath = (InternalJoin-Path ($global:pecanwafflesettings.TempDir) ([datetime]::UtcNow.Ticks))
         if([string]::Equals($newpath,$global:pecanwafflesettings.LastTempDir,[System.StringComparison]::OrdinalIgnoreCase)){
             Start-Sleep -Milliseconds 1
-            $newpath = (Join-Path ($global:pecanwafflesettings.TempDir) ([datetime]::UtcNow.Ticks))
+            $newpath = (InternalJoin-Path ($global:pecanwafflesettings.TempDir) ([datetime]::UtcNow.Ticks))
         }
         $global:pecanwafflesettings.LastTempDir = $newpath
         New-Item -ItemType Directory -Path ($newpath.FullName) | out-null
@@ -370,7 +393,7 @@ function Add-PWTemplateSource{
         $branch = 'master',
 
         [Parameter(Position=2)]
-        [System.IO.DirectoryInfo]$localfolder = ($global:pecanwafflesettings.TempRemoteDir),
+        [string]$localfolder = ($global:pecanwafflesettings.TempRemoteDir),
 
         [Parameter(Position=3)]
         [string]$repoName
@@ -398,25 +421,29 @@ function Add-PWTemplateSource{
             $isLocal = $true
         }
 
-        [System.IO.DirectoryInfo]$localInstallFolder = $null
+        [Alphaleonis.Win32.Filesystem.DirectoryInfo]$localInstallFolder = $null
         if($isLocal){
-            if(-not [System.IO.Path]::IsPathRooted($path)){
-                $localInstallFolder = ([System.IO.DirectoryInfo](Join-Path $pwd $path)).FullName
+            if(-not [Alphaleonis.Win32.Filesystem.Path]::IsPathRooted($path)){
+                $localInstallFolder = ([Alphaleonis.Win32.Filesystem.DirectoryInfo](InternalJoin-Path $pwd $path)).FullName
             }
             else{
-                $localInstallFolder = ([System.IO.DirectoryInfo]($path)).FullName
+                $localInstallFolder = ([Alphaleonis.Win32.Filesystem.DirectoryInfo]($path)).FullName
             }
         }
 
-        Ensure-DirectoryExists -path $localfolder.FullName
+        if([string]::IsNullOrWhiteSpace($localfolder)){
+            throw ('localFolder is empty')
+        }
+        $localfolder = (Get-Fullpath $localfolder)
+        Ensure-DirectoryExists -path $localfolder
 
         if($isGit){
             if([string]::IsNullOrWhiteSpace($repoName)){
                 $repoName = ( '{0}-{1}' -f (InternalGet-RepoName -url $path),(InternalGet-StringHash -text $path))
             }
-            [System.IO.DirectoryInfo]$localInstallFolder = (Join-Path $localfolder.FullName $repoName)
-            if(-not (Test-Path $localInstallFolder.FullName)){
-                InternalAdd-GitFolder -url $path -repoName $repoName -branch $branch -localfolder $localfolder.FullName
+            [Alphaleonis.Win32.Filesystem.DirectoryInfo]$localInstallFolder = (InternalJoin-Path $localfolder $repoName)
+            if(-not (InternalTest-Directory $localInstallFolder.FullName)){
+                InternalAdd-GitFolder -url $path -repoName $repoName -branch $branch -localfolder $localfolder
             }
         }
 
@@ -424,9 +451,13 @@ function Add-PWTemplateSource{
             throw ('localInstallFolder is null')
         }
 
-        $files = (Get-ChildItem -Path $localInstallFolder.FullName 'pw-templateinfo*.ps1' -Recurse -File -Exclude '.git','node_modules','bower_components' -ErrorAction SilentlyContinue)
+        $files = (InternalGet-ChildItem -Path $localInstallFolder.FullName -include 'pw-templateinfo*.ps1' -Recurse -itemType File -exclude '.git','node_modules','bower_components' -ErrorAction SilentlyContinue)
+
         foreach($file in $files){
-            & ([System.IO.FileInfo]$file.FullName)
+            if(-not ([string]::IsNullOrWhiteSpace($file))){
+                # run the script
+                & (Get-FullPath -path $file)
+            }
         }
 
         $templateSource = New-Object -TypeName psobject -Property @{
@@ -439,6 +470,188 @@ function Add-PWTemplateSource{
 }
 
 Set-Alias Add-TemplateSource Add-PWTemplateSource
+
+function InternalTest-Directory{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,ValueFromPipeline=$true)]
+        [string[]]$dirpath
+    )
+    process{
+        foreach($dir in $dirpath){
+            if(-not ([string]::IsNullOrEmpty($dir))){
+                [Alphaleonis.Win32.Filesystem.Directory]::Exists($dir)
+            }
+        }
+    }
+}
+
+function InternalTest-File{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,ValueFromPipeline=$true)]
+        [string[]]$filePath
+    )
+    process{
+        foreach($file in $filePath){
+            if(-not ([string]::IsNullOrEmpty($file))){
+                $fp = [Alphaleonis.Win32.Filesystem.Path]::GetFullPath($file)
+                [Alphaleonis.Win32.Filesystem.File]::Exists($fp)
+            }
+        }
+    }
+}
+
+function InternalRemove-File{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,ValueFromPipeline=$true)]
+        [string[]]$filePath
+    )
+    process{
+        foreach($file in $filePath){
+            if(-not ([string]::IsNullOrEmpty($file))){
+                $fp = [Alphaleonis.Win32.Filesystem.Path]::GetFullPath($file)
+                [Alphaleonis.Win32.Filesystem.File]::Delete($fp)
+            }
+        }
+    }
+}
+
+function InternalRemove-Directory{
+   [cmdletbinding()]
+    param(
+        [Parameter(Position=0,ValueFromPipeline=$true)]
+        [string[]]$dirpath,
+
+        [Parameter(Position=1)]
+        [switch]$recurse
+    )
+    process{
+        foreach($dir in $dirpath){
+            if(-not ([string]::IsNullOrEmpty($dir))){
+                $fp = [Alphaleonis.Win32.Filesystem.Path]::GetFullPath($dir)
+                [Alphaleonis.Win32.Filesystem.Directory]::Delete($fp,$recurse)
+            }
+        }
+    }
+}
+
+function InternalJoin-Path{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,ValueFromPipeline=$true,Mandatory=$true)]
+        [ValidateNotNullOrEmpty()]
+        [string[]]$path,
+
+        [Parameter(Position=1)]
+        [string]$childPath
+    )
+    process{
+        foreach($p in $path){
+            if(-not([string]::IsNullOrEmpty($p))){
+                [Alphaleonis.Win32.Filesystem.Path]::Combine($p,$childPath)
+            }
+        }
+    }
+}
+
+function InternalGet-ChildItem{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true,ValueFromPipeline=$true)]
+        [string[]]$path,
+
+        [Parameter(Position=1)]
+        [string[]]$include,
+
+        [Parameter(Position=2)]
+        [string[]]$exclude,
+
+        [Parameter(Position=3)]
+        [ValidateSet('Any','Directory','File')]
+        [string]$itemType='Any',
+
+        [Parameter(Position=4)]
+        [switch]$recurse
+    )
+    process{
+        if($include -eq $null){
+            $include = @('*.*')
+        }
+
+        [bool]$includeFiles = $false
+        [bool]$includeDirs = $false
+
+        switch ($itemType){
+            'Any' {
+                $includeFiles = $true
+                $includeDirs = $true
+            }
+            'Directory' {
+                $includeDirs = $true
+            }
+            'File' {
+                $includeFiles = $true
+            }
+            default {
+                throw ('Unknown value for itemType [{0}]' -f $itemType)
+            }
+        }
+
+        [System.IO.SearchOption]$so = [System.IO.SearchOption]::TopDirectoryOnly
+        if($recurse){
+            $so = [System.IO.SearchOption]::AllDirectories
+        }
+        
+        $allIncludes = New-Object System.Collections.Generic.List``1[string]
+        $allExcludes = New-Object System.Collections.Generic.List``1[string]
+
+        $allResults = New-Object System.Collections.Generic.List``1[string]
+        foreach($p in $path){
+            if([string]::IsNullOrWhiteSpace($p)){
+                continue
+            }
+
+            foreach($inc in $include){
+                if(-not([string]::IsNullOrWhiteSpace($inc))){
+                    if($includeFiles){
+                        $files = [Alphaleonis.Win32.Filesystem.Directory]::GetFiles($p,$inc,$so)
+                        $allIncludes.AddRange($files) | Write-Debug
+                    }
+                    if($includeDirs){
+                        $dirs = [Alphaleonis.Win32.Filesystem.Directory]::GetDirectories($p,$inc,$so)
+                        $allIncludes.AddRange($dirs) | Write-Debug
+                    }
+                }
+            }
+
+            foreach($exc in $exclude){
+                if(-not([string]::IsNullOrWhiteSpace($exc))){
+                    if($includeFiles) {
+                        $files = [Alphaleonis.Win32.Filesystem.Directory]::GetFiles($p,$exc,$so)
+                        $allExcludes.AddRange($files) | Write-Debug
+                    }
+                    if($includeDirs) {
+                        $dirs = [Alphaleonis.Win32.Filesystem.Directory]::GetDirectories($p,$exc,$so)
+                        $allExcludes.AddRange($dirs) | Write-Debug
+                    }
+                }
+            }
+
+            $results =[System.Linq.Enumerable]::Except((Get-Unique -InputObject $allIncludes),(Get-Unique -InputObject $allExcludes))
+            $newresults = [System.Linq.Enumerable]::Except($results,$allResults)
+
+            $allResults.AddRange($newresults) | Write-Debug
+        }
+
+        # loop through results and return the value
+        foreach($r in $allResults){
+            $r
+        }
+    }
+}
+
 
 function InternalGet-RepoName{
     [cmdletbinding()]
@@ -471,7 +684,7 @@ function InternalAdd-GitFolder{
         [string]$branch = 'master',
 
         [Parameter(Position=4)]
-        [System.IO.DirectoryInfo]$localfolder = ($global:pecanwafflesettings.TempRemoteDir)
+        [string]$localfolder = ($global:pecanwafflesettings.TempRemoteDir)
     )
     begin{
         # TODO: Improve to only call if not loaded
@@ -482,14 +695,20 @@ function InternalAdd-GitFolder{
             $repoName = InternalGet-RepoName -url $url
         }
 
+        if([string]::IsNullOrWhiteSpace($localfolder)){
+            throw ('localFolder is empty')
+        }
+
+        $localfolder = (Get-Fullpath $localfolder)
+
         $oldPath = Get-Location
-        [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
-        $path =([System.IO.DirectoryInfo]$repoFolder).FullName
+        [Alphaleonis.Win32.Filesystem.DirectoryInfo]$repoFolder = (InternalJoin-Path $localfolder $repoName)
+        $path =([Alphaleonis.Win32.Filesystem.DirectoryInfo]$repoFolder).FullName
         try{
-            Ensure-DirectoryExists -path $localfolder.FullName
+            Ensure-DirectoryExists -path $localfolder
             Set-Location $localfolder
 
-            if(-not (Test-Path $repoFolder.FullName)){
+            if(-not (InternalTest-Directory $repoFolder.FullName)){
                 Execute-CommandString "git clone $url --branch $branch --single-branch $repoName" -ignoreExitCode
             }
         }
@@ -522,7 +741,7 @@ function Update-PWRemoteTemplates{
     }
     process{
         foreach($ts in $global:pecanwafflesettings.GitSources){
-            if( -not ([string]::IsNullOrWhiteSpace($ts.Url)) -and (Test-Path $ts.LocalFolder)){
+            if( -not ([string]::IsNullOrWhiteSpace($ts.Url)) -and (InternalTest-Directory $ts.LocalFolder)){
                 $oldpath = Get-Location
                 try{
                     Set-Location $ts.LocalFolder
@@ -575,7 +794,7 @@ function TemplateAdd-SourceFile{
             }
 
             $templateInfo.SourceFiles += New-Object -TypeName psobject -Property @{
-#                SourceFile = [System.IO.FileInfo]($sourceFiles[$i])
+#                SourceFile = [Alphaleonis.Win32.Filesystem.FileInfo]($sourceFiles[$i])
                 SourceFile = [string]($sourceFiles[$i])
                 DestFile = [ScriptBlock]$dest
             }
@@ -863,11 +1082,11 @@ function TemplateSet-TemplateInfo{
         $templateInfo,
 
         [Parameter(Position=1)]
-        [System.IO.DirectoryInfo]$templateRoot,
+        [string]$templateRoot,
 
         # todo: rename this parameter
         [Parameter(Position=3,ParameterSetName='git')]
-        [System.IO.DirectoryInfo]$localfolder = ($global:pecanwafflesettings.TempRemoteDir)
+        [string]$localfolder = ($global:pecanwafflesettings.TempRemoteDir)
     )
     process{
         if(-not (Internal-HasProperty -inputObject $templateInfo -propertyName 'TemplatePath')){
@@ -886,21 +1105,27 @@ function TemplateSet-TemplateInfo{
                     $branch = $templateInfo.SourceBranch
                 }
 
-                [System.IO.DirectoryInfo]$repoFolder = (Join-Path $localfolder.FullName $repoName)
-                if(-not (Test-Path $repoFolder.FullName)){
+                if([string]::IsNullOrWhiteSpace($localfolder)){
+                    throw ('localFolder is empty')
+                }
+
+                $localfolder = (Get-Fullpath $localfolder)
+
+                [Alphaleonis.Win32.Filesystem.DirectoryInfo]$repoFolder = (InternalJoin-Path $localfolder $repoName)
+                if(-not (InternalTest-Directory $repoFolder.FullName)){
                     # todo: register so that it can be updated later on via Update-RemoteTemplates
                     InternalAdd-GitFolder -url $url -repoName $repoName -branch $branch -localfolder $localfolder
                 }
 
-                [System.IO.DirectoryInfo]$pathToFolder = $repoFolder.FullName
+                [Alphaleonis.Win32.Filesystem.DirectoryInfo]$pathToFolder = $repoFolder.FullName
                 if(-not [string]::IsNullOrWhiteSpace($templateInfo.ContentPath)){
-                    $pathToFolder = (get-item (Join-Path $repoFolder.FullName $templateInfo.ContentPath)).FullName
+                    $pathToFolder = (Get-Fullpath -path (InternalJoin-Path $repoFolder.FullName $templateInfo.ContentPath))
                 }
-
-                $templateRoot = $pathToFolder.FullName
+                
+                $templateRoot = $pathToFolder
             }
 
-            if($templateRoot -eq $null){
+            if( ([string]::IsNullOrWhiteSpace($templateRoot) )) {
                 # root is the folder from the calling script
                 $templateRoot = ((Get-Item ($MyInvocation.PSCommandPath)).Directory.FullName)
             }
@@ -1010,7 +1235,7 @@ function New-PWProject{
         [string]$templateName,
 
         [Parameter(Position=1)]
-        [System.IO.DirectoryInfo]$destPath = (get-item $pwd),
+        [string]$destPath = ($pwd),
 
         [Parameter(Position=2)]
         [string]$projectName = 'MyNewProject',
@@ -1025,9 +1250,15 @@ function New-PWProject{
         # find the project template with the given name
         $template = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ProjectTemplate' -and $_.Name -eq $templateName}|Select-Object -First 1)
 
-        if(-not [System.IO.Path]::IsPathRooted($destPath)){
-            $destPath = (Join-Path $pwd $destPath)
+        if([string]::IsNullOrEmpty($destPath)){
+            $destPath = $pwd
         }
+
+        if(-not [Alphaleonis.Win32.Filesystem.Path]::IsPathRooted($destPath)){
+            [string]$destPath = (InternalJoin-Path $pwd $destPath)
+        }
+
+        [string]$destPath = Get-Fullpath -path $destPath
 
         if($template -eq $null){
             throw ('Did not find a project template with the name [{0}]' -f $templateName)
@@ -1038,7 +1269,7 @@ function New-PWProject{
         }
 
         if(-not $noNewFolder){
-            $destPath = (Join-Path $destPath.FullName $projectName)
+            [string]$destPath = (InternalJoin-Path $destPath $projectName)
         }
 
         if($properties -eq $null){
@@ -1049,7 +1280,7 @@ function New-PWProject{
             $properties['ProjectName'] = $projectName
         }
 
-        InternalNew-PWTemplate -template $template -destPath $destPath.FullName -properties $properties
+        InternalNew-PWTemplate -template $template -destPath $destPath -properties $properties
     }
 }
 Set-Alias Add-Project New-PWProject -Description 'obsolete: This was added for back compat and will be removed soon'
@@ -1061,7 +1292,7 @@ function New-PWItem{
         [string]$templateName,
 
         [Parameter(Position=1)]
-        [System.IO.DirectoryInfo]$destPath,
+        [string]$destPath,
 
         [Parameter(Position=2)]
         [string]$itemName,
@@ -1076,9 +1307,11 @@ function New-PWItem{
         # find the project template with the given name
         $template = ($Global:pecanwafflesettings.Templates|Where-Object {$_.Type -eq 'ItemTemplate' -and $_.Name -eq $templateName}|Select-Object -First 1)
 
-        if(-not [System.IO.Path]::IsPathRooted($destPath)){
-            $destPath = (Join-Path $pwd $destPath)
+        if(-not [Alphaleonis.Win32.Filesystem.Path]::IsPathRooted($destPath)){
+            $destPath = (InternalJoin-Path $pwd $destPath)
         }
+
+        $destPath = (Get-Fullpath $destPath)
 
         if($template -eq $null){
             throw ('Did not find an item template with the name [{0}]' -f $templateName)
@@ -1145,15 +1378,21 @@ function InternalNew-PWTemplate{
         [object]$template,
 
         [Parameter(Position=1)]
-        [System.IO.DirectoryInfo]$destPath,
+        [string]$destPath,
 
         [Parameter(Position=2)]
         [hashtable]$properties
     )
     process{
-        [System.IO.DirectoryInfo]$tempWorkDir = Get-NewTempDir
+        [Alphaleonis.Win32.Filesystem.DirectoryInfo]$tempWorkDir = Get-NewTempDir
         [string]$sourcePath = $template.TemplatePath
         
+        if([string]::IsNullOrWhiteSpace($destPath)){
+            throw ('destPath is empty' -f $destPath)
+        }
+
+        $destPath = (Get-Fullpath -path $destPath)
+
         try{
             # eval properties here
             $evaluatedProps =  InternalGet-EvaluatedPropertiesFrom -template $template -properties $properties -templateWorkDir $tempWorkDir.FullName
@@ -1173,10 +1412,11 @@ function InternalNew-PWTemplate{
                 foreach($sf in  $template.SourceFiles){
                     $source = $sf.SourceFile;
                     
-                    $sourceItem = Get-Item (Join-Path $sourcePath $source)
+                    $sourceItem = ([Alphaleonis.Win32.Filesystem.FileInfo](Get-Fullpath (InternalJoin-Path $sourcePath $source)))
+                    $filename = ($sourceItem|Select-Object -ExpandProperty Name)
                     [hashtable]$extraProps = @{
-                        'ThisItemName' = ($sourceItem|Select-Object -ExpandProperty BaseName)
-                        'ThisItemFileName' = ($sourceItem|Select-Object -ExpandProperty Name)
+                        'ThisItemName' = ($filename.TrimEnd($sourceItem.Extension))
+                        'ThisItemFileName' = $filename
                     }
 
                     $dest = (InternalGet-EvaluatedProperty -expression ($sf.DestFile) -properties $evaluatedProps -extraProperties $extraProps)
@@ -1185,7 +1425,7 @@ function InternalNew-PWTemplate{
                         throw ('Dest is null or empty for source [{0}]' -f $source)
                     }
 
-                    $destItem = (Join-Path $tempWorkDir.FullName $dest)
+                    $destItem = (InternalJoin-Path $tempWorkDir.FullName $dest)
                     $destFolder = (Split-Path -Path $destItem -Parent)
                     $destName = (Split-Path -Path $destItem -Leaf)
                     Copy-ItemRobocopy -sourcePath ($sourceItem.DirectoryName) -destPath $destFolder -fileNames $sourceItem.Name -ignoreErrors
@@ -1234,10 +1474,11 @@ function InternalNew-PWTemplate{
 
                     # update directory names
                     $gciparams = @{
-                        Path = $tempWorkDir.FullName + '\*'
+                        Path = $tempWorkDir.FullName # + '\*'
                         Include=('*{0}*' -f $current.ReplaceKey)
                         Recurse = $true
-                        Directory=$true
+                        ItemType='Directory'
+                        # Directory=$true
                     }
 
                     if( ($current.Include -ne $null) -and ($current.Include.Length -gt 0) ){
@@ -1251,15 +1492,14 @@ function InternalNew-PWTemplate{
                         # $gciparams | Out-String | Write-Host -ForegroundColor Cyan
                     }
 
-                    # (Get-ChildItem $tempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory) |
-                    (Get-ChildItem @gciparams) |
+                    (InternalGet-ChildItem @gciparams) |
                         Select-Object -Property FullName,Name,Parent | ForEach-Object {
                             $folderPath = $_.FullName
                             $folderName = $_.Name
                             $parent = $_.Parent
                             $newname = $folderName.Replace($current.ReplaceKey, $repvalue)
-                            $newPath = (Join-Path $parent.FullName $newname)
-                            if(Test-Path $folderPath){
+                            $newPath = (InternalJoin-Path $parent.FullName $newname)
+                            if(InternalTest-Directory $folderPath){
                                 # Move-Item -Path $folderPath -Destination $newPath
                                 Copy-ItemRobocopy -sourcePath $folderPath -destPath $newPath -move -recurse -ignoreErrors
                                 # Rename-Item -Path $folderPath -NewName $newPath
@@ -1267,22 +1507,22 @@ function InternalNew-PWTemplate{
                         }
                                           
                     # update filenames
-                    $gciparams['Directory']=$false
-                    $gciparams['File']=$true
-                    # $gciparams | Out-String | Write-Host -ForegroundColor Cyan
+                    $gciparams['ItemType']='File'
+                    # $gciparams['File']=$true
                     $global:lastgciparms = $gciparams
-                    $files = ([System.IO.FileInfo[]](Get-ChildItem @gciparams))
+                    $files = ([string[]](InternalGet-ChildItem @gciparams))
                     foreach($file in ($files)){
                         #'** {0}' -f $file|Write-Host -ForegroundColor Cyan
-                        $file = [System.IO.FileInfo]$file
+                        $file = [Alphaleonis.Win32.Filesystem.FileInfo]$file
 
                         if([string]::IsNullOrWhiteSpace($repvalue) -and ($current.DefaultValue -ne $null)){
                             $repvalue = InternalGet-EvaluatedProperty -expression $current.DefaultValue -properties $evaluatedProps
                         }
 
                         $newname = $file.Name.Replace($current.ReplaceKey, $repvalue)
-                        [System.IO.FileInfo]$newpath = (Join-Path ($file.Directory.FullName) $newname)
-                        Move-Item $file.FullName $newpath.FullName
+                        [Alphaleonis.Win32.Filesystem.FileInfo]$newpath = (InternalJoin-Path ($file.Directory.FullName) $newname)
+                        
+                        [Alphaleonis.Win32.Filesystem.File]::Move($file.Fullname,$newpath.FullName)
                     }
                 }
             }
@@ -1317,8 +1557,8 @@ function InternalNew-PWTemplate{
             }
 
             # copy the final result to the destination
-            Ensure-DirectoryExists -path $destPath.FullName
-            Copy-ItemRobocopy -sourcePath $tempWorkDir.FullName -destPath $destPath.FullName -ignoreErrors -recurse
+            Ensure-DirectoryExists -path $destPath
+            Copy-ItemRobocopy -sourcePath $tempWorkDir.FullName -destPath $destPath -ignoreErrors -recurse
 
             if($template.AfterInstall -ne $null){
                 InternalGet-EvaluatedProperty -expression $template.AfterInstall -properties $evaluatedProps
@@ -1326,7 +1566,7 @@ function InternalNew-PWTemplate{
         }
         finally{
             # delete the temp dir and ignore any errors
-            if(Test-Path $tempWorkDir.FullName){
+            if(InternalTest-Directory $tempWorkDir.FullName){
                 Remove-Item $tempWorkDir.FullName -Recurse -ErrorAction SilentlyContinue | Out-Null
             }
         }
@@ -1426,19 +1666,51 @@ function InternalImport-FileReplacer{
             'Importing file-replacer version [{0}]' -f $fileReplacerVersion | Write-Verbose
             InternalImport-NuGetPowershell | Out-Null
             $pkgpath = (Get-NuGetPackage 'file-replacer' -version $fileReplacerVersion -binpath)
-            Import-Module (Join-Path $pkgpath 'file-replacer.psm1') -DisableNameChecking -Global | Out-Null
+            Import-Module (InternalJoin-Path $pkgpath 'file-replacer.psm1') -DisableNameChecking -Global | Out-Null
         }
     }
 }
 
+# functions to enable working with long paths
+
+function Get-FullPath{
+    [cmdletbinding()]
+    param(
+        [string[]]$path
+    )
+    process{
+        # call robo copy to get the full path
+        foreach($p in $path){
+            if(-not ([string]::IsNullOrWhiteSpace($p))){
+                [Alphaleonis.Win32.Filesystem.Path]::GetFullPath($p)
+            }
+        }
+    }
+}
+
+function Test-LongPath{
+    [cmdletbinding()]
+    param(
+        [Parameter(Position=0,Mandatory=$true)]
+        [string[]]$path,
+
+        [Parameter(Position=1)]
+        [ValidateSet('Any','Container','Leaf')]
+        [string]$pathType
+    )
+    process{
+        
+    }
+}
+
 if($global:pecanwafflesettings.EnableAddLocalSourceOnLoad -eq $true){
-    Add-PWTemplateSource -path (join-path (InternalGet-ScriptDirectory) 'templates\pecan-waffle')
-    Add-PWTemplateSource -path (join-path (InternalGet-ScriptDirectory) 'templates\aspnet5')
+    Add-PWTemplateSource -path (InternalJoin-Path $scriptDir 'templates\pecan-waffle')
+    Add-PWTemplateSource -path (InternalJoin-Path $scriptDir 'templates\aspnet5')
     
 }
 
 Remove-Module pecan-waffle-visualstudio -Force -ErrorAction SilentlyContinue | out-null
-Import-Module (Join-Path (InternalGet-ScriptDirectory) 'pecan-waffle-visualstudio.psm1') -Global -DisableNameChecking
+Import-Module (InternalJoin-Path (InternalGet-ScriptDirectory) 'pecan-waffle-visualstudio.psm1') -Global -DisableNameChecking
 
 
 # TODO: Update this later

@@ -424,6 +424,9 @@ Describe 'update-filename tests'{
 }
 
 Describe 'add project tests'{
+    $Global:pecanwafflesettings.EnableAddLocalSourceOnLoad=$true
+    . $importPecanWaffle
+
     It 'can run aspnet5-empty project'{
         [System.IO.DirectoryInfo]$dest = (Join-Path $TestDrive 'empty01')
         Ensure-PathExists -path $dest.FullName

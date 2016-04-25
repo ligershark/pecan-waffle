@@ -272,6 +272,7 @@ function CopyStaticFilesToOutputDir{
         Get-ChildItem $scriptDir *.nuspec | Copy-Item -Destination $outputroot
         Get-ChildItem $scriptDir *.targets | Copy-Item -Destination $outputroot
         Get-ChildItem $scriptDir *.props | Copy-Item -Destination $outputroot
+        Copy-item (join-path $scriptDir 'AlphaFS.dll') -Destination $outputroot
         [System.IO.DirectoryInfo]$vstemplateDest =(Join-Path $outputroot vs-template-zip) 
         if(-not (Test-Path $vstemplateDest.FullName)) {
             Copy-Item (Join-Path $scriptDir 'vs-template-zip') -Destination $vstemplateDest.FullName -Recurse
