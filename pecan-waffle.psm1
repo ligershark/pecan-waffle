@@ -1234,8 +1234,9 @@ function InternalNew-PWTemplate{
 
                     # update directory names
                     $gciparams = @{
-                        Path = $tempWorkDir.FullName + '\*'
+                        Path = $tempWorkDir.FullName # + '\*'
                         Include=('*{0}*' -f $current.ReplaceKey)
+                        # Filter=('*{0}*' -f $current.ReplaceKey)
                         Recurse = $true
                         Directory=$true
                     }
@@ -1243,6 +1244,7 @@ function InternalNew-PWTemplate{
                     if( ($current.Include -ne $null) -and ($current.Include.Length -gt 0) ){
                         # 'Overriding include with [{0}]' -f ($current.Include -join ';') | Write-Host -ForegroundColor Cyan
                         $gciparams.Include = $current.Include
+                        # $gciparams.Filter = $current.Include
                     }
 
                     if( ($current.Exclude -ne $null) -and ($current.Exclude.Length -gt 0) ){
