@@ -17,6 +17,6 @@
     <pwTemplateZipRelDir Condition=" '$(pwTemplateZipRelDir)'=='' ">Output\ProjectTemplates\CSharp\Web\SideWaffle\</pwTemplateZipRelDir>
     <pwVerbose Condition=" '$(pwVerbose)'=='' ">false</pwVerbose>
     <pwTemplateExtraArgs Condition=" '$(PWVerbose)'=='true' ">$(pwTemplateExtraArgs) -verbose</pwTemplateExtraArgs>
-    <pwTemplateRoot Condition=" '$(pwTemplateRoot)'==''">$(MSBuildProjectDirectory)\..\..\templates\</pwTemplateRoot>
+    <pwTemplateRoot Condition=" '$(pwTemplateRoot)'==''">$(MSBuildProjectDirectory)\</pwTemplateRoot>
   </PropertyGroup>
 </Project>
