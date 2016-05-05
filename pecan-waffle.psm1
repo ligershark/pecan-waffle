@@ -1241,10 +1241,11 @@ function InternalNew-PWTemplate{
                         Directory=$true
                     }
 
+                    # Don't do this for directories
+                    <#
                     if( ($current.Include -ne $null) -and ($current.Include.Length -gt 0) ){
                         # 'Overriding include with [{0}]' -f ($current.Include -join ';') | Write-Host -ForegroundColor Cyan
                         $gciparams.Include = $current.Include
-                        # $gciparams.Filter = $current.Include
                     }
 
                     if( ($current.Exclude -ne $null) -and ($current.Exclude.Length -gt 0) ){
@@ -1252,6 +1253,7 @@ function InternalNew-PWTemplate{
                         $gciparams.Exclude = $current.Exclude
                         # $gciparams | Out-String | Write-Host -ForegroundColor Cyan
                     }
+                    #>
 
                     # (Get-ChildItem $tempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory) |
                     (Get-ChildItem @gciparams) |
@@ -1269,6 +1271,17 @@ function InternalNew-PWTemplate{
                         }
                                           
                     # update filenames
+                    if( ($current.Include -ne $null) -and ($current.Include.Length -gt 0) ){
+                        # 'Overriding include with [{0}]' -f ($current.Include -join ';') | Write-Host -ForegroundColor Cyan
+                        $gciparams.Include = $current.Include
+                    }
+
+                    if( ($current.Exclude -ne $null) -and ($current.Exclude.Length -gt 0) ){
+                        #'Overriding Exclude with [{0}]' -f ($current.Exclude -join ';') | Write-Host -ForegroundColor Cyan
+                        $gciparams.Exclude = $current.Exclude
+                        # $gciparams | Out-String | Write-Host -ForegroundColor Cyan
+                    }
+                    
                     $gciparams['Directory']=$false
                     $gciparams['File']=$true
                     # $gciparams | Out-String | Write-Host -ForegroundColor Cyan
