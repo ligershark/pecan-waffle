@@ -486,7 +486,7 @@ function InternalGet-PackageStringsFromFile{
         [System.IO.FileInfo[]]$files
     )
     process{
-        InternalGet-MatchingStringsFromFile -files $files -pattern '[\.\\/]+packages'
+        InternalGet-MatchingStringsFromFile -files $files -pattern '[\.|\\|/]+[\\/]packages'
     }
 }
 
