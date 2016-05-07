@@ -44,7 +44,6 @@
         {
             get
             {
-                return true;
                 var pwverbosestr = Environment.GetEnvironmentVariable("PecanWaffleVerbose");
                 if (!string.IsNullOrWhiteSpace(pwverbosestr) &&
                     string.Equals("true", pwverbosestr, StringComparison.OrdinalIgnoreCase)){

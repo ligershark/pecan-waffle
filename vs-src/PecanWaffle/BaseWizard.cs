@@ -133,8 +133,6 @@
             return false;
         }
 
-
-
         // http://blogs.msdn.com/b/kebab/archive/2014/04/28/executing-powershell-scripts-from-c.aspx
         /// <summary>
         /// Gets the projects in a solution recursively.

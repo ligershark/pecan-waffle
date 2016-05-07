@@ -2,7 +2,7 @@
 param()
 
 try{
-    Remove-Module pecan-waffle-visualstudio -Force -ErrorAction SilentlyContinue
+    Remove-Module pecan-waffle-visualstudio -Force -ErrorAction SilentlyContinue | Out-Null
 }
 catch{
     # do nothing
