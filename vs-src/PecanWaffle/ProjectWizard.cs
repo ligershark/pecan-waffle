@@ -14,7 +14,7 @@
     using System.Threading.Tasks;
     using System.Windows.Forms;
     using System.Collections;
-
+    using System.ComponentModel;
     public class ProjectWizard : BaseWizard {
         protected internal Hashtable Properties { get; set; }
 
@@ -26,6 +26,12 @@
         {
             get { return "ProjectWizard"; }
         }
+
+        public override void RunStarted(object automationObject, Dictionary<string, string> replacementsDictionary, WizardRunKind runKind, object[] customParams) {
+            EnsurePecanWaffleExtracted();
+            base.RunStarted(automationObject, replacementsDictionary, runKind, customParams);
+        }
+
         public override void RunFinished() {
             try {
                 base.RunFinished();
@@ -47,6 +53,10 @@
 
                 if (!string.IsNullOrWhiteSpace(errorSb.ToString())) {
                     throw new ApplicationException(errorSb.ToString());
+                }
+
+                if (string.IsNullOrWhiteSpace(TemplateSource)) {
+                    TemplateSource = ExtensionInstallDir;
                 }
 
                 Solution4 solution = GetSolution();
@@ -82,6 +92,32 @@
             catch (Exception ex) {
                 // TODO: Improve this
                 MessageBox.Show(ex.ToString());
+            }
+        }
+
+        private void EnsurePecanWaffleExtracted() {
+            if (!Directory.Exists(PecanWaffleLocalModulePath)) {
+                var swDir = new DirectoryInfo(ExtensionInstallDir);
+                var foundFiles = swDir.GetFiles("*.nupkg");
+                if (foundFiles == null || foundFiles.Length <= 3) {
+                    throw new FileNotFoundException(string.Format("Didn't find 3 or more nuget packages to extract in [{0}].", swDir.FullName));
+                }
+
+                foreach (var file in foundFiles) {
+                    var pkgdir = Path.Combine(PecanWaffleLocalModulePath, file.Name);
+                    if (!Directory.Exists(pkgdir)) {
+                        Directory.CreateDirectory(pkgdir);
+                    }
+                    ZipFile.ExtractToDirectory(file.FullName, pkgdir);
+                }
+            }
+        }
+
+        protected string PecanWaffleLocalModulePath
+        {
+            get
+            {
+                return Path.Combine(ExtensionInstallDir, @"PwModules\");
             }
         }
     }

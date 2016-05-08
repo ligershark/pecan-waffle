@@ -3,6 +3,7 @@
     using EnvDTE100;
     using EnvDTE80;
     using Microsoft.VisualStudio;
+    using Microsoft.VisualStudio.ExtensionManager;
     using Microsoft.VisualStudio.Shell;
     using Microsoft.VisualStudio.Shell.Interop;
     using Microsoft.VisualStudio.TemplateWizard;
@@ -10,6 +11,7 @@
     using System.Collections;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.ComponentModel;
     using System.IO;
     using System.IO.Compression;
     using System.Linq;
@@ -18,7 +20,7 @@
     using System.Text;
     using System.Threading.Tasks;
     using System.Windows.Forms;
-    public abstract class BaseWizard : IWizard {
+    public abstract class BaseWizard : Component,IWizard {
         private Solution4 _solution { get; set; }
         private DTE2 _dte2 { get; set; }
         private string _templateName;
@@ -38,6 +40,8 @@
             Solution4 result = null;
             if (_dte2 != null) {
                 result = ((Solution4)_dte2.Solution);
+
+                
             }
 
             return result;
@@ -45,6 +49,29 @@
 
         protected internal virtual string ExtensionInstallDir
         { get; set; }
+
+        public string GetExtensionInstallDir(string extensionId) {
+            if(extensionId == null) {
+                extensionId = ExtensionInstallDir;
+            }
+
+            if (string.IsNullOrWhiteSpace(extensionId)) {
+                throw new ApplicationException("ExtensionId is empty");
+            }
+
+            var manager = (IVsExtensionManager)GetService(typeof(SVsExtensionManager));
+            if (manager != null) {
+                var extension = manager.GetInstalledExtension(extensionId);
+                if (extension != null) {
+                    return extension.InstallPath;
+                }
+            }
+            else {
+                throw new ApplicationException("Unable to get an instance of IVsExtensionManager");
+            }
+
+            return null;
+        }
 
         public string TemplateName
         {
@@ -77,6 +104,10 @@
         public string SolutionDirectory
         {
             get; private set;
+        }
+        public string ExtensionId
+        {
+            get;private set;
         }
 
         public virtual void BeforeOpeningFile(ProjectItem projectItem) { }
@@ -124,6 +155,11 @@
             string slndir;
             if (replacementsDictionary.TryGetValue("$solutiondirectory$", out slndir)) {
                 SolutionDirectory = slndir;
+            }
+
+            string extensionId;
+            if (replacementsDictionary.TryGetValue("ExtensionId", out extensionId)) {
+                ExtensionId = extensionId;
             }
 
             PowerShellInvoker.Instance.EnsureInstallPwScriptInvoked(PecanWaffleBranchName,ExtensionInstallDir);
