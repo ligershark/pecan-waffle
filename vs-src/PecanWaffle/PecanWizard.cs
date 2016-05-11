@@ -1,4 +1,10 @@
-﻿namespace PecanWaffle {
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace PecanWaffle {
     using EnvDTE;
     using EnvDTE100;
     using EnvDTE80;
@@ -8,34 +14,45 @@
     using System.IO;
     using System.IO.Compression;
     using System.Linq;
-    using System.Management.Automation;
     using System.Reflection;
     using System.Text;
     using System.Threading.Tasks;
     using System.Windows.Forms;
     using System.Collections;
     using System.ComponentModel;
-    public class ProjectWizard : BaseWizard {
+    using PecanWaffle;
+    using Microsoft.VisualStudio.Shell.Interop;
+    using Microsoft.VisualStudio.ExtensionManager;
+    using Microsoft.VisualStudio.Shell;
+    using Microsoft.VisualStudio.ComponentModelHost;
+    using Microsoft.VisualStudio.OLE.Interop;
+    using IOleServiceProvider = Microsoft.VisualStudio.OLE.Interop.IServiceProvider;
+    public class PecanWizard : BaseWizard {
         protected internal Hashtable Properties { get; set; }
 
-        public ProjectWizard() : base() {
+        public PecanWizard() : base() {
             Properties = new Hashtable();
+
         }
 
         public static string Name
         {
-            get { return "ProjectWizard"; }
+            get { return "PecanWizard"; }
         }
 
         public override void RunStarted(object automationObject, Dictionary<string, string> replacementsDictionary, WizardRunKind runKind, object[] customParams) {
-            EnsurePecanWaffleExtracted();
+
+            var _oleServiceProvider = automationObject as IOleServiceProvider;
+            var _serviceProvider = new Microsoft.VisualStudio.Shell.ServiceProvider(_oleServiceProvider);
+            var result = (IVsExtensionManager)_serviceProvider.GetService(typeof(SVsExtensionManager));
+            // EnsurePecanWaffleExtracted();
             base.RunStarted(automationObject, replacementsDictionary, runKind, customParams);
         }
 
         public override void RunFinished() {
             try {
                 base.RunFinished();
-
+                EnsurePecanWaffleExtracted();
                 // check required properties
                 var errorSb = new StringBuilder();
                 if (string.IsNullOrWhiteSpace(ProjectName)) {
@@ -55,9 +72,9 @@
                     throw new ApplicationException(errorSb.ToString());
                 }
 
-                //if (string.IsNullOrWhiteSpace(TemplateSource)) {
-                //    TemplateSource = GetExtensionInstallDir(ExtensionId);
-                //}
+                if (string.IsNullOrWhiteSpace(TemplateSource)) {
+                    TemplateSource = GetExtensionInstallDirNew(ExtensionId);
+                }
 
                 Solution4 solution = GetSolution();
                 if (solution != null) {
@@ -94,7 +111,6 @@
                 MessageBox.Show(ex.ToString());
             }
         }
-
         private void EnsurePecanWaffleExtracted() {
             if (!Directory.Exists(PecanWaffleLocalModulePath)) {
                 var swDir = new DirectoryInfo(GetExtensionInstallDirNew(ExtensionId));

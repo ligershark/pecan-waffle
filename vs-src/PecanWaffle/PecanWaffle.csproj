@@ -47,6 +47,7 @@
     <Reference Include="Microsoft.VisualStudio.CommandBars, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a">
       <EmbedInteropTypes>True</EmbedInteropTypes>
     </Reference>
+    <Reference Include="Microsoft.VisualStudio.ComponentModelHost, Version=14.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.VisualStudio.OLE.Interop, Version=7.1.40304.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" />
     <Reference Include="Microsoft.VisualStudio.Shell.11.0, Version=12.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
     <Reference Include="Microsoft.VisualStudio.Shell.Immutable.10.0, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
@@ -66,7 +67,7 @@
     </Reference>
     <Reference Include="Microsoft.VisualStudio.ExtensionManager">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>$(DevEnvDir)\PrivateAssemblies\Microsoft.VisualStudio.ExtensionManager.dll</HintPath>
+      <HintPath>$(DevEnvDir)PrivateAssemblies\Microsoft.VisualStudio.ExtensionManager.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Data" />
@@ -106,6 +107,9 @@
     <Compile Include="PecanWaffleWizard.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="PecanWizard.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="PocUiWizard.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -117,6 +121,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="ServiceLocator.cs" />
   </ItemGroup>
   <ItemGroup>
     <Page Include="PocWindow.xaml">

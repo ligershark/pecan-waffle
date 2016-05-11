@@ -40,38 +40,13 @@
             Solution4 result = null;
             if (_dte2 != null) {
                 result = ((Solution4)_dte2.Solution);
-
-                
             }
-
+             
             return result;
         }
 
         protected internal virtual string ExtensionInstallDir
         { get; set; }
-
-        public string GetExtensionInstallDir(string extensionId) {
-            if(extensionId == null) {
-                extensionId = ExtensionInstallDir;
-            }
-
-            if (string.IsNullOrWhiteSpace(extensionId)) {
-                throw new ApplicationException("ExtensionId is empty");
-            }
-
-            var manager = (IVsExtensionManager)GetService(typeof(SVsExtensionManager));
-            if (manager != null) {
-                var extension = manager.GetInstalledExtension(extensionId);
-                if (extension != null) {
-                    return extension.InstallPath;
-                }
-            }
-            else {
-                throw new ApplicationException("Unable to get an instance of IVsExtensionManager");
-            }
-
-            return null;
-        }
 
         public string TemplateName
         {
@@ -162,9 +137,19 @@
                 ExtensionId = extensionId;
             }
 
-            PowerShellInvoker.Instance.EnsureInstallPwScriptInvoked(PecanWaffleBranchName,ExtensionInstallDir);
+            PowerShellInvoker.Instance.EnsureInstallPwScriptInvoked(PecanWaffleBranchName, GetExtensionInstallDirNew(ExtensionId));
         }
+        public string GetExtensionInstallDirNew(string extensionId) {
+            if (extensionId == null) {
+                extensionId = ExtensionInstallDir;
+            }
 
+            if (string.IsNullOrWhiteSpace(extensionId)) {
+                throw new ApplicationException("ExtensionId is empty");
+            }
+            
+            return null;
+        }
         public bool ShouldAddProjectItem(string filePath) {
             return false;
         }
