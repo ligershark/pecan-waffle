@@ -79,10 +79,9 @@
             }
 
         }
-        public void EnsureInstallPwScriptInvoked(string pwInstallBranch, string extensionInstallDir) {
+        public void EnsureInstallPwScriptInvoked(string extensionInstallDir) {
             PsInstance = PowerShell.Create();
             PsInstance.AddScript(_psInstallPecanWaffleScript);
-            PsInstance.AddParameter("pwInstallBranch", pwInstallBranch);
             PsInstance.AddParameter("extensionInstallDir",extensionInstallDir);
             var result = PsInstance.Invoke();
 
@@ -96,7 +95,7 @@
                 WriteToOutputWindow(errorString);
             }
         }
-        public void RunPwCreateProjectScript(string projectName, string destPath, string templateName, string pwBranchName, string templateSource, string templateSourceBranch, Hashtable properties) {
+        public void RunPwCreateProjectScript(string projectName, string destPath, string templateName, string templateSource, string templateSourceBranch, Hashtable properties) {
             bool hadErrors;
             string errorString = "";
             // here is where we want to call pecan-waffle
@@ -107,10 +106,7 @@
                 PsInstance.AddParameter("templateName", templateName);
                 PsInstance.AddParameter("projectName", projectName);
                 PsInstance.AddParameter("destPath", destPath);
-
-                if (!string.IsNullOrWhiteSpace(pwBranchName)) {
-                    PsInstance.AddParameter("pwInstallBranch", pwBranchName);
-                }
+                
                 if (!string.IsNullOrWhiteSpace(templateSource)) {
                     PsInstance.AddParameter("TemplateSource", templateSource);
                 }
@@ -167,7 +163,7 @@
         }
 
         private string _psNewProjectScript = @"
-param($templateName,$projectname,$destpath,$pwInstallBranch,$templateSource,$templateSourceBranch,$properties)
+param($templateName,$projectname,$destpath,$templateSource,$templateSourceBranch,$properties)
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
 $destpath = ([System.IO.DirectoryInfo]$destpath)
 
@@ -181,7 +177,7 @@ if(-not [string]::IsNullOrWhiteSpace($templateSource)){
 New-PWProject -templateName $templatename -destPath $destpath.FullName -noNewFolder -projectName $projectname -properties $properties";
 
         private string _psInstallPecanWaffleScript = @"
-param($pwInstallBranch, $extensionInstallDir)
+param($extensionInstallDir)
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
 
 $localPath = $env:PWLocalPath

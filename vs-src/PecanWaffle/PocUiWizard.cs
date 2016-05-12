@@ -36,7 +36,7 @@
                         }
                         string newFolder = new DirectoryInfo(projectFolder).Parent.FullName;
                         Directory.Delete(projectFolder, true);
-                        PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, newFolder, form.TemplateName, PecanWaffleBranchName, form.TemplatePathOrUrl, form.TemplateBranch, properties);
+                        PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, newFolder, form.TemplateName, form.TemplatePathOrUrl, form.TemplateBranch, properties);
                         AddProjectsUnderPathToSolution(solution, newFolder, "*.*proj");
                     }
                     else {

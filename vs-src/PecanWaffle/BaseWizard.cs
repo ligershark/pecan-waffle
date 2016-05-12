@@ -25,7 +25,6 @@
         private DTE2 _dte2 { get; set; }
         private string _templateName;
         private string _projectName;
-        private string _pecanWaffleBranchName;
         private string _templateSourceBranch;
         private object psinstancelock = new object();
 
@@ -81,17 +80,6 @@
         {
             get { return _projectName; }
         }
-        public string PecanWaffleBranchName
-        {
-            get {
-                string result = "master";
-                if (!string.IsNullOrWhiteSpace(_pecanWaffleBranchName)) {
-                    result = _pecanWaffleBranchName;
-                }
-
-                return result;
-            }
-        }
         public string TemplateSource
         {
             get; set;
@@ -137,11 +125,6 @@
                 _templateName = tname;
             }
 
-            string pwbranch;
-            if (replacementsDictionary.TryGetValue("PecanWaffleInstallBranch", out pwbranch)) {
-                _pecanWaffleBranchName = pwbranch;
-            }
-
             string tsource;
             if (replacementsDictionary.TryGetValue("TemplateSource", out tsource)) {
                 TemplateSource = tsource;
@@ -162,7 +145,7 @@
                 ExtensionId = extensionId;
             }
 
-            PowerShellInvoker.Instance.EnsureInstallPwScriptInvoked(PecanWaffleBranchName,ExtensionInstallDir);
+            PowerShellInvoker.Instance.EnsureInstallPwScriptInvoked(ExtensionInstallDir);
         }
 
         public bool ShouldAddProjectItem(string filePath) {

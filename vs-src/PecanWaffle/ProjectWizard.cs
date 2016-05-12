@@ -44,9 +44,6 @@
                 if (string.IsNullOrWhiteSpace(TemplateName)) {
                     errorSb.AppendLine("TemplateName is null");
                 }
-                if (string.IsNullOrWhiteSpace(PecanWaffleBranchName)) {
-                    errorSb.AppendLine("PecanWaffleBranchName is null");
-                }
                 if (string.IsNullOrWhiteSpace(TemplateSource)) {
                     errorSb.AppendLine("TemplateSource is null");
                 }
@@ -80,7 +77,7 @@
                     string newFolder = new DirectoryInfo(projectFolder).Parent.FullName;
                     Directory.Delete(projectFolder, true);
 
-                    PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, projFolderInfo.FullName, TemplateName, PecanWaffleBranchName, TemplateSource, TemplateSourceBranch, properties);
+                    PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, projFolderInfo.FullName, TemplateName, TemplateSource, TemplateSourceBranch, properties);
                     // TODO: allow override of pattern via custom parameter
                     AddProjectsUnderPathToSolution(solution, projFolderInfo.FullName, "*.*proj");
                 }

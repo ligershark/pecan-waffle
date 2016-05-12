@@ -25,6 +25,7 @@
 
     public class PecanWizard : IWizard {
         protected internal Hashtable Properties { get; set; }
+        public Dictionary<string, string> Replacements { get; set; }
         public PecanWizard() {
             Properties = new Hashtable();
         }
@@ -44,25 +45,8 @@
         {
             get;set;
         }
-        private string _pecanWaffleBranchName;
+
         private string ExtensionInstallDir;
-
-        public string PecanWaffleBranchName
-        {
-            get
-            {
-                string result = "master";
-                if (!string.IsNullOrWhiteSpace(_pecanWaffleBranchName)) {
-                    result = _pecanWaffleBranchName;
-                }
-
-                return result;
-            }
-            set
-            {
-                _pecanWaffleBranchName = value;
-            }
-        }
         public string TemplateSource
         {
             get; set;
@@ -104,9 +88,6 @@
             if (string.IsNullOrWhiteSpace(TemplateName)) {
                 errorSb.AppendLine("TemplateName is null");
             }
-            if (string.IsNullOrWhiteSpace(PecanWaffleBranchName)) {
-                errorSb.AppendLine("PecanWaffleBranchName is null");
-            }
             if (string.IsNullOrWhiteSpace(TemplateSource)) {
                 errorSb.AppendLine("TemplateSource is null");
             }
@@ -133,10 +114,20 @@
 
                 DirectoryInfo projFolderInfo = new DirectoryInfo(projectFolder);
                 properties.Add("SolutionRoot", slnRoot);
+
+                if (Replacements != null && Replacements.Keys.Count > 0) {
+                    foreach(string key in Replacements.Keys) {
+                        string value;
+                        if(Replacements.TryGetValue(key,out value) && !string.IsNullOrEmpty(value)) {
+                            properties.Add(key, value);
+                        }
+                    }
+                }
+
                 string newFolder = new DirectoryInfo(projectFolder).Parent.FullName;
                 Directory.Delete(projectFolder, true);
 
-                PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, projFolderInfo.FullName, TemplateName, PecanWaffleBranchName, TemplateSource, TemplateSourceBranch, properties);
+                PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, projFolderInfo.FullName, TemplateName, TemplateSource, TemplateSourceBranch, properties);
                 // TODO: allow override of pattern via custom parameter
                 AddProjectsUnderPathToSolution(Solution, projFolderInfo.FullName, "*.*proj");
             }
@@ -146,6 +137,8 @@
         }
 
         public void RunStarted(object automationObject, Dictionary<string, string> replacementsDictionary, WizardRunKind runKind, object[] customParams) {
+            Replacements = replacementsDictionary;
+
             string projName;
             if (replacementsDictionary.TryGetValue("$safeprojectname$", out projName)) {
                 ProjectName = projName;
@@ -154,11 +147,6 @@
             string tname;
             if (replacementsDictionary.TryGetValue("TemplateName", out tname)) {
                 TemplateName = tname;
-            }
-
-            string pwbranch;
-            if (replacementsDictionary.TryGetValue("PecanWaffleInstallBranch", out pwbranch)) {
-                PecanWaffleBranchName = pwbranch;
             }
 
             string tsource;
@@ -192,7 +180,7 @@
 
             EnsurePecanWaffleExtracted(pwModsFolder, ExtensionInstallDir);
 
-            PowerShellInvoker.Instance.EnsureInstallPwScriptInvoked(PecanWaffleBranchName, ExtensionInstallDir);
+            PowerShellInvoker.Instance.EnsureInstallPwScriptInvoked(ExtensionInstallDir);
         }
 
         public bool ShouldAddProjectItem(string filePath) {
