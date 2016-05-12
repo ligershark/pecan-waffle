@@ -61,7 +61,7 @@ function InternalGet-ScriptDirectory{
 function Get-PecanWaffleVersion{
     param()
     process{
-        New-Object -TypeName 'system.version' -ArgumentList '0.0.18.0'
+        New-Object -TypeName 'system.version' -ArgumentList '0.0.19.0'
     }
 }
 

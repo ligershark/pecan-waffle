@@ -5,7 +5,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">  
   <metadata>
     <id>pecan-waffle-vs</id>
-    <version>0.0.18-beta</version>
+    <version>0.0.19-beta</version>
     <authors>Sayed Ibrahim Hashimi</authors>
     <description>
       Package containing pecan-waffle for Visual Studio templates
@@ -21,7 +21,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <copyright>Copyright 2016 Sayed Ibrahim Hashimi</copyright>
     <dependencies>
-      <dependency id="pecan-waffle" version="0.0.18-beta" />
+      <dependency id="pecan-waffle" version="0.0.19-beta" />
       <dependency id="file-replacer" version="0.4.5-beta" />
       <dependency id="nuget-powershell" version="0.2.5-beta" />
     </dependencies>
