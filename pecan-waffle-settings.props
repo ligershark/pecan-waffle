@@ -3,7 +3,6 @@
 
     <PropertyGroup>
       <PowerShellExe Condition=" '$(PowerShellExe)'=='' ">$(WINDIR)\System32\WindowsPowerShell\v1.0\powershell.exe</PowerShellExe>      
-      <pwInstallBranch Condition=" '$(pwInstallBranch)'=='' ">dev</pwInstallBranch>
       <pwTemplateZipRelDir Condition=" '$(pwTemplateZipRelDir)'=='' ">Output\ProjectTemplates\CSharp\Web\SideWaffle\</pwTemplateZipRelDir>
       <pwVerbose Condition=" '$(pwVerbose)'=='' ">false</pwVerbose>
       <PackagesDir Condition=" '$(PackagesDir)'=='' ">..\packages\</PackagesDir>

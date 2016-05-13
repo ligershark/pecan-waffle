@@ -268,7 +268,7 @@ function CopyStaticFilesToOutputDir{
     [cmdletbinding()]
     param()
     process{
-        Get-ChildItem $scriptDir pecan-*.ps*1 | Copy-Item -Destination $outputroot
+        Get-ChildItem $scriptDir *.ps*1 | Copy-Item -Destination $outputroot
         Get-ChildItem $scriptDir *.nuspec | Copy-Item -Destination $outputroot
         Get-ChildItem $scriptDir *.targets | Copy-Item -Destination $outputroot
         Get-ChildItem $scriptDir *.props | Copy-Item -Destination $outputroot
