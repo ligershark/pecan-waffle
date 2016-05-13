@@ -2,7 +2,7 @@
 param()
 
 try{
-    Remove-Module pecan-waffle-visualstudio -Force -ErrorAction SilentlyContinue
+    Remove-Module pecan-waffle-visualstudio -Force -ErrorAction SilentlyContinue | Out-Null
 }
 catch{
     # do nothing
@@ -486,7 +486,7 @@ function InternalGet-PackageStringsFromFile{
         [System.IO.FileInfo[]]$files
     )
     process{
-        InternalGet-MatchingStringsFromFile -files $files -pattern '[\.\\/]+packages'
+        InternalGet-MatchingStringsFromFile -files $files -pattern '[\.|\\|/]+[\\/]packages'
     }
 }
 

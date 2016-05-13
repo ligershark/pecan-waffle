@@ -21,53 +21,27 @@ if(-not (Test-Path $templateRootDir -PathType Container)){
     throw ('Did not find template root folder at [{0}]' -f $templateRootDir)
 }
 
-if([string]::IsNullOrWhiteSpace($pwInstallBranch)){ $pwInstallBranch = 'master' }
+function InternalGet-ScriptDirectory{
+    split-path (((Get-Variable MyInvocation -Scope 1).Value).MyCommand.Path)
+}
+$scriptdir = (InternalGet-ScriptDirectory)
 
-$env:EnableAddLocalSourceOnLoad =$false
+if([string]::IsNullOrWhiteSpace($pwInstallBranch)){ $pwInstallBranch = 'master' }
 
 # parameters declared here
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
 
-[System.Version]$minPwVersion = (New-Object -TypeName 'system.version' -ArgumentList '0.0.14.0')
-$pwNeedsInstall = $true
+$importPath = (join-path $scriptdir 'pecan-waffle.psm1')
 
-# see if pw is already installed and has a high enough version
-[System.Version]$installedVersion = $null
-try{
-    Import-Module pecan-waffle -ErrorAction SilentlyContinue | out-null
-    $installedVersion = Get-PecanWaffleVersion
-}
-catch{
-    $installedVersion = $null
+if( -not ([string]::IsNullOrWhiteSpace($env:PWLocalPath)) -and (test-path ($env:PWLocalPath))){
+    $importPath = (join-path $env:PWLocalPath 'pecan-waffle.psm1')
 }
 
-if( ($installedVersion -ne $null) -and ($installedVersion.CompareTo($minPwVersion) -ge 0)){
-    $pwNeedsInstall = $false
+if(-not (Test-Path $importPath -PathType Leaf)){
+    throw ('pecan-waffle module not found at [{0}]' -f $importPath)
 }
 
-$localPath = $env:PWLocalPath
-
-if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
-    $pwNeedsInstall = $true
-}
-
-if($pwNeedsInstall){
-    Remove-Module pecan-waffle -ErrorAction SilentlyContinue | Out-Null
-    Remove-Module pecan-waffle-visualstudio -ErrorAction SilentlyContinue | Out-Null
-    
-    [System.IO.DirectoryInfo]$localInstallFolder = "$env:USERPROFILE\Documents\WindowsPowerShell\Modules\pecan-waffle"
-    if(test-path $localInstallFolder.FullName){
-        Remove-Item $localInstallFolder.FullName -Recurse
-    }
-    
-    if( (-not [string]::IsNullOrWhiteSpace($localPath)) -and (Test-Path $localPath)){
-        Import-Module "$localPath\pecan-waffle.psm1" -Global -DisableNameChecking
-    }
-    else{
-        $installUrl = ('https://raw.githubusercontent.com/ligershark/pecan-waffle/{0}/install.ps1' -f $pwInstallBranch)
-        &{set-variable -name pwbranch -value $pwInstallBranch;$wc=New-Object System.Net.WebClient;$wc.Proxy=[System.Net.WebRequest]::DefaultWebProxy;$wc.Proxy.Credentials=[System.Net.CredentialCache]::DefaultNetworkCredentials;Invoke-Expression ($wc.DownloadString($installUrl))}
-    }
-}
+Import-Module $importPath -Global -DisableNameChecking
 
 $templatefiles = (Get-ChildItem $templateRootDir 'pw-templateinfo*.ps1' -Recurse -File).FullName
 foreach($templateFilePath in $templatefiles){

@@ -61,7 +61,7 @@ function InternalGet-ScriptDirectory{
 function Get-PecanWaffleVersion{
     param()
     process{
-        New-Object -TypeName 'system.version' -ArgumentList '0.0.12.0'
+        New-Object -TypeName 'system.version' -ArgumentList '0.0.19.0'
     }
 }
 
@@ -139,16 +139,19 @@ function Copy-ItemRobocopy{
         [switch]$recurse,
 
         [Parameter(Position=8)]
-        [string]$roboCopyOptions = ('/MT /R:1 /W:2 /XA:SH /XJ /FFT'),
+        [string]$roboCopyOptions = ('/R:1 /W:2 /XA:SH /XJ /FFT'),
 
         [Parameter(Position=9)]
         [string]$roboLoggingOptions = ('/NFL /NDL /NJS /NJH /NP /NS /NC')
-
     )
     process{
         [System.Text.StringBuilder]$sb = New-Object -TypeName 'System.Text.StringBuilder'
         $sb.AppendFormat('"{0}" ',$sourcePath.Trim('"').Trim("'").TrimEnd("\")) | out-null
         $sb.AppendFormat('"{0}" ',$destPath.Trim('"').Trim("'").TrimEnd("\")) | out-null
+
+        if($fileNames -eq $null){
+            $fileNames = ,'*.*'
+        }
 
         if( ($fileNames -ne $null) -and ($fileNames.Count -gt 0)){
             foreach($file in $fileNames){
@@ -193,11 +196,10 @@ function Copy-ItemRobocopy{
             'commandArgs'=$sb.ToString()
         }
 
-        if($ignoreErrors){
-            $copyArgs['ignoreErrors']=$true
-        }
+        # TODO: Not sure how to properly handle errors, always ignore
+        $copyArgs['ignoreErrors']=$true
 
-        Invoke-CommandString @copyArgs        
+        Invoke-CommandString @copyArgs
     }
 }
 
@@ -1152,20 +1154,9 @@ function InternalNew-PWTemplate{
         [System.IO.DirectoryInfo]$tempWorkDir = Get-NewTempDir
         [string]$sourcePath = $template.TemplatePath
         
-        [string[]]$drivesCreated = @()
-        $srcdrive=('pwsrc{0}' -f [DateTime]::UtcNow.Ticks)
-        New-PSDrive -Name $srcdrive -PSProvider FileSystem -Root $sourcePath -Scope Global | Out-Null
-        $drivesCreated += $srcdrive
-
-        $mTempDrive=('pwtmp{0}' -f [DateTime]::UtcNow.Ticks)
-        New-PSDrive -Name $mTempDrive -PSProvider FileSystem -Root $tempWorkDir.FullName -Scope Global| Out-Null
-        $drivesCreated += $mTempDrive
-
-        [string]$mappedSourcePath = ('{0}:\' -f $srcdrive)
-        [string]$mappedTempWorkDir = ('{0}:\' -f $mTempDrive)
         try{
             # eval properties here
-            $evaluatedProps =  InternalGet-EvaluatedPropertiesFrom -template $template -properties $properties -templateWorkDir $mappedTempWorkDir
+            $evaluatedProps =  InternalGet-EvaluatedPropertiesFrom -template $template -properties $properties -templateWorkDir $tempWorkDir.FullName
 
             $evaluatedProps['FinalDestPath'] = $destPath
 
@@ -1175,16 +1166,14 @@ function InternalNew-PWTemplate{
 
             if( ($template.SourceFiles -eq $null) -or ($template.SourceFiles.Count -le 0)){
                 # copy all of the files to the temp directory
-                'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$mappedTempWorkDir | Write-Verbose
-                # Copy-Item -Path $mappedSourcePath\* -Destination $mappedTempWorkDir -Recurse -Include * -Exclude ($template.ExcludeFiles)
+                'Copying template files from [{0}] to [{1}]' -f $template.TemplatePath,$tempWorkDir.FullName | Write-Verbose
                 Copy-ItemRobocopy -sourcePath $sourcePath -destPath $tempWorkDir.FullName -filesToSkip ($template.ExcludeFiles) -foldersToSkip ($template.ExcludeFolder) -recurse -ignoreErrors
             }
             else{
                 foreach($sf in  $template.SourceFiles){
                     $source = $sf.SourceFile;
                     
-                    # [System.IO.FileInfo]$sourceFile = (Join-Path $mappedSourcePath $source)
-                    $sourceItem = Get-Item (Join-Path $mappedSourcePath $source)
+                    $sourceItem = Get-Item (Join-Path $sourcePath $source)
                     [hashtable]$extraProps = @{
                         'ThisItemName' = ($sourceItem|Select-Object -ExpandProperty BaseName)
                         'ThisItemFileName' = ($sourceItem|Select-Object -ExpandProperty Name)
@@ -1229,7 +1218,7 @@ function InternalNew-PWTemplate{
             }
 
             if(-not [string]::IsNullOrWhiteSpace($excludeStr) ){
-                (Get-ChildItem $mappedTempWorkDir $excludeStr -Recurse -File) | Remove-Item 
+                (Get-ChildItem $tempWorkDir.FullName $excludeStr -Recurse -File) | Remove-Item 
             }
             <# ****************************************** #>
 
@@ -1245,12 +1234,15 @@ function InternalNew-PWTemplate{
 
                     # update directory names
                     $gciparams = @{
-                        Path = $tempWorkDir.FullName + '\*'
+                        Path = $tempWorkDir.FullName # + '\*'
                         Include=('*{0}*' -f $current.ReplaceKey)
+                        # Filter=('*{0}*' -f $current.ReplaceKey)
                         Recurse = $true
                         Directory=$true
                     }
 
+                    # Don't do this for directories
+                    <#
                     if( ($current.Include -ne $null) -and ($current.Include.Length -gt 0) ){
                         # 'Overriding include with [{0}]' -f ($current.Include -join ';') | Write-Host -ForegroundColor Cyan
                         $gciparams.Include = $current.Include
@@ -1261,6 +1253,7 @@ function InternalNew-PWTemplate{
                         $gciparams.Exclude = $current.Exclude
                         # $gciparams | Out-String | Write-Host -ForegroundColor Cyan
                     }
+                    #>
 
                     # (Get-ChildItem $tempWorkDir ('*{0}*' -f $current.ReplaceKey) -Recurse -Directory) |
                     (Get-ChildItem @gciparams) |
@@ -1278,6 +1271,17 @@ function InternalNew-PWTemplate{
                         }
                                           
                     # update filenames
+                    if( ($current.Include -ne $null) -and ($current.Include.Length -gt 0) ){
+                        # 'Overriding include with [{0}]' -f ($current.Include -join ';') | Write-Host -ForegroundColor Cyan
+                        $gciparams.Include = $current.Include
+                    }
+
+                    if( ($current.Exclude -ne $null) -and ($current.Exclude.Length -gt 0) ){
+                        #'Overriding Exclude with [{0}]' -f ($current.Exclude -join ';') | Write-Host -ForegroundColor Cyan
+                        $gciparams.Exclude = $current.Exclude
+                        # $gciparams | Out-String | Write-Host -ForegroundColor Cyan
+                    }
+                    
                     $gciparams['Directory']=$false
                     $gciparams['File']=$true
                     # $gciparams | Out-String | Write-Host -ForegroundColor Cyan
@@ -1311,7 +1315,7 @@ function InternalNew-PWTemplate{
                 }
 
                 $replaceArgs = @{
-                    folder = $mappedTempWorkDir
+                    folder = $tempWorkDir.FullName
                     replacements = $replacements
                     include = '*'
                     exclude = $null
@@ -1329,9 +1333,6 @@ function InternalNew-PWTemplate{
 
             # copy the final result to the destination
             Ensure-DirectoryExists -path $destPath.FullName
-            [string]$tpath = $mappedTempWorkDir
-            
-            # Copy-Item $tpath\* -Destination $destPath.FullName -Recurse -Include *
             Copy-ItemRobocopy -sourcePath $tempWorkDir.FullName -destPath $destPath.FullName -ignoreErrors -recurse
 
             if($template.AfterInstall -ne $null){
@@ -1342,10 +1343,6 @@ function InternalNew-PWTemplate{
             # delete the temp dir and ignore any errors
             if(Test-Path $tempWorkDir.FullName){
                 Remove-Item $tempWorkDir.FullName -Recurse -ErrorAction SilentlyContinue | Out-Null
-            }
-
-            if( ($drivesCreated -ne $null) -and ($drivesCreated.Length -gt 0)){
-                Remove-PSDrive -Name $drivesCreated -PSProvider FileSystem | Out-Null
             }
         }
     }

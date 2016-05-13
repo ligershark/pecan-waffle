@@ -44,7 +44,7 @@
 
                     Directory.Delete(projectFolder, true);
 
-                    PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, newFolder, TemplateName, PecanWaffleBranchName, TemplateSource, TemplateSourceBranch, properties);
+                    PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, newFolder, TemplateName, TemplateSource, TemplateSourceBranch, properties);
                     AddProjectsUnderPathToSolution(solution, newFolder, "*.*proj");
 
                 }

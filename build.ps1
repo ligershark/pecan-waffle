@@ -139,7 +139,7 @@ function SetVersion{
         $include = '*.nuspec;*.ps*1;*.ps1'
         # In case the script is in the same folder as the files you are replacing add it to the exclude list
         $exclude = "$($MyInvocation.MyCommand.Name);"
-        $exclude += ';build.ps1'
+        $exclude += '*.psd1;build.ps1'
         $replacements = @{
             "$oldversion"="$newversion"
         }
@@ -149,7 +149,7 @@ function SetVersion{
         $replacements = @{
             ($oldversion.Replace('-beta','.0'))=($newversion.Replace('-beta','.0'))
         }
-        Replace-TextInFolder -folder $folder -include '*.psd1;*.cs;*.ps1' -exclude $exclude -replacements $replacements | Write-Verbose
+        Replace-TextInFolder -folder $folder -include '*.psd1;*.cs;*.ps*1' -exclude $exclude -replacements $replacements | Write-Verbose
         'Replacement complete' | Write-Verbose
     }
 }
@@ -194,7 +194,7 @@ function Run-Tests{
             $pesterArgs.Add('-EnableExit',$true)
         }
         if( $env:PesterEnableCodeCoverage -eq $true){
-            $pesterArgs.Add('-CodeCoverage',('..\pecan-waffle.psm1','..\pecan-waffle-visualstudio.psm1'))
+            $pesterArgs.Add('-CodeCoverage',('..\pecan-waffle.psm1','..\pecan-waffle-visualstudio.psm1','..\pecan-add-template-to-vsix.ps1'))
         }
 
         $pesterResult = Invoke-Pester @pesterArgs

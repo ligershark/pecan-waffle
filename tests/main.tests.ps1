@@ -25,6 +25,180 @@ $importPecanWaffle = (Join-Path -Path $scriptDir -ChildPath 'import-pw.ps1')
 
 [System.IO.DirectoryInfo]$sourceRoot = (Join-Path $scriptDir '..\')
 
+Describe 'robocopy tests'{
+    It 'can copy files'{
+        # create a new folder, add a few files and then copy to another temp folder
+        $testname = 'robocopy01'
+        [string]$copysource = ([System.IO.DirectoryInfo](Join-Path $TestDrive "$testname\src")).FullName
+        Create-TestFileAt -path (Join-Path $copysource 'sample1.txt') -content 'sample1'
+        Create-TestFileAt -path (Join-Path $copysource 'sample2.txt') -content 'sample2'
+        Create-TestFileAt -path (Join-Path "$copysource\sub" 'sub-sample3.txt') -content 'sub-sample3'
+
+        [string]$copydest = ([System.IO.DirectoryInfo](Join-Path $TestDrive "$testname\dest")).FullName
+        Ensure-PathExists -path $copydest
+
+        Copy-ItemRobocopy -sourcePath $copysource -destPath $copydest -recurse
+
+        (Join-Path $copydest 'sample1.txt') | should exist
+        (Join-Path $copydest 'sample1.txt') | should contain 'sample1'
+        (Join-Path $copydest 'sample2.txt') | should exist
+        (Join-Path $copydest 'sample2.txt') | should contain 'sample2'
+        (Join-Path "$copydest\sub" 'sub-sample3.txt') | should exist
+        (Join-Path "$copydest\sub" 'sub-sample3.txt') | should contain 'sub-sample3'
+
+        # make sure source files were not moved/modified
+        (Join-Path $copysource 'sample1.txt') | should exist
+        (Join-Path $copysource 'sample1.txt') | should contain 'sample1'
+        (Join-Path $copysource 'sample2.txt') | should exist
+        (Join-Path $copysource 'sample2.txt') | should contain 'sample2'
+        (Join-Path "$copysource\sub" 'sub-sample3.txt') | should exist
+        (Join-Path "$copysource\sub" 'sub-sample3.txt') | should contain 'sub-sample3'
+    }
+
+    It 'can copy move files'{
+        # create a new folder, add a few files and then copy to another temp folder
+        $testname = 'robocopy02'
+        [string]$copysource = ([System.IO.DirectoryInfo](Join-Path $TestDrive "$testname\src")).FullName
+        Create-TestFileAt -path (Join-Path $copysource 'sample1.txt') -content 'sample1'
+        Create-TestFileAt -path (Join-Path $copysource 'sample2.txt') -content 'sample2'
+        Create-TestFileAt -path (Join-Path "$copysource\sub" 'sub-sample3.txt') -content 'sub-sample3'
+
+        [string]$copydest = ([System.IO.DirectoryInfo](Join-Path $TestDrive "$testname\dest")).FullName
+        Ensure-PathExists -path $copydest
+
+        Copy-ItemRobocopy -sourcePath $copysource -destPath $copydest -recurse -move
+
+        (Join-Path $copydest 'sample1.txt') | should exist
+        (Join-Path $copydest 'sample1.txt') | should contain 'sample1'
+        (Join-Path $copydest 'sample2.txt') | should exist
+        (Join-Path $copydest 'sample2.txt') | should contain 'sample2'
+        (Join-Path "$copydest\sub" 'sub-sample3.txt') | should exist
+        (Join-Path "$copydest\sub" 'sub-sample3.txt') | should contain 'sub-sample3'
+
+        # make sure source files were not moved/modified
+        (Join-Path $copysource 'sample1.txt') | should not exist
+        (Join-Path $copysource 'sample2.txt') | should not exist
+        (Join-Path "$copysource\sub" 'sub-sample3.txt') | should not exist
+    }
+
+    It 'can copy files and exclude'{
+        # create a new folder, add a few files and then copy to another temp folder
+        $testname = 'robocopy03'
+        [string]$copysource = ([System.IO.DirectoryInfo](Join-Path $TestDrive "$testname\src")).FullName
+        Create-TestFileAt -path (Join-Path $copysource 'sample1.txt') -content 'sample1'
+        Create-TestFileAt -path (Join-Path $copysource 'sample2.txt') -content 'sample2'
+        Create-TestFileAt -path (Join-Path "$copysource\sub" 'sub-sample3.txt') -content 'sub-sample3'
+
+        [string]$copydest = ([System.IO.DirectoryInfo](Join-Path $TestDrive "$testname\dest")).FullName
+        Ensure-PathExists -path $copydest
+
+        Copy-ItemRobocopy -sourcePath $copysource -destPath $copydest -recurse -filesToSkip 'sample2.txt'
+
+        (Join-Path $copydest 'sample1.txt') | should exist
+        (Join-Path $copydest 'sample1.txt') | should contain 'sample1'
+        (Join-Path $copydest 'sample2.txt') | should not exist
+        (Join-Path "$copydest\sub" 'sub-sample3.txt') | should exist
+        (Join-Path "$copydest\sub" 'sub-sample3.txt') | should contain 'sub-sample3'
+
+        # make sure source files were not moved/modified
+        (Join-Path $copysource 'sample1.txt') | should exist
+        (Join-Path $copysource 'sample1.txt') | should contain 'sample1'
+        (Join-Path $copysource 'sample2.txt') | should exist
+        (Join-Path $copysource 'sample2.txt') | should contain 'sample2'
+        (Join-Path "$copysource\sub" 'sub-sample3.txt') | should exist
+        (Join-Path "$copysource\sub" 'sub-sample3.txt') | should contain 'sub-sample3'
+    }
+
+    It 'can copy move files and exclude'{
+        # create a new folder, add a few files and then copy to another temp folder
+        $testname = 'robocopy04'
+        [string]$copysource = ([System.IO.DirectoryInfo](Join-Path $TestDrive "$testname\src")).FullName
+        Create-TestFileAt -path (Join-Path $copysource 'sample1.txt') -content 'sample1'
+        Create-TestFileAt -path (Join-Path $copysource 'sample2.txt') -content 'sample2'
+        Create-TestFileAt -path (Join-Path "$copysource\sub" 'sub-sample3.txt') -content 'sub-sample3'
+
+        [string]$copydest = ([System.IO.DirectoryInfo](Join-Path $TestDrive "$testname\dest")).FullName
+        Ensure-PathExists -path $copydest
+
+        Copy-ItemRobocopy -sourcePath $copysource -destPath $copydest -recurse -move -filesToSkip 'sample2.txt'
+
+        (Join-Path $copydest 'sample1.txt') | should exist
+        (Join-Path $copydest 'sample1.txt') | should contain 'sample1'
+        (Join-Path $copydest 'sample2.txt') | should not exist
+        (Join-Path "$copydest\sub" 'sub-sample3.txt') | should exist
+        (Join-Path "$copydest\sub" 'sub-sample3.txt') | should contain 'sub-sample3'
+
+        # make sure source files were not moved/modified
+        (Join-Path $copysource 'sample1.txt') | should not exist
+        (Join-Path $copysource 'sample2.txt') | should exist
+        (Join-Path $copysource 'sample2.txt') | should contain 'sample2'
+        (Join-Path "$copysource\sub" 'sub-sample3.txt') | should not exist
+    }
+
+    It 'can copy files and skip folder'{
+        # create a new folder, add a few files and then copy to another temp folder
+        $testname = 'robocopy05'
+        [string]$copysource = ([System.IO.DirectoryInfo](Join-Path $TestDrive "$testname\src")).FullName
+        Create-TestFileAt -path (Join-Path $copysource 'sample1.txt') -content 'sample1'
+        Create-TestFileAt -path (Join-Path $copysource 'sample2.txt') -content 'sample2'
+        Create-TestFileAt -path (Join-Path "$copysource\sub" 'sub-sample3.txt') -content 'sub-sample3'
+        Create-TestFileAt -path (Join-Path "$copysource\sub2" 'sub-sample4.txt') -content 'sub-sample4'
+
+        [string]$copydest = ([System.IO.DirectoryInfo](Join-Path $TestDrive "$testname\dest")).FullName
+        Ensure-PathExists -path $copydest
+
+        Copy-ItemRobocopy -sourcePath $copysource -destPath $copydest -recurse -foldersToSkip 'sub'
+
+        (Join-Path $copydest 'sample1.txt') | should exist
+        (Join-Path $copydest 'sample1.txt') | should contain 'sample1'
+        (Join-Path $copydest 'sample2.txt') | should exist
+        (Join-Path $copydest 'sample2.txt') | should contain 'sample2'
+        (Join-Path "$copydest\sub" 'sub-sample3.txt') | should not exist
+        (Join-Path "$copydest\sub2" 'sub-sample4.txt') | should exist
+        (Join-Path "$copydest\sub2" 'sub-sample4.txt') | should contain 'sub-sample4'
+
+        # make sure source files were not moved/modified
+        (Join-Path $copysource 'sample1.txt') | should exist
+        (Join-Path $copysource 'sample1.txt') | should contain 'sample1'
+        (Join-Path $copysource 'sample2.txt') | should exist
+        (Join-Path $copysource 'sample2.txt') | should contain 'sample2'
+        (Join-Path "$copysource\sub" 'sub-sample3.txt') | should exist
+        (Join-Path "$copysource\sub" 'sub-sample3.txt') | should contain 'sub-sample3'
+        (Join-Path "$copysource\sub2" 'sub-sample4.txt') | should exist
+        (Join-Path "$copysource\sub2" 'sub-sample4.txt') | should contain 'sub-sample4'
+    }
+
+        It 'can move files and skip folder'{
+        # create a new folder, add a few files and then copy to another temp folder
+        $testname = 'robocopy06'
+        [string]$copysource = ([System.IO.DirectoryInfo](Join-Path $TestDrive "$testname\src")).FullName
+        Create-TestFileAt -path (Join-Path $copysource 'sample1.txt') -content 'sample1'
+        Create-TestFileAt -path (Join-Path $copysource 'sample2.txt') -content 'sample2'
+        Create-TestFileAt -path (Join-Path "$copysource\sub" 'sub-sample3.txt') -content 'sub-sample3'
+        Create-TestFileAt -path (Join-Path "$copysource\sub2" 'sub-sample4.txt') -content 'sub-sample4'
+
+        [string]$copydest = ([System.IO.DirectoryInfo](Join-Path $TestDrive "$testname\dest")).FullName
+        Ensure-PathExists -path $copydest
+
+        Copy-ItemRobocopy -sourcePath $copysource -destPath $copydest -recurse -move -foldersToSkip 'sub'
+
+        (Join-Path $copydest 'sample1.txt') | should exist
+        (Join-Path $copydest 'sample1.txt') | should contain 'sample1'
+        (Join-Path $copydest 'sample2.txt') | should exist
+        (Join-Path $copydest 'sample2.txt') | should contain 'sample2'
+        (Join-Path "$copydest\sub" 'sub-sample3.txt') | should not exist
+        (Join-Path "$copydest\sub2" 'sub-sample4.txt') | should exist
+        (Join-Path "$copydest\sub2" 'sub-sample4.txt') | should contain 'sub-sample4'
+
+        # make sure source files were not moved/modified
+        (Join-Path $copysource 'sample1.txt') | should not exist
+        (Join-Path $copysource 'sample2.txt') | should not exist
+        (Join-Path "$copysource\sub" 'sub-sample3.txt') | should exist
+        (Join-Path "$copysource\sub" 'sub-sample3.txt') | should contain 'sub-sample3'
+        (Join-Path "$copysource\sub2" 'sub-sample4.txt') | should not exist
+    }
+}
+
 Describe 'replace tests'{
     . $importPecanWaffle
     It 'basic replace test'{
