@@ -38,7 +38,7 @@
         
     <PropertyGroup>
       <pwScriptPath Condition=" '$(pwScriptPath)'=='' ">@(pwScript->'%(FullPath)')</pwScriptPath>
-      <psCommand>$(PowerShellExe) -noprofile -NonInteractive -executionpolicy Unrestricted -command "&amp; { $(pwScriptPath) '$(pwInstallBranch)' '$(pwTemplateRoot)' '$(pwOutputDirectory)' '$(pwTemplateZipRelDir)' $(pwTemplateExtraArgs)} "</psCommand>
+      <psCommand>$(PowerShellExe) -noprofile -NonInteractive -executionpolicy Unrestricted -command "&amp; '$(pwScriptPath)' '$(pwInstallBranch)' '$(pwTemplateRoot)' '$(pwOutputDirectory)' '$(pwTemplateZipRelDir)' $(pwTemplateExtraArgs)"</psCommand>
     </PropertyGroup>
     <Error Text="pwScriptPath not found at [$(pwScriptPath)]" Condition=" !Exists( '$(pwScriptPath)' ) " />
     <Message Text="Adding template files to vsix with command:$(psCommand)" Importance="low" />
