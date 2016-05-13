@@ -5,7 +5,7 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">  
   <metadata>
     <id>pecan-waffle</id>
-    <version>0.0.20-beta</version>
+    <version>0.0.21-beta</version>
     <authors>Sayed Ibrahim Hashimi</authors>
     <description>
       Package containing pecan-waffle
