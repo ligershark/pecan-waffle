@@ -25,8 +25,4 @@ $DTE.ExecuteCommand("File.SaveAll")
 
 UpdateVsixManifest -project $project
 
-[string]$propsfilepath = (join-path (Split-Path $projFile -Parent) 'Properties\pecan-waffle-settings.props')
-if(Test-Path $propsfilepath){
-  $DTE.ExecuteCommand("File.OpenFile", $propsfilepath)
-}
-"    pecan-waffle has been installed into project [{0}]" -f $project.FullName| Write-Host -ForegroundColor DarkGreen
+"    pecan-waffle has been installed into project [{0}]. Check Properties\pecan-waffle-settings.props to ensure values are correct." -f $project.FullName| Write-Host -ForegroundColor DarkGreen
