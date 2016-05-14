@@ -8,6 +8,10 @@ environment:
 build_script:
   - ps: .\appveyor.ps1
 
+nuget:
+  account_feed: true
+  project_feed: true
+
 artifacts:
   - path: OutputRoot\vs\PecanWaffle*
   - path: 'OutputRoot\*.ps*1'
