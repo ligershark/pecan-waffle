@@ -160,7 +160,7 @@
             }
 
             string slndir;
-            if (replacementsDictionary.TryGetValue("$solutiondirectory$", out slndir)) {
+            if (replacementsDictionary.TryGetValue("$destinationdirectory$", out slndir)) {
                 SolutionDirectory = slndir;
             }
 
