@@ -278,6 +278,7 @@ function CopyStaticFilesToOutputDir{
         }
     }
 }
+
 function Build-NuGetPackage{
     [cmdletbinding()]
     param()
@@ -311,6 +312,38 @@ function Build-NuGetPackage{
         }
     }
 }
+
+function Push-NugetPackageToFeed{
+    [cmdletbinding()]
+    param()
+    process{
+        if( (IsRunningInAppVeyor) ){
+            if(-not ([string]::IsNullOrWhiteSpace($outputPathNuget)) -and (Test-Path $outputPathNuget)){
+                $pkgstopush = (Get-ChildItem $outputPathNuget *.nupkg -Recurse -File)
+                if($pkgstopush -ne $null){
+                    foreach($pkg in $pkgstopush.FullName){
+                        Push-AppveyorArtifact $pkg
+                    }
+                }
+            }
+        }
+    }
+}
+
+function IsRunningInAppVeyor(){
+    [cmdletbinding()]
+    param()
+    process{
+        $pushartifactcommand = (get-command 'Push-AppveyorArtifact' -ErrorAction SilentlyContinue)
+        if($pushartifactcommand -ne $null){
+            $true
+        }
+        else{
+            $false
+        }
+    }
+}
+
 function Copy-PackagesToLocalNuGetFolder{
     [cmdletbinding()]
     param(
@@ -421,6 +454,7 @@ function FullBuild{
             Run-Tests -testDirectory (Join-Path $scriptDir 'tests')
         }
 
+        Push-NugetPackageToFeed
 
         if($publishToNuget){
             (Get-ChildItem -Path ($outputPathNuget) 'pecan-*.nupkg').FullName | PublishNuGetPackage -nugetApiKey $nugetApiKey
