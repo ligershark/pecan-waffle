@@ -99,15 +99,14 @@
             Solution = (Solution4)Dte.Solution;
             if (Solution != null) {
                 string projectFolder = RemovePlaceholderProjectCreatedByVs(ProjectName);
+                Dte.ExecuteCommand(@"File.SaveAll");
                 var properties = new Hashtable();
 
                 string slnRoot = SolutionDirectory;
-                if (!string.IsNullOrEmpty(SolutionDirectory)) {
-                    slnRoot = SolutionDirectory;
+                if (!string.IsNullOrWhiteSpace(Solution.FullName)) {
+                    slnRoot = new FileInfo(Solution.FullName).DirectoryName;
                 }
-                if (string.IsNullOrEmpty(slnRoot) && !string.IsNullOrWhiteSpace(Solution.FileName)) {
-                    slnRoot = new FileInfo(Solution.FileName).DirectoryName;
-                }
+
                 if (string.IsNullOrWhiteSpace(slnRoot)) {
                     throw new ApplicationException("solution is null");
                 }
@@ -125,7 +124,7 @@
                 }
 
                 string newFolder = new DirectoryInfo(projectFolder).Parent.FullName;
-                Directory.Delete(projectFolder, true);
+                // Directory.Delete(projectFolder, true);
 
                 PowerShellInvoker.Instance.RunPwCreateProjectScript(ProjectName, projFolderInfo.FullName, TemplateName, TemplateSource, TemplateSourceBranch, properties);
                 // TODO: allow override of pattern via custom parameter
@@ -234,7 +233,27 @@
                     if (File.Exists(removedProjPath)) {
                         File.Delete(removedProjPath);
                     }
+
                     projectFolder = new FileInfo(removedProjPath).Directory.FullName;
+                    string binfolder = Path.Combine(projectFolder, "bin");
+                    if (Directory.Exists(binfolder)) {
+                        try {
+                            Directory.Delete(binfolder, true);
+                        }
+                        catch {
+                            // ignore
+                        }
+                    }
+                    string objfolder = Path.Combine(projectFolder, "obj");
+                    if (Directory.Exists(objfolder)) {
+                        try {
+                            Directory.Delete(objfolder, true);
+                        }
+                        catch {
+                            // ignore
+                        }
+                    }
+                    
                     foundProjToRemove = true;
                     removedProject = proj;
                     break;
