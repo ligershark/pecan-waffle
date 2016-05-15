@@ -317,14 +317,28 @@ function Push-NugetPackageToFeed{
     [cmdletbinding()]
     param()
     process{
+        'started Push-NugetPackageToFeed' | Write-Output
         if( (IsRunningInAppVeyor) ){
+            'in appveyor' | Write-Output
             if(-not ([string]::IsNullOrWhiteSpace($outputPathNuget)) -and (Test-Path $outputPathNuget)){
                 $pkgstopush = (Get-ChildItem $outputPathNuget *.nupkg -Recurse -File)
+                
+                '------'|Write-Output
+                $pkgstopush|out-string|write-output
+                '------'|Write-Output
+                
                 if($pkgstopush -ne $null){
                     foreach($pkg in $pkgstopush.FullName){
+                        'pushing pkg [{0}]' -f $pkg | Write-Output
                         Push-AppveyorArtifact $pkg
                     }
                 }
+                else{
+                    'pkgstopush is null'|Write-Output
+                }
+            }
+            else{
+                'ouptut path is null'|Write-Output
             }
         }
     }
