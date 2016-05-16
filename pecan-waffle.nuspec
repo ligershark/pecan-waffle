@@ -26,6 +26,8 @@
     </frameworkAssemblies> -->
   </metadata>
   <files>
+      <file src="pecan-waffle.props" target="build" />
+
       <file src="vs\PecanWaffle.dll" target="lib" />
       <file src="vs\PecanWaffle.pdb" target="lib" />
       <file src="pecan-waffle.psm1" target="tools" />

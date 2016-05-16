@@ -1,10 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Target Name="IncludePecanWaffleInVsix" BeforeTargets="CoreCompile" Condition=" '$(IncludePecanWaffleNuGetPkgInVsix)'=='true' ">
+   <Error Text="'Property 'PwPkgsDir' is not defined. Did you install the pecan-waffle nuget packaage?" Condition=" '$(PwPkgsDir)'=='' " />
+
     <ItemGroup>
-      <pwNuGetPackage Include="$(pwPackagesDir)pecan-waffle.*\pecan-waffle.*.nupkg"/>
-      <frNuGetPackage Include="$(pwPackagesDir)file-replacer*\file-replacer*.nupkg"/>
-      <npNugetPackage Include="$(pwPackagesDir)nuget-powershell*\nuget-powershell*.nupkg"/>
+      <pwNuGetPackage Include="$(PwPkgsDir)pecan-waffle.*\pecan-waffle.*.nupkg"/>
+      <frNuGetPackage Include="$(PwPkgsDir)file-replacer*\file-replacer*.nupkg"/>
+      <npNugetPackage Include="$(PwPkgsDir)nuget-powershell*\nuget-powershell*.nupkg"/>
       
       <_pkgsToIncludeInVsix Include="@(pwNuGetPackage)" />
       <_pkgsToIncludeInVsix Include="@(frNuGetPackage)" />
@@ -31,16 +33,13 @@
     powershell.exe –command "& { C:\Data\mycode\pecan-waffle\pecan-add-template-to-vsix.ps1 'dev' 'aspnet5-webapi' 
     'C:\Data\mycode\JumpStreetMobile\JumpStreetMobileVs\templates\pw-templateinfo.ps1' 
     'C:\Data\mycode\JumpStreetMobile\JumpStreetMobileVs\bin\Debug\JumpStreetMobile.vsix' 'templates' -Verbose }"
-    -->    
-    <ItemGroup>
-      <pwScript Include="$(MSBuildProjectDirectory)\..\packages\pecan-waffle.*\**\pecan-add-template-to-vsix.ps1" />
-    </ItemGroup>
-        
+    -->
+    <Error Text="'Property 'PwAddTemplateScriptPath' is not defined. Did you install the pecan-waffle nuget packaage?" Condition=" '$(PwAddTemplateScriptPath)'=='' " />
+    <Error Text="pecan-waffle script not found at [$(PwAddTemplateScriptPath)]" Condition=" !Exists('$(PwAddTemplateScriptPath)')" />
     <PropertyGroup>
-      <pwScriptPath Condition=" '$(pwScriptPath)'=='' ">@(pwScript->'%(FullPath)')</pwScriptPath>
-      <psCommand>$(PowerShellExe) -noprofile -NonInteractive -executionpolicy Unrestricted -command "&amp; '$(pwScriptPath)' '$(pwInstallBranch)' '$(pwTemplateRoot)' '$(pwOutputDirectory)' '$(pwTemplateZipRelDir)' $(pwTemplateExtraArgs)"</psCommand>
+      <psCommand>$(PowerShellExe) -noprofile -NonInteractive -executionpolicy Unrestricted -command "&amp; '$(PwAddTemplateScriptPath)' '$(pwInstallBranch)' '$(pwTemplateRoot)' '$(pwOutputDirectory)' '$(pwTemplateZipRelDir)' $(pwTemplateExtraArgs)"</psCommand>
     </PropertyGroup>
-    <Error Text="pwScriptPath not found at [$(pwScriptPath)]" Condition=" !Exists( '$(pwScriptPath)' ) " />
+
     <Message Text="Adding template files to vsix with command:$(psCommand)" Importance="low" />
 
     <Exec Command="$(psCommand)" />
@@ -55,5 +54,14 @@
     </ItemGroup>
     
     <Message Text="VSIXSourceItem:%0a%0d@(VSIXSourceItem,'%0a%0d')" Importance="low" />
+  </Target>
+
+  <Target Name="CleanTemplatesTemp" AfterTargets="Clean" Condition=" '$(pwOutputDirectory)' != '' and Exists('$(pwOutputDirectory)')">
+    <Message Text="Cleaning templates temp folder at [$(pwOutputDirectory)]" />
+    <ItemGroup>
+      <_oldtemplatefiles Include="$(pwOutputDirectory)\**\*"/>
+    </ItemGroup>
+    <Delete Files="@(_oldtemplatefiles)" />
+    <RemoveDir Directories="$(pwOutputDirectory)" ContinueOnError ="true" />
   </Target>
 </Project>
