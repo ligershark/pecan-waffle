@@ -99,7 +99,12 @@
             Solution = (Solution4)Dte.Solution;
             if (Solution != null) {
                 string projectFolder = RemovePlaceholderProjectCreatedByVs(ProjectName);
-                Dte.ExecuteCommand(@"File.SaveAll");
+                //try {
+                //    Dte.ExecuteCommand(@"File.SaveAll");
+                //}
+                //catch(Exception ex) {
+                //    MessageBox.Show(ex.ToString());
+                //}
                 var properties = new Hashtable();
 
                 string slnRoot = SolutionDirectory;
@@ -318,11 +323,20 @@
 
             bool hadErrors = false;
             StringBuilder errorsb = new StringBuilder();
-            foreach (string path in projFiles) {
-                // TODO: Check to see if the project is already added to the solution
+
+            var slnProjects = GetProjects();
+            List<string> slnProjectNames = new List<string>();
+            if(slnProjects != null) {
+                slnProjectNames = (from p in slnProjects
+                                   select p.Name.ToLowerInvariant()).ToList();
+            }
+
+            foreach (string path in projFiles) {                
                 try {
-                    Project projectAdded = solution.AddFromFile(path, false);
-                    // ProjectHelper.UpdatePackagesPathInProject(projectAdded,GetSolution());
+                    var pathInfo = new FileInfo(path);
+                    if (!slnProjectNames.Contains(pathInfo.Name.ToLowerInvariant())) {
+                        Project projectAdded = solution.AddFromFile(path, false);
+                    }
                 }
                 catch (Exception ex) {
                     errorsb.AppendLine(ex.ToString());
@@ -333,6 +347,5 @@
                 MessageBox.Show(errorsb.ToString());
             }
         }
-
     }
 }
