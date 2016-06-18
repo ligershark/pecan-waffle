@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <PowerShellExe Condition=" '$(PowerShellExe)'=='' ">$(WINDIR)\System32\WindowsPowerShell\v1.0\powershell.exe</PowerShellExe>
+    <PwAddTemplateScriptPath Condition=" '$(PwAddTemplateScriptPath)' =='' ">$([System.IO.Path]::GetFullPath( $(MSBuildThisFileDirectory)..\tools\pecan-add-template-to-vsix.ps1) )</PwAddTemplateScriptPath>
+    <PwPkgsDir Condition=" '$(PwPkgsDir)'=='' ">$([System.IO.Path]::GetFullPath( $(MSBuildThisFileDirectory)..\..\ ) )</PwPkgsDir>
+  </PropertyGroup>
+</Project>

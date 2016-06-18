@@ -1,5 +1,6 @@
 ﻿[cmdletbinding()]
-param(    
+param(
+    # TODO: Remove this parameter
     [string]$pwInstallBranch = 'dev',
 
     [ValidateNotNullOrEmpty()]
@@ -25,8 +26,6 @@ function InternalGet-ScriptDirectory{
     split-path (((Get-Variable MyInvocation -Scope 1).Value).MyCommand.Path)
 }
 $scriptdir = (InternalGet-ScriptDirectory)
-
-if([string]::IsNullOrWhiteSpace($pwInstallBranch)){ $pwInstallBranch = 'master' }
 
 # parameters declared here
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Unrestricted | out-null
